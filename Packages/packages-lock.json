@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.ecaty.ai-agent": {
+      "version": "file:com.ecaty.ai-agent",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.ecaty.flecs-unity": {
       "version": "file:com.ecaty.flecs-unity",
       "depth": 0,

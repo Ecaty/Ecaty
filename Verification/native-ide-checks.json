@@ -1,0 +1,15 @@
+{
+  "nativeSolution": "Native/build-vs/Ecaty.slnx",
+  "configuration": "Release",
+  "compiler": "MSVC 19.51.36256.0",
+  "cmake": "4.3.1-msvc1",
+  "passed": true,
+  "generator": "Visual Studio 18 2026",
+  "checks": [
+    "native CMake/Visual Studio solution generation and MSVC build",
+    "native ABI, Script, queries and REST checks with the MSVC plugin",
+    "Unity C# project generation includes embedded AI package",
+    "Windows CMake preset parses",
+    "Windows player build, advancing frames and live REST checks"
+  ]
+}

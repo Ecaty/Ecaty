@@ -29,10 +29,6 @@ if ($Compiler -eq 'GCC' -or ($Compiler -eq 'Auto' -and (Get-Command gcc -ErrorAc
       -o (Join-Path $output 'flecs_unity.dll') -lws2_32 -ldbghelp
     if ($LASTEXITCODE -ne 0) { throw "GCC failed: $LASTEXITCODE" }
 } else {
-    $build=Join-Path $nativeRoot 'build'
-    & cmake -S $nativeRoot -B $build -A x64
-    if ($LASTEXITCODE -ne 0) { throw 'CMake configuration failed. Use an x64 MSVC developer shell.' }
-    & cmake --build $build --config Release
-    if ($LASTEXITCODE -ne 0) { throw 'Native build failed.' }
+    & (Join-Path $nativeRoot 'Generate-Solution.ps1') -Build -Configuration Release
 }
 Write-Output "Built: $output/flecs_unity.dll"

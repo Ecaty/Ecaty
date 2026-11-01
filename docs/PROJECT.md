@@ -15,6 +15,7 @@ The intended product is an interactive experience, not a traditional user-facing
 - One native Flecs world per session. Native C ABI exports `fu_*`; Unity's `FlecsSession` owns the handle.
 - AI's intended loop: inspect via queries/reflection, create/update via Flecs Script, observe results and iterate. The AI provider integration is not part of the initial ECS bridge.
 - Minimal product UI: a small conversation area, text input/send and microphone. UI Toolkit is the chosen starting point; authentication uses a system browser. No embedded WebView is required for this interface.
+- AI-agent UI and infrastructure must be reusable with different services through adapters; no provider-specific protocol or credentials in the shared view, and no Flecs dependency in the generic AI package. The app supplies instructions and world callbacks.
 - First provider: ChatGPT, with users authorizing their own eligible account. See `AI-INTEGRATION.md`; account access is not equivalent to unlimited/free inference.
 - Local development with the Unity Editor is the primary workflow. Public GitHub repositories preserve source/history and allow other accounts and contributors to resume.
 - Commercial direction remains exploratory: low-cost/free local experience; hosted multiplayer/storage could be paid later. No business model has been proven.
@@ -23,12 +24,13 @@ The intended product is an interactive experience, not a traditional user-facing
 
 | Repository | Checkout location | Owns |
 |---|---|---|
-| https://github.com/Ecaty/Ecaty | Root | Unity app, assets, product UI, composition/build scripts, canonical project context |
+| https://github.com/Ecaty/Ecaty | Root | Unity app, assets, host/tool wiring, composition/build scripts, canonical project context |
 | https://github.com/Ecaty/flecs-native | `Native/Core` | Shared C++ components/reflection, world lifetime, native C ABI, REST/snapshot bridge, pinned Flecs sources |
 | https://github.com/Ecaty/ecaty-native | `Native/App` | Application-specific components and systems; initially Spin |
 | https://github.com/Ecaty/flecs-unity | `Packages/com.ecaty.flecs-unity` | Reusable C# lifecycle, Unity views, configurable bootstrap, .flecs importer, Editor cleanup |
+| https://github.com/Ecaty/ai-agent-unity | `Packages/com.ecaty.ai-agent` | Reusable AI chat UI, provider/authentication/tool/speech contracts; future adapters and orchestration |
 
-The three children are Git submodules pinned to commits. The C# child is an embedded Unity package, not a second copy in Assets. Core and App are linked into one `flecs_unity.dll`; do not load separate copies of Flecs for each module. Flecs is vendored as the two matching tagged distribution files plus its license to keep the dependency small and reproducible.
+The four children are Git submodules pinned to commits. The two C# children are embedded Unity packages, not second copies in Assets. Core and App are linked into one `flecs_unity.dll`; do not load separate copies of Flecs for each module. Flecs is vendored as the two matching tagged distribution files plus its license to keep the dependency small and reproducible.
 
 ## Execution and authority
 

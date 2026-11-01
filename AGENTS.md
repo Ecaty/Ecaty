@@ -4,8 +4,9 @@ Read `docs/PROJECT.md`, then `docs/DEVELOPMENT.md`, then `docs/STATUS.md` before
 
 - Flecs in native C++ owns the application's runtime entities, data and behavior. Unity presents the world. Do not substitute a second C# ECS.
 - Preserve the stable C ABI between native code and Unity. Never pass C++ objects or owned strings directly to C#.
-- Keep shared native code in `Native/Core`, application systems in `Native/App`, shared Unity adapters in `Packages/com.ecaty.flecs-unity`, and product assets/UI in `Assets/Ecaty`.
+- Keep shared native code in `Native/Core`, application systems in `Native/App`, shared Unity adapters in `Packages/com.ecaty.flecs-unity`, all reusable AI-agent/UI/provider code in `Packages/com.ecaty.ai-agent`, and product assets/tool wiring in `Assets/Ecaty`.
 - Inspect Git status in the parent and submodules; preserve unrelated changes, Unity GUIDs and unsaved scenes. Target this project's Editor explicitly with Unity CLI. Never drive another Unity project or start a second Editor on this folder.
+- AI chat UI and provider/authentication/tool/speech abstractions must remain reusable across services and Unity applications. Shared AI code must not depend on Flecs; the application supplies world tools and instructions. Each service requires a supported adapter; do not promise universal account/subscription access.
 - User-facing UI should remain minimal: conversation, text input/send and a microphone. Technical diagnostics belong in developer tools. Do not turn the product into a scene editor.
 - AI inspects with Flecs queries and alters the world with Flecs Script. New compiled capabilities require native systems/adapters; do not promise arbitrary Script creates arbitrary new algorithms.
 - Do not add Jolt, networking, scanning or another provider without an agreed task. They are not implemented yet.

@@ -15,6 +15,12 @@ OpenAI documents Sign in with ChatGPT for local personal/open-source projects an
 
 Use the official flow and revisit its current requirements when implementing. Do not reuse Codex/ChatGPT's existing credentials from disk, intercept web sessions or infer that identity-only login grants model use.
 
+## Package boundary
+
+All shared AI-agent UI, future provider/authentication clients and tool/conversation orchestration live in the public `Ecaty/ai-agent-unity` repository, embedded at `Packages/com.ecaty.ai-agent`. The first package version provides UI Toolkit assets, disposable view bindings and `IAgentProvider`, `IAgentAuthenticator`, `IAgentTool`, `ISpeechToText` contracts. It has no dependency on Flecs, native libraries or provider SDKs.
+
+Ecaty supplies product instructions and Flecs world callbacks. Providers implement their own supported protocols and authentication; the reusable chat view is unchanged when a provider is replaced. Do not confuse a common interface with universal provider capabilities or subscription access. Do not introduce a fake runtime provider to imply ChatGPT works already.
+
 ## Planned Windows implementation
 
 1. UI Toolkit conversation and input; Continue with ChatGPT opens the system browser.
@@ -30,4 +36,4 @@ The checked ChatGPT-plan preview does **not** support audio/video input or the t
 
 ## Current boundary
 
-No sign-in button, OAuth implementation, model calls, chat UI, speech processing or production MCP server exists yet. Native REST/Explorer validates the ECS bridge but is not a secure product AI endpoint. A future tool adapter may call the same native operations locally; a remote connector would require a separately designed authenticated transport.
+Reusable chat UI assets/bindings and provider/tool/speech contracts exist in the package, but are not mounted in the app. No sign-in UI, OAuth implementation, model calls, speech processing or production MCP server exists yet. Native REST/Explorer validates the ECS bridge but is not a secure product AI endpoint. A future tool adapter may call the same native operations locally; a remote connector would require a separately designed authenticated transport.

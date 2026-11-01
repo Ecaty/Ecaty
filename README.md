@@ -9,4 +9,6 @@ An exploratory interactive creation app: users give life to their creations with
 
 Start a new AI-assisted work session by asking it to read [AGENTS.md](AGENTS.md). Architecture and product intent: [PROJECT](docs/PROJECT.md). Setup/build/tests: [DEVELOPMENT](docs/DEVELOPMENT.md). Completed work and next tasks: [STATUS](docs/STATUS.md).
 
-ChatGPT sign-in, chat UI, voice, scanning, physics and multiplayer are **not implemented** by this foundation.
+The reusable [AI-agent package](https://github.com/Ecaty/ai-agent-unity) contains minimal chat UI assets and provider/tool/speech interfaces. It is not mounted in the app yet. ChatGPT sign-in/inference, speech, scanning, physics and multiplayer are **not implemented**.
+
+Use Visual Studio for Unity C# and native C++: open the `Native` folder as a CMake project, or run `Native/Generate-Solution.ps1` for an optional generated native solution. See DEVELOPMENT for the exact workflow.

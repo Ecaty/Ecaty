@@ -22,12 +22,30 @@ The official Unity CLI and its `com.unity.pipeline` package provide the live Edi
 | Configurable shared startup | `Packages/com.ecaty.flecs-unity/Runtime/FlecsBootstrap.cs` |
 | ChatGPT integration plan | `docs/AI-INTEGRATION.md` |
 
+## Visual Studio and instruction discovery
+
+Codex discovers the project's `AGENTS.md` when launched in the Ecaty checkout, and that file instructs it to read the related documents. A normal web chat needs the repository context supplied; do not assume every AI product discovers coding instructions. The in-app agent receives its runtime capabilities/tools explicitly rather than reading developer AGENTS files.
+
+Use the same Visual Studio installation for both languages. Unity generates the C# solution; open it as usual. For C++, use File > Open > Folder and select `Native`; Visual Studio reads CMakeLists/CMakePresets and supplies native IntelliSense/build/debug tools. VS Code is optional. If embedded package projects are missing, enable Embedded packages in Unity Preferences > External Tools and regenerate project files; the current setup includes `Ecaty.Agents.csproj` and `Ecaty.Agents.Editor.csproj`.
+
+Install Visual Studio's Desktop development with C++ workload including C++ CMake tools for Windows. The checked machine has Visual Studio 2026 (18) and bundled CMake 4.3.1. `Native/CMakePresets.json` supplies the Windows MSVC configuration for Visual Studio's folder workflow.
+
+If you prefer a traditional native solution, run `./Native/Generate-Solution.ps1`. It detects Visual Studio and uses its bundled CMake, generates `Native/build-vs/Ecaty.sln` (or the generator's .slnx), and leaves generated project files ignored. `./Native/Generate-Solution.ps1 -Build` also builds Release. Do not hand-maintain or merge this generated native solution into Unity's generated C# solution. Close Unity/player before replacing their loaded native plugin.
+
+## AI package
+
+`Packages/com.ecaty.ai-agent` is the `Ecaty/ai-agent-unity` submodule. Keep generic chat UI, agent/provider/authentication/speech contracts and future provider adapters/orchestration there. The Ecaty host supplies its Flecs tools through `IAgentTool` callbacks; marshal native/Unity work to the owning thread. The shared AI package has no Flecs/Unity-bridge dependency.
+
+The initial package provides a UXML/USS chat view, disposable input bindings, request/message types and provider/tool/authentication/speech interfaces. The view emits input events and displays literal text; it does not choose a provider, call models or own credentials. It remains unmounted until a real provider/session is wired. Different provider protocols, entitlements and account flows require adapters.
+
+In the Editor, `Ecaty.Agents.Editor.AgentPackageVerification.RunAll()` validates UXML import, disconnected/empty/busy submission rules, optional microphone state, literal model text and disposal. This is not a visual or live-provider test.
+
 ## Native rebuild
 
 Close the Ecaty Editor/player before replacing a loaded native DLL. A stopped Play session may still leave the native library loaded by Unity.
 
 - MinGW-w64 gcc + g++: `./Native/Build.ps1 -Compiler GCC`
-- MSVC with CMake: `./Native/Build.ps1 -Compiler MSVC`
+- MSVC with the detected Visual Studio/bundled CMake: `./Native/Build.ps1 -Compiler MSVC`
 - Direct CMake: `cmake -S Native -B Native/build`, then `cmake --build Native/build --config Release`.
 
 The output is `Assets/Plugins/Ecaty/x86_64/flecs_unity.dll`. The root composes shared Core with application App. Keep ABI version/layout synchronized with C# when changing the boundary. No C++ classes or STL strings cross it. Owned UTF-8 results are released through `fu_free`.

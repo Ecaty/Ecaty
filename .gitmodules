@@ -7,3 +7,6 @@
 [submodule "Packages/com.ecaty.flecs-unity"]
 	path = Packages/com.ecaty.flecs-unity
 	url = https://github.com/Ecaty/flecs-unity.git
+[submodule "Packages/com.ecaty.ai-agent"]
+	path = Packages/com.ecaty.ai-agent
+	url = https://github.com/Ecaty/ai-agent-unity.git

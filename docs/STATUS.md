@@ -6,10 +6,11 @@ Updated: 2026-11-01. Read this after `PROJECT.md` and `DEVELOPMENT.md`.
 
 - Separate Unity 6000.4.10f1 Windows project, independent of Krebi/Quantum.
 - Shared native runtime in `Native/Core`, application Spin system in `Native/App`, reusable embedded Unity package in `Packages/com.ecaty.flecs-unity`.
-- Public repositories: Ecaty/Ecaty, Ecaty/flecs-native, Ecaty/ecaty-native and Ecaty/flecs-unity. The parent pins the child commits with Git submodules.
+- Public repositories: Ecaty/Ecaty, Ecaty/flecs-native, Ecaty/ecaty-native, Ecaty/flecs-unity and Ecaty/ai-agent-unity. The parent pins the child commits with Git submodules.
 - One native plugin combines Core, the application module and matching upstream Flecs v4.1.6 sources. Windows x64 plugin included through Git LFS.
 - Reusable lifecycle/bootstrap, query/Script C ABI, runtime .flecs importer and Unity presentation. Application-specific startup, camera and sample content stay in the app.
-- The developer OnGUI panel has been removed from the shared runtime. Product chat UI has not been added yet.
+- The developer OnGUI panel has been removed from the shared runtime. A separate provider-neutral AI package now contains reusable chat assets/bindings and provider/authentication/tool/speech contracts; the app does not mount it until a real provider/session is wired.
+- Native Visual Studio workflow now has a Windows MSVC CMake preset and optional generated-solution/build helper; Unity continues generating its separate C# solution.
 - Versioned AGENTS/project/development/status/provider notes enable a new chat or account to continue from the repository.
 
 ## Verification completed in Ecaty
@@ -23,11 +24,15 @@ Updated: 2026-11-01. Read this after `PROJECT.md` and `DEVELOPMENT.md`.
 
 Reports: `Verification/native-checks.json`, `unity-checks.json`, `player-checks.json`, `player-rest-checks.json`.
 
-These are programmatic/object-state checks, not a visual review. MSVC/CMake, mobile, XR, IL2CPP and browser targets are not verified. The code includes build support for CMake/MSVC, but that is not a pass claim.
+Additional verification: native Visual Studio 2026/CMake 4.3.1 build with MSVC 19.51 passed the same native checks and live Unity bridge checks. The Windows player was rebuilt with that plugin. The separate AI-package check verifies UXML import, input routing, disconnected/empty/busy behavior, optional dictation availability, literal text and disposal. CMake preset parsing and Unity C# solution generation (including the embedded AI package) were also checked.
+
+Additional reports: `Verification/ai-package-checks.json` and `Verification/native-ide-checks.json`. The generated native solution is `Native/build-vs/Ecaty.slnx`; regenerate it using the committed helper rather than committing generated project files.
+
+These are programmatic/object-state checks, not a visual review or live AI-service test. Mobile, XR, IL2CPP and browser targets remain unverified.
 
 ## Next concrete task
 
-Implement the minimal UI Toolkit chat and official ChatGPT account flow in `docs/AI-INTEGRATION.md`. Start with text and a narrow tool loop: inspect schema/query, apply Script, inspect the result. Verify account eligibility and granted inference scopes. Keep credentials protected outside the project.
+Implement the official ChatGPT provider/account flow and connect the existing minimal chat view inside `Packages/com.ecaty.ai-agent`, following `docs/AI-INTEGRATION.md`. Keep the view and generic orchestration reusable with other service adapters. Start with text and a narrow tool loop: inspect schema/query, apply Script, inspect the result. Verify account eligibility and granted inference scopes. Keep credentials protected outside the project.
 
 The documented ChatGPT-plan preview does not supply audio input/transcription. Select a separate supported dictation implementation before enabling the microphone; no speech engine is installed yet.
 
