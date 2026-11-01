@@ -2,7 +2,7 @@
 
 ## Start or resume
 
-Clone recursively, or run `git submodule update --init --recursive` in an existing clone. Install Git LFS for the Unity project's binary assets. Use Unity 6000.4.10f1 on Windows x64 for the verified baseline.
+Clone recursively, or run `git submodule update --init --recursive` in an existing clone. Install Git LFS for the Unity project's binary assets. Use Unity 6000.6.7f1 on Windows x64 for the verified baseline.
 
 Open the **Ecaty checkout** in Codex and Unity. Read root `AGENTS.md`, `PROJECT.md` and `STATUS.md`. Inspect parent and child Git status before editing. The development machine originally used `A:/Projects/Ecaty`, but the code and build scripts must not depend on that location or a particular user's account.
 
@@ -56,7 +56,7 @@ MinGW links compiler/C++ support statically. Shared component types remain engin
 
 Press Play. In Explorer on localhost:27750, change `scene.Cube`'s `Spin.y` from 40 to 80. The C++ Spin system rotates it twice as fast on subsequent ticks; Unity presents the updated Rotation. To keep the change, edit the corresponding value in `EcatyWorld.flecs`. No native compilation is needed for that value change.
 
-Change `scene.Greeting`'s `Label.text` to update its Unity TextMesh. To change the spinning algorithm, edit `Native/App/src/Application.cpp`, close Unity, rebuild the plugin, reopen and Play. A completely new presentation feature requires its C# adapter as well as native data/systems.
+Create a label at runtime with `Caption { Position: {0,2,0} Label: {text: "Your caption"} }`, then edit `Caption` with Script. No greeting label is included in the initial scene. To change the spinning algorithm, edit `Native/App/src/Application.cpp`, close Unity, rebuild the plugin, reopen and Play. A completely new presentation feature requires its C# adapter as well as native data/systems.
 
 ## Verification
 

@@ -97,7 +97,8 @@ try:
     demo = (ROOT / "Assets/Ecaty/Resources/EcatyWorld.flecs").read_bytes()
     assert managed(w, b"HelloWorld", demo) == 0, error(w)
     a = views(w)
-    assert len(a) == 4, len(a)
+    assert len(a) == 3, len(a)
+    assert not any(v.has_label for v in a), "Initial world must not contain a greeting"
     assert len([v for v in a if v.primitive >= 0]) == 2
     checks.append("ABI layout, reflected components, managed scene, prefab instantiation")
     cube = next(v for v in a if v.primitive == 0)
@@ -113,10 +114,12 @@ try:
     cube_after = next(v for v in views(w) if v.entity == cube.entity)
     assert cube_after.ry > cube.ry + 1
     checks.append("native systems progress and ChildOf hierarchy")
-    greeting = next(v for v in a if v.has_label)
-    assert text_value(label(w, greeting.entity)) == "Hello Ecaty!"
-    run(w, 'scene.Greeting { Label: {text: "CrÃ¨me ðŸ¦€"} }')
+    assert managed(w, b"Utf8Scope", b'LabelProbe { Position: {0,2,0} Label: {text: "Probe"} }') == 0
+    greeting = next(v for v in views(w) if v.has_label)
+    assert text_value(label(w, greeting.entity)) == "Probe"
+    run(w, 'LabelProbe { Label: {text: "CrÃ¨me ðŸ¦€"} }')
     assert text_value(label(w, greeting.entity)) == "CrÃ¨me ðŸ¦€"
+    assert managed(w, b"Utf8Scope", b"") == 0
     assert managed(w, b"LabelScope", '''
 prefab TextStyle { Label: {text: "Shared label"} }
 FirstText : TextStyle { Position: {7,0,0} }
@@ -128,7 +131,7 @@ SecondText : TextStyle { Position: {8,0,0} }
     assert text_value(label(w, first.entity)) == "Changed label"
     assert text_value(label(w, second.entity)) == "Shared label"
     assert managed(w, b"LabelScope", b"") == 0
-    assert len(views(w)) == 4
+    assert len(views(w)) == 3
     checks.append("C++ reflected UTF-8 labels, prefab copies and managed cleanup")
     other = create(0)
     assert other, error(None)
@@ -157,9 +160,9 @@ SecondText : TextStyle { Position: {8,0,0} }
     # MathCheck is intentionally a persistent extra transform for the remaining checks.
     checks.append("runtime Script edits, runtime types, query/entity JSON")
     assert managed(w,b"Transient",b"Temporary { Position: {0,0,0} Primitive: {0} }")==0
-    assert len(views(w)) == 6
-    assert managed(w,b"Transient",b"")==0
     assert len(views(w)) == 5
+    assert managed(w,b"Transient",b"")==0
+    assert len(views(w)) == 4
     assert script(w,b"invalid {") != 0
     assert error(w)
     checks.append("managed deletion and invalid Script error handling")
@@ -178,7 +181,7 @@ SecondText : TextStyle { Position: {8,0,0} }
     request(w,port,"script/RemoteScene", "PUT", "RemoteCube { Position: {-4,0,0} Primitive: {1} }")
     assert any(v.px == -4 and v.primitive == 1 for v in views(w))
     request(w,port,"script/RemoteScene", "PUT", "")
-    assert len(views(w)) == 4
+    assert len(views(w)) == 3
     request(w,port,"stats/world")
     checks.append("live REST entity inspection, queries, Script create/edit/delete, statistics")
     destroy(w); w=None

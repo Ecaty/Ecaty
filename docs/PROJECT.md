@@ -10,11 +10,11 @@ The intended product is an interactive experience, not a traditional user-facing
 
 ## Approved baseline
 
-- First platform: Windows x64. Unity **6000.4.10f1**, URP **17.4.0**.
+- First platform: Windows x64. Unity **6000.6.7f1**, URP **17.6.0**.
 - Native language: C++17 for human-friendly contributions, using Flecs' C++ API. Matching upstream Flecs **v4.1.6** `flecs.c`/`flecs.h` remain unmodified C99.
 - One native Flecs world per session. Native C ABI exports `fu_*`; Unity's `FlecsSession` owns the handle.
 - AI's intended loop: inspect via queries/reflection, create/update via Flecs Script, observe results and iterate. The ChatGPT adapter now supplies this loop; its protocol is tested with synthetic transport, pending a live account test.
-- Minimal product UI: a small input with icon buttons, conversation only when present, and errors only when needed. Use locally bundled Google Material Symbols; avoid explanatory labels and engine details in user chat. UI Toolkit is the chosen starting point; authentication uses a system browser. No embedded WebView is required for this interface.
+- Minimal product UI: a small input with icon buttons, conversation only when present, and errors only when needed. Use locally bundled Google Material Symbols; avoid explanatory labels and engine details in user chat. UI Toolkit uses PanelRenderer and its versioned reload callback on Unity 6.6; authentication uses a system browser. No embedded WebView is required for this interface.
 - AI-agent UI and infrastructure must be reusable with different services through adapters; no provider-specific protocol or credentials in the shared view, and no Flecs dependency in the generic AI package. The app supplies instructions and world callbacks.
 - First provider: ChatGPT, with users authorizing their own eligible account. See `AI-INTEGRATION.md`; account access is not equivalent to unlimited/free inference.
 - Local development with the Unity Editor is the primary workflow. Public GitHub repositories preserve source/history and allow other accounts and contributors to resume.

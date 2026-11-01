@@ -1,9 +1,9 @@
 {
     "passed": true,
-    "unity": "6000.4.10f1",
+    "unity": "6000.6.7f1",
     "flecs": "4.1.6",
     "checks": [
-        "managed Script loaded; prefab excluded; four views created",
+        "managed Script loaded; prefab excluded; three views created; no greeting text",
         "native system advances rotation; ChildOf hierarchy mapped",
         "runtime Script position and color reflected in Unity",
         "actual Unity presentation written back into queryable Presented component",

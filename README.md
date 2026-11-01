@@ -3,7 +3,7 @@
 An exploratory interactive creation app. Native Flecs C++ owns the world; Unity presents it; an AI agent inspects and changes it at runtime.
 
 1. Clone recursively and install Git LFS: `git clone --recurse-submodules https://github.com/Ecaty/Ecaty.git`.
-2. Open in Unity **6000.4.10f1**, Windows x64. A matching native plugin is included.
+2. Open in Unity **6000.6.7f1**, Windows x64. A matching native plugin is included.
 3. Press Play. Use the account icon to connect an eligible ChatGPT account in your browser.
 4. Try **“Make the cube blue and twice as big.”** The small interface uses bundled Google Material Symbols.
 

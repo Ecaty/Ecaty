@@ -33,8 +33,8 @@ namespace Ecaty.Editor
                 root = new GameObject("Verification world");
                 var host = root.AddComponent<FlecsWorld>();
                 host.Initialize(0, Resources.Load<TextAsset>("EcatyWorld"), "EcatyWorld");
-                Require(host.ViewCount == 4, "Expected scene + cube + sphere + label");
-                report.checks.Add("managed Script loaded; prefab excluded; four views created");
+                Require(host.ViewCount == 3, "Expected scene + cube + sphere");
+                report.checks.Add("managed Script loaded; prefab excluded; three views created; no greeting text");
                 host.Session.ReadViews(out var first);
                 ulong cube = 0;
                 for (int i=0; i<host.ViewCount; i++)
@@ -56,7 +56,7 @@ namespace Ecaty.Editor
                 Require(host.Session.Query("Presented").Contains("frame"), "Presentation acknowledgement missing");
                 report.checks.Add("actual Unity presentation written back into queryable Presented component");
                 host.Session.RunScript("Extra { Position: {0, -2, 0} Primitive: {kind: 2} }");
-                host.SyncViews(); Require(host.ViewCount==5,"Runtime spawn missing");
+                host.SyncViews(); Require(host.ViewCount==4,"Runtime spawn missing");
                 report.checks.Add("runtime entity creation creates Unity view");
                 string query = host.Session.Query("Position, Primitive");
                 Require(query.Contains("Cube") && query.Contains("Extra"),"Query JSON missing entities");
@@ -66,9 +66,9 @@ namespace Ecaty.Editor
                 Require(host.Session.EntityJson("scene.Cube").Contains("Temperature"),"Runtime type registration failed");
                 report.checks.Add("Script-defined runtime component works without C# type");
                 host.Session.SetManagedScript("Transient", "Temporary { Position: {0,0,0} Primitive: {0} }");
-                host.SyncViews(); Require(host.ViewCount==6,"Managed entity missing");
+                host.SyncViews(); Require(host.ViewCount==5,"Managed entity missing");
                 host.Session.SetManagedScript("Transient", "");
-                host.SyncViews(); Require(host.ViewCount==5,"Managed deletion did not remove Unity view");
+                host.SyncViews(); Require(host.ViewCount==4,"Managed deletion did not remove Unity view");
                 report.checks.Add("managed Script deletion removes Unity view");
                 host.Shutdown();
                 using (var reopened = new FlecsSession()) { reopened.Tick(0.02f); }

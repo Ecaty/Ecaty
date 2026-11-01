@@ -12,7 +12,7 @@ namespace Ecaty
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Start()
         {
-            if (Object.FindFirstObjectByType<FlecsWorld>()) return;
+            if (Object.FindAnyObjectByType<FlecsWorld>()) return;
             Application.runInBackground = true;
             var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("EcatyWorld"), Resources.Load<Material>("EcatyMaterial"));
             var cameraObject = new GameObject("Ecaty Camera");

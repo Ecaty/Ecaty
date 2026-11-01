@@ -41,3 +41,14 @@ Traces may contain private messages/world data. Authentication payloads are excl
 `Ecaty.Editor.ChatLoopVerification.Start()` runs asynchronous Editor checks and writes `Verification/chat-loop-checks.json`. The service transport is synthetic, confined to Editor verification; native Flecs, queries, Script and Unity objects are real. Checks cover PKCE/client issuance, signed identity/nonce/audience, DPAPI, refresh rotation, three local tools, actual object/readback state, collapsible trace, redaction and terminal stream failures. The normal runtime never uses a fake provider.
 
 Live authorization, account eligibility, inference and provider revocation still need a real account test. No audio/transcription is supplied by the documented plan preview; no speech adapter is installed. Only Windows/Mono is checked. Other OS credential stores, mobile callback flows, IL2CPP stripping and browser native transport are separate work.
+
+
+## Free-account alternative, checked 2026-11-01
+
+OpenRouter documents browser account authorization using OAuth PKCE and no-purchase `:free` model variants. The current no-credit allowance is 50 inference requests/day and 20/minute; a single agent command normally takes several inference requests. This is a viable optional adapter for prototyping, not unlimited free use. It is **not integrated yet**; the current button still uses ChatGPT. A future free-only adapter must prohibit paid-model fallbacks.
+
+Sources: [OAuth PKCE](https://openrouter.ai/docs/guides/overview/auth/oauth), [free-model limits](https://openrouter.ai/collections/free-models). Gemini API also offers model-specific free quotas, but API project/key setup is separate from consumer Gemini chat sign-in.
+
+## UI on Unity 6.6
+
+Ecaty now targets 6000.6.7f1 and hosts UI through PanelRenderer, using its versioned reload callback instead of UIDocument.rootVisualElement. Input/send/account/voice icons remain provider-neutral. No greeting, onboarding copy or engine narration is added to the app. The UI uses custom styling with a centered composer and optional collapsible history.

@@ -1,5 +1,5 @@
 {
     "passed": true,
     "frames": 80,
-    "detail": "80 advancing frames; native Script/rotation, Presented readback, mounted chat panel and bundled Google icons"
+    "detail": "80 advancing frames; native Script/rotation, Presented readback, PanelRenderer callback/chat, no greeting and bundled Google icons"
 }

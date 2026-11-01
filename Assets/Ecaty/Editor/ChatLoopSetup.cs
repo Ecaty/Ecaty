@@ -15,7 +15,6 @@ namespace Ecaty.Editor
             panel.themeStyleSheet = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>("Assets/Ecaty/UI/EcatyTheme.tss");
             panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
             panel.referenceResolution = new Vector2Int(1280, 720);
-            panel.sortingOrder = 100;
             EditorUtility.SetDirty(panel);
             var assets = AssetDatabase.LoadAssetAtPath<AgentUiAssets>(folder + "EcatyAgentUi.asset");
             if (!assets) { assets = ScriptableObject.CreateInstance<AgentUiAssets>(); AssetDatabase.CreateAsset(assets, folder + "EcatyAgentUi.asset"); }
