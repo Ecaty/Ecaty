@@ -1,0 +1,9 @@
+[submodule "Native/Core"]
+	path = Native/Core
+	url = https://github.com/Ecaty/flecs-native.git
+[submodule "Native/App"]
+	path = Native/App
+	url = https://github.com/Ecaty/ecaty-native.git
+[submodule "Packages/com.ecaty.flecs-unity"]
+	path = Packages/com.ecaty.flecs-unity
+	url = https://github.com/Ecaty/flecs-unity.git

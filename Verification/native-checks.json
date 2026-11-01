@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "flecs": "4.1.6",
+  "checks": [
+    "ABI layout, reflected components, managed scene, prefab instantiation",
+    "native systems progress and ChildOf hierarchy",
+    "C++ reflected UTF-8 labels, prefab copies and managed cleanup",
+    "simultaneous C++ worlds progress independently and survive peer teardown",
+    "runtime Script edits, runtime types, query/entity JSON",
+    "managed deletion and invalid Script error handling",
+    "live REST entity inspection, queries, Script create/edit/delete, statistics",
+    "repeated world lifetime and REST port reuse"
+  ]
+}

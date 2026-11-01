@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+project(Ecaty LANGUAGES C CXX)
+set(UNITY_PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Assets/Plugins/Ecaty/x86_64" CACHE PATH "Unity native plugin output")
+add_subdirectory(Core)
+add_subdirectory(App)
