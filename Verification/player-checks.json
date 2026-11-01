@@ -1,5 +1,5 @@
 {
     "passed": true,
     "frames": 80,
-    "detail": "Player frames advance; native Script spawn and rotation visible in Unity state"
+    "detail": "80 advancing frames; native Script/rotation, Presented readback, mounted chat panel and bundled Google icons"
 }

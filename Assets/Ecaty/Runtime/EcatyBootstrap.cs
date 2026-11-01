@@ -1,4 +1,8 @@
 using Ecaty.Flecs;
+using Ecaty.Agents;
+using Ecaty.Agents.UI;
+using Ecaty.Agents.Diagnostics;
+using Ecaty.Agents.Providers.ChatGPT;
 using UnityEngine;
 
 namespace Ecaty
@@ -20,6 +24,15 @@ namespace Ecaty
             camera.depth = 100;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.06f, 0.07f, 0.1f);
+            try
+            {
+                AgentTrace.Configure(System.IO.Path.Combine(Application.dataPath, "../Logs/Agents"), Application.isEditor);
+                var provider = new ChatGptProvider("Ecaty");
+                AgentChatPanel.Create(Resources.Load<AgentUiAssets>("EcatyAgentUi"), provider, provider,
+                    Resources.Load<TextAsset>("AgentInstructions").text, EcatyAgentTools.Create(world, new AgentMainThread()),
+                    "Continue with ChatGPT", "");
+            }
+            catch (System.Exception error) { Debug.LogException(error); }
             if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-flecsSmoke") >= 0)
                 world.gameObject.AddComponent<PlayerSmoke>();
         }

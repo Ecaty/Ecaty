@@ -1,39 +1,43 @@
-# ChatGPT integration: approved direction, not implemented
+# AI integration
 
-## Desired experience
+## Implemented Windows path
 
-The user wants their own AI account to power an in-app conversation, keeping model charges/account responsibility with the provider. Ecaty should present a very small chat input/history and microphone. The agent inspects the actual Flecs world using queries/reflection and changes it through Flecs Script, then inspects the result. It should receive an accurate capability/schema description rather than invented engine APIs.
+The reusable `Packages/com.ecaty.ai-agent` package supplies provider/auth/tool contracts, UI Toolkit chat, conversation controller, main-thread dispatch, developer traces and a ChatGPT adapter. It has no Flecs dependency. Ecaty supplies instructions and tools in `Assets/Ecaty/Runtime/EcatyAgentTools.cs`.
 
-## Verified documentation, 2026-11-01
+Press Play, use the account icon and finish sign-in in your system browser. The microphone stays disabled until a speech adapter exists. No embedded browser or API key is used. Conversation history is memory-only and cleared when disconnected. Disconnect removes this app's active credentials; it does not revoke the server grant or log the browser out.
 
-OpenAI documents Sign in with ChatGPT for local personal/open-source projects and selected private clients. Eligible Plus/Pro users can authorize ChatGPT-plan inference without supplying an API key or partner client secret. Commercial distribution/availability must be checked again before committing to a launch model. A public repository alone is not a guarantee of every provider entitlement. Account/plan/model limits remain.
+The application interface uses locally bundled Google Material Symbols Rounded: account, microphone and send. The font, Apache-2.0 license, source revision and hashes live in the package's `Runtime/UI/Resources/`. Explicit Unicode codepoints avoid browser-only ligatures. A static instance of the current variable font is used for predictable Unity import.
 
-- [Official quickstart](https://developers.openai.com/siwc/quickstart)
-- [Open-source app example](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)
-- [Registration and sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in)
-- [Preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)
+## Account protocol
 
-Use the official flow and revisit its current requirements when implementing. Do not reuse Codex/ChatGPT's existing credentials from disk, intercept web sessions or infer that identity-only login grants model use.
+The adapter follows the official local/open-source ChatGPT-plan flow checked on 2026-11-01. Availability/plan entitlements remain provider-controlled; do not promise free-plan support or commercial distribution eligibility. An OAuth identity alone is insufficient: require `chatgpt.tokens.use.direct` before inference.
 
-## Package boundary
+- First registration: `dynamic_agent_client`, persistent `urn:uuid:` host identifier, name hint; retain the issued client ID.
+- Fresh PKCE S256, random state/nonce, loopback listener bound to 127.0.0.1 before opening the browser; callback `/auth/callback` on an ephemeral port.
+- Exchange at the official token endpoint. Verify RS256 identity signatures against official JWKS, issuer, audience, time, nonce and returning subject. No partner secret.
+- Protect state with Windows DPAPI CurrentUser in `%LOCALAPPDATA%/Ecaty/Agents/chatgpt.dat`, outside the checkout. Save rotated tokens atomically; never read Codex/ChatGPT credentials from elsewhere.
+- Discover allowed models from the OAuth catalog; prefer gpt-6.1-sol only when listed, otherwise the first visible model. Use streamed Responses with `store=false`, array history, local function tools and encrypted reasoning replay within the tool loop. No API-billing fallback.
+- Accept success only after `response.completed`; EOF, incomplete replies and late subscription errors fail the request. Limit a request to 10 rounds/24 tool calls; controller timeout is 3 minutes.
 
-All shared AI-agent UI, future provider/authentication clients and tool/conversation orchestration live in the public `Ecaty/ai-agent-unity` repository, embedded at `Packages/com.ecaty.ai-agent`. The first package version provides UI Toolkit assets, disposable view bindings and `IAgentProvider`, `IAgentAuthenticator`, `IAgentTool`, `ISpeechToText` contracts. It has no dependency on Flecs, native libraries or provider SDKs.
+Official references: [registration/sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), [tokens](https://developers.openai.com/siwc/token-sharing-open-source/token-reference), [models/inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference), [preview limits](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations). Recheck before shipping.
 
-Ecaty supplies product instructions and Flecs world callbacks. Providers implement their own supported protocols and authentication; the reusable chat view is unchanged when a provider is replaced. Do not confuse a common interface with universal provider capabilities or subscription access. Do not introduce a fake runtime provider to imply ChatGPT works already.
+## World loop and end-user behavior
 
-## Planned Windows implementation
+1. The user asks a change. The host gives the model private capability instructions and tools.
+2. `query` / `inspect_entity` read native Flecs data/reflection. `apply_script` evaluates real Flecs Script on the world-owning thread.
+3. The presentation adapter applies the snapshot, then reads actual local transforms and renderer/text colors into the native Presented component.
+4. `apply_script` / `observe_world` return queries containing that readback. The model checks internally. The user sees the changed objects, with brief useful chat only.
 
-1. UI Toolkit conversation and input; Continue with ChatGPT opens the system browser.
-2. Native-app OAuth/OIDC authorization with PKCE, random state and nonce, and a loopback callback listener. Official first registration uses `dynamic_agent_client`, a persistent per-host `ext_agent_host_id` and consistent `agent_name_hint=Ecaty`; the callback issues a client ID to retain per account/registration. Validate identity and granted inference scopes before treating the account as connected.
-3. Store credentials using Windows-protected account storage outside the project. Refresh and revoke/sign out through supported flows. Keep token/code values out of logs, assets, Script entities, screenshots, commits and build artifacts.
-4. Use eligible Responses API requests with local conversation history. At the checked preview: `stream=true`, `store=false`, input history supplied as an array. Several ordinary API parameters are unsupported; consult the limits page rather than copying generic API samples.
-5. Expose narrow local tool functions for schema/world inspection, queries and Script application. Marshal world work onto Unity's main thread. The model does not call Unity APIs directly or receive unrestricted arbitrary code execution.
-6. Preserve the distinction between provider authentication, app permissions, a user's chat history and native world state. The sign-in route does not give Ecaty access to the user's existing ChatGPT conversations.
+Never mention Unity, Flecs, ECS, queries, Script or tool machinery in the end-user experience. Readback proves object state, not the pixels on screen. New algorithms/effects still require native systems/presentation adapters. Script edits are not transactional.
 
-## Microphone constraint
+## Developer trace
 
-The checked ChatGPT-plan preview does **not** support audio/video input or the transcription API. Keep the microphone design, but select a separate supported speech-to-text implementation (possibly local) before promising it works through a ChatGPT subscription. Initial voice is intended as dictation, not a full realtime voice conversation. No speech engine or model files are installed yet.
+**Ecaty > Agent Trace** displays a chat-like request list: collapsed request/tool foldouts, queries/Script/results, timing, error filter, search, copy and expand/collapse all. It captures no hidden reasoning or auth exchanges. Editor capture defaults on; player capture defaults off. Current-session memory is bounded to 500 entries; local JSONL segments rotate around 10 MB and are ignored by Git. Clear view does not delete log files.
 
-## Current boundary
+Traces may contain private messages/world data. Authentication payloads are excluded; bearer/JWT/key patterns are additionally redacted. Never publish real traces. The package's collector is independent of its Editor viewer. Mirroring trace records into Flecs entities and a custom Explorer chat panel are possible next steps; **neither is implemented**. Existing Explorer query/entity views do not automatically become a chat logger.
 
-Reusable chat UI assets/bindings and provider/tool/speech contracts exist in the package, but are not mounted in the app. No sign-in UI, OAuth implementation, model calls, speech processing or production MCP server exists yet. Native REST/Explorer validates the ECS bridge but is not a secure product AI endpoint. A future tool adapter may call the same native operations locally; a remote connector would require a separately designed authenticated transport.
+## Verification and remaining work
+
+`Ecaty.Editor.ChatLoopVerification.Start()` runs asynchronous Editor checks and writes `Verification/chat-loop-checks.json`. The service transport is synthetic, confined to Editor verification; native Flecs, queries, Script and Unity objects are real. Checks cover PKCE/client issuance, signed identity/nonce/audience, DPAPI, refresh rotation, three local tools, actual object/readback state, collapsible trace, redaction and terminal stream failures. The normal runtime never uses a fake provider.
+
+Live authorization, account eligibility, inference and provider revocation still need a real account test. No audio/transcription is supplied by the documented plan preview; no speech adapter is installed. Only Windows/Mono is checked. Other OS credential stores, mobile callback flows, IL2CPP stripping and browser native transport are separate work.

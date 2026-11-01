@@ -36,7 +36,7 @@ If you prefer a traditional native solution, run `./Native/Generate-Solution.ps1
 
 `Packages/com.ecaty.ai-agent` is the `Ecaty/ai-agent-unity` submodule. Keep generic chat UI, agent/provider/authentication/speech contracts and future provider adapters/orchestration there. The Ecaty host supplies its Flecs tools through `IAgentTool` callbacks; marshal native/Unity work to the owning thread. The shared AI package has no Flecs/Unity-bridge dependency.
 
-The initial package provides a UXML/USS chat view, disposable input bindings, request/message types and provider/tool/authentication/speech interfaces. The view emits input events and displays literal text; it does not choose a provider, call models or own credentials. It remains unmounted until a real provider/session is wired. Different provider protocols, entitlements and account flows require adapters.
+The package provides a minimal icon-based UI, reusable controller/main-thread dispatcher, contracts, Windows ChatGPT adapter and developer trace viewer. EcatyBootstrap mounts it with host instructions/tools. Authentication stays in the provider adapter; the shared view does not own credentials. Account/model availability is provider-controlled. See AI-INTEGRATION for protocol and current limits.
 
 In the Editor, `Ecaty.Agents.Editor.AgentPackageVerification.RunAll()` validates UXML import, disconnected/empty/busy submission rules, optional microphone state, literal model text and disposal. This is not a visual or live-provider test.
 
@@ -48,7 +48,7 @@ Close the Ecaty Editor/player before replacing a loaded native DLL. A stopped Pl
 - MSVC with the detected Visual Studio/bundled CMake: `./Native/Build.ps1 -Compiler MSVC`
 - Direct CMake: `cmake -S Native -B Native/build`, then `cmake --build Native/build --config Release`.
 
-The output is `Assets/Plugins/Ecaty/x86_64/flecs_unity.dll`. The root composes shared Core with application App. Keep ABI version/layout synchronized with C# when changing the boundary. No C++ classes or STL strings cross it. Owned UTF-8 results are released through `fu_free`.
+The output is `Assets/Plugins/Ecaty/x86_64/flecs_unity.dll`. The root composes shared Core with application App. Keep ABI version/layout synchronized with C# when changing the boundary. No C++ classes or STL strings cross it. Owned UTF-8 results are released through `fu_free`. Current C ABI is v2 (80-byte fu_view unchanged); the new fu_write_presented batch writes observations only. Reflected Label strings have explicit C++ copy/move/destruction ownership.
 
 MinGW links compiler/C++ support statically. Shared component types remain engine-neutral. The App module implements `flecs_unity::register_application(flecs::world&)` in the same plugin. Do not put product-specific systems in shared Core.
 
@@ -61,6 +61,8 @@ Change `scene.Greeting`'s `Label.text` to update its Unity TextMesh. To change t
 ## Verification
 
 - `python Verification/native_smoke.py`: real native ABI, Script, queries, reflection, managed entity deletion, UTF-8 string ownership, independent worlds and HTTP REST checks.
+- `Ecaty.Editor.ChatLoopVerification.Start()`: asynchronous synthetic service/account checks with real Flecs/Unity objects; poll Verification/chat-loop-checks.json. It does not prove live service access.
+- `Ecaty.Agents.Editor.AgentPackageVerification.RunAll()`: font glyphs, UXML and generic input/disposal checks.
 - Live Editor entry `Ecaty.Editor.Verification.RunAll`: actual Unity objects, transforms, materials, native system behavior, queries and deletion. It writes `Verification/unity-checks.json`.
 - `Ecaty.Editor.Verification.BuildPlayer`: builds `Build/Ecaty.exe` from the existing sample scene without replacing the user's open scene.
 - Player: run `Build/Ecaty.exe -batchmode -nographics -flecsSmoke -flecsSmokeResult <absolute-report-path> -logFile <absolute-log-path>` to verify 80 advancing frames.

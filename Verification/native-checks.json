@@ -3,6 +3,7 @@
   "flecs": "4.1.6",
   "checks": [
     "ABI layout, reflected components, managed scene, prefab instantiation",
+    "presentation acknowledgement is reflected without changing authoritative color",
     "native systems progress and ChildOf hierarchy",
     "C++ reflected UTF-8 labels, prefab copies and managed cleanup",
     "simultaneous C++ worlds progress independently and survive peer teardown",

@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "transport": "synthetic OAuth/Responses; real native Flecs and Unity objects",
+  "checks": [
+    "Windows DPAPI encrypt/decrypt round trip, no account credentials used",
+    "loopback callback, dynamic client registration, state/PKCE and signed RS256 identity validation",
+    "mismatched identity audience and nonce rejected",
+    "background agent work marshalled to the Unity/world-owning thread",
+    "chat -> real query -> generated Script -> Unity transform/material -> Flecs Presented -> chat",
+    "developer trace grouped by request with collapsed tool results, inputs and copy controls",
+    "rotating refresh saved; early EOF and usage error after deltas rejected; local disconnect",
+    "auth exchanges excluded from traces; bearer/JWT redaction verified"
+  ]
+}

@@ -20,6 +20,9 @@ namespace Ecaty
                 if (frames == 2)
                 {
                     host = GetComponent<FlecsWorld>();
+                    if (!UnityEngine.Object.FindFirstObjectByType<Ecaty.Agents.UI.AgentChatPanel>()) throw new Exception("Chat panel did not mount");
+                    var icons = Resources.Load<Font>("MaterialSymbolsRounded");
+                    if (!icons || !icons.HasCharacter('\ue163')) throw new Exception("Bundled icon font missing in player");
                     if (host.Session == null || host.ViewCount != 4) throw new Exception("Hello world not running");
                     host.Session.RunScript("RuntimeCheck { Position: {2,0,0} Rotation: {0,0,0} Spin: {0,90,0} Primitive: {1} }");
                     host.SyncViews();
@@ -32,7 +35,8 @@ namespace Ecaty
                 var view=host.FindView(testEntity);
                 if(!view || view.transform.localPosition.x!=2 || Quaternion.Angle(startRotation,view.transform.localRotation)<0.01f)
                     throw new Exception("Player Update/native system/Unity presentation did not advance");
-                Finish(true,"Player frames advance; native Script spawn and rotation visible in Unity state");
+                if (!host.Session.Query("Presented").Contains("frame")) throw new Exception("Player presentation readback missing");
+                Finish(true,"80 advancing frames; native Script/rotation, Presented readback, mounted chat panel and bundled Google icons");
             }
             catch(Exception ex) { Finish(false,ex.ToString()); }
         }

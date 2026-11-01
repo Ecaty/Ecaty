@@ -1,39 +1,29 @@
 # Current status
 
-Updated: 2026-11-01. Read this after `PROJECT.md` and `DEVELOPMENT.md`.
+Updated: 2026-11-01. Read PROJECT and DEVELOPMENT first.
 
-## Completed foundation
+## Implemented
 
-- Separate Unity 6000.4.10f1 Windows project, independent of Krebi/Quantum.
-- Shared native runtime in `Native/Core`, application Spin system in `Native/App`, reusable embedded Unity package in `Packages/com.ecaty.flecs-unity`.
-- Public repositories: Ecaty/Ecaty, Ecaty/flecs-native, Ecaty/ecaty-native, Ecaty/flecs-unity and Ecaty/ai-agent-unity. The parent pins the child commits with Git submodules.
-- One native plugin combines Core, the application module and matching upstream Flecs v4.1.6 sources. Windows x64 plugin included through Git LFS.
-- Reusable lifecycle/bootstrap, query/Script C ABI, runtime .flecs importer and Unity presentation. Application-specific startup, camera and sample content stay in the app.
-- The developer OnGUI panel has been removed from the shared runtime. A separate provider-neutral AI package now contains reusable chat assets/bindings and provider/authentication/tool/speech contracts; the app does not mount it until a real provider/session is wired.
-- Native Visual Studio workflow now has a Windows MSVC CMake preset and optional generated-solution/build helper; Unity continues generating its separate C# solution.
-- Versioned AGENTS/project/development/status/provider notes enable a new chat or account to continue from the repository.
+- Unity 6000.4.10f1 Windows x64, native C++17 Flecs v4.1.6 (unmodified matching C/header), one composed plugin. Core/App/Flecs bridge/AI package are separate public submodules.
+- Native runtime queries, Script, runtime component reflection, prefabs/hierarchy, label ownership, loopback REST/Explorer and Spin demo.
+- Bidirectional observation path: Unity applies views, measures object transform/material state, batches Presented into Flecs. C ABI v2, original 80-byte view layout retained. No second physics simulation.
+- Reusable provider-neutral UI/controller/tools/main-thread dispatch. Windows ChatGPT account protocol and streamed local tool loop. Credentials protected outside the project with DPAPI. No API key/billing fallback.
+- Minimal icon-based input; Google Material Symbols Rounded bundled with license/provenance. Account icon opens sign-in; microphone remains disabled.
+- Ecaty host tools: query, inspect_entity, apply_script, observe_world. Agent instructions keep all engine/tool narration internal.
+- Developer-only chat-like trace: request/tool foldouts, search/errors, copy/expand/collapse, local ignored JSONL. Explorer trace mirroring/custom panel is not implemented.
 
-## Verification completed in Ecaty
+## Verification
 
-- GCC/MinGW-w64 12.2 C++17 build; upstream Flecs compiled as C99.
-- Native ABI, managed Script, runtime types, queries/reflection, prefab/hierarchy, UTF-8 label copying, independent live worlds and repeated teardown.
-- Real loopback REST inspection, query and Script edits, deletion, statistics and CORS preflight.
-- Live Unity Editor object checks: four initial views, native rotation, parent transforms, colors, creation/deletion and dynamic component data.
-- Windows development player built from the existing SampleScene; 80 advancing runtime frames, native Script spawn and rotation reflected in Unity state.
-- External REST edits/queries against the running player, with no player exceptions in that check.
+- MSVC 19.51 / Visual Studio 2026 native build passed ABI/reflection, Script/query, observation isolation, string/prefab copying, independent worlds, lifetime and real REST checks (`native-checks.json`).
+- Live Editor checks pass native progression, actual object transform/color, hierarchy, spawn/delete, runtime data and queryable Presented (`unity-checks.json`).
+- Bundled Google font/glyphs, UXML, disconnected/empty/busy rules, optional dictation and disposal pass (`ai-package-checks.json`).
+- Synthetic account/service transport with real world/tools passes PKCE/client issuance, signed identity and rejection cases, DPAPI, refresh rotation, query -> Script -> Unity -> Presented -> chat, grouped trace/redaction and late-stream failure checks (`chat-loop-checks.json`). No real account credentials used in these checks.
+- Windows development player and external REST checks are recorded in `player-checks.json` / `player-rest-checks.json`; reports describe the exact checks performed. Object-state verification is not visual review.
 
-Reports: `Verification/native-checks.json`, `unity-checks.json`, `player-checks.json`, `player-rest-checks.json`.
+All reports live under Verification. Read their actual results; do not treat protocol fixtures as proof of a live service connection.
 
-Additional verification: native Visual Studio 2026/CMake 4.3.1 build with MSVC 19.51 passed the same native checks and live Unity bridge checks. The Windows player was rebuilt with that plugin. The separate AI-package check verifies UXML import, input routing, disconnected/empty/busy behavior, optional dictation availability, literal text and disposal. CMake preset parsing and Unity C# solution generation (including the embedded AI package) were also checked.
+## Next concrete step / limits
 
-Additional reports: `Verification/ai-package-checks.json` and `Verification/native-ide-checks.json`. The generated native solution is `Native/build-vs/Ecaty.slnx`; regenerate it using the committed helper rather than committing generated project files.
+Press Play, use the account icon, finish browser consent with an eligible ChatGPT account, then try “Make the cube blue and twice as big.” Verify actual model/tool behavior and subscription eligibility. Live ChatGPT authorization/inference has not been verified yet. Keep developer traces private.
 
-These are programmatic/object-state checks, not a visual review or live AI-service test. Mobile, XR, IL2CPP and browser targets remain unverified.
-
-## Next concrete task
-
-Implement the official ChatGPT provider/account flow and connect the existing minimal chat view inside `Packages/com.ecaty.ai-agent`, following `docs/AI-INTEGRATION.md`. Keep the view and generic orchestration reusable with other service adapters. Start with text and a narrow tool loop: inspect schema/query, apply Script, inspect the result. Verify account eligibility and granted inference scopes. Keep credentials protected outside the project.
-
-The documented ChatGPT-plan preview does not supply audio input/transcription. Select a separate supported dictation implementation before enabling the microphone; no speech engine is installed yet.
-
-No ChatGPT authentication/inference, production AI transport, session storage, scanning, Jolt, procedural character animation or multiplayer is implemented. Do not begin those other subsystems merely because they were discussed.
+Mobile/XR, IL2CPP and browser targets remain unverified. No speech, physics/Jolt, multiplayer, storage, scanning, procedural creatures or arbitrary behavior generation. Do not start those systems implicitly.

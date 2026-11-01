@@ -53,6 +53,8 @@ namespace Ecaty.Editor
                 cubeView.GetComponentInChildren<Renderer>().GetPropertyBlock(block);
                 Require(block.GetColor("_Color").r>0.99f && block.GetColor("_Color").g<0.01f,"Color not applied");
                 report.checks.Add("runtime Script position and color reflected in Unity");
+                Require(host.Session.Query("Presented").Contains("frame"), "Presentation acknowledgement missing");
+                report.checks.Add("actual Unity presentation written back into queryable Presented component");
                 host.Session.RunScript("Extra { Position: {0, -2, 0} Primitive: {kind: 2} }");
                 host.SyncViews(); Require(host.ViewCount==5,"Runtime spawn missing");
                 report.checks.Add("runtime entity creation creates Unity view");
@@ -105,6 +107,7 @@ namespace Ecaty.Editor
             const string path="Assets/Ecaty/Resources/EcatyMaterial.mat";
             if (!AssetDatabase.LoadAssetAtPath<Material>(path))
                 AssetDatabase.CreateAsset(new Material(Shader.Find("Universal Render Pipeline/Unlit")),path);
+            ChatLoopSetup.Prepare();
             AssetDatabase.SaveAssets();
         }
         public static void BuildPlayer()

@@ -1,5 +1,14 @@
 {
   "passed": true,
   "unity": "6000.4.10f1",
-  "checks": "UXML imported; disconnected/empty submissions blocked; provider-neutral message event; busy state and optional speech capability control input; model text remains literal; no Flecs or provider SDK dependency; disposed view rejects further use"
+  "checks": [
+    "bundled Google Material Symbols font imports with send/microphone/account glyphs",
+    "UXML imported",
+    "disconnected/empty submissions blocked",
+    "provider-neutral message event",
+    "busy state and optional speech capability control input",
+    "model text remains literal",
+    "no Flecs or provider SDK dependency",
+    "disposed view rejects further use"
+  ]
 }

@@ -6,6 +6,7 @@
         "managed Script loaded; prefab excluded; four views created",
         "native system advances rotation; ChildOf hierarchy mapped",
         "runtime Script position and color reflected in Unity",
+        "actual Unity presentation written back into queryable Presented component",
         "runtime entity creation creates Unity view",
         "query and reflected entity JSON round trip through C ABI",
         "Script-defined runtime component works without C# type",

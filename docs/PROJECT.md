@@ -13,8 +13,8 @@ The intended product is an interactive experience, not a traditional user-facing
 - First platform: Windows x64. Unity **6000.4.10f1**, URP **17.4.0**.
 - Native language: C++17 for human-friendly contributions, using Flecs' C++ API. Matching upstream Flecs **v4.1.6** `flecs.c`/`flecs.h` remain unmodified C99.
 - One native Flecs world per session. Native C ABI exports `fu_*`; Unity's `FlecsSession` owns the handle.
-- AI's intended loop: inspect via queries/reflection, create/update via Flecs Script, observe results and iterate. The AI provider integration is not part of the initial ECS bridge.
-- Minimal product UI: a small conversation area, text input/send and microphone. UI Toolkit is the chosen starting point; authentication uses a system browser. No embedded WebView is required for this interface.
+- AI's intended loop: inspect via queries/reflection, create/update via Flecs Script, observe results and iterate. The ChatGPT adapter now supplies this loop; its protocol is tested with synthetic transport, pending a live account test.
+- Minimal product UI: a small input with icon buttons, conversation only when present, and errors only when needed. Use locally bundled Google Material Symbols; avoid explanatory labels and engine details in user chat. UI Toolkit is the chosen starting point; authentication uses a system browser. No embedded WebView is required for this interface.
 - AI-agent UI and infrastructure must be reusable with different services through adapters; no provider-specific protocol or credentials in the shared view, and no Flecs dependency in the generic AI package. The app supplies instructions and world callbacks.
 - First provider: ChatGPT, with users authorizing their own eligible account. See `AI-INTEGRATION.md`; account access is not equivalent to unlimited/free inference.
 - Local development with the Unity Editor is the primary workflow. Public GitHub repositories preserve source/history and allow other accounts and contributors to resume.
@@ -37,7 +37,7 @@ The four children are Git submodules pinned to commits. The two C# children are 
 1. `EcatyBootstrap` selects the application's initial Script/material and calls the reusable bootstrap. It supplies the sample camera; the shared package does not impose a camera or app UI.
 2. Native `fu_create` imports standard addons, registers shared components, invokes the linked application registration hook and prepares the presentation query.
 3. Unity's main-thread Update services queued native REST edits before progressing the Flecs pipeline. Structural Script edits therefore happen outside progress.
-4. A native snapshot of entities with Position supplies hierarchy, transform, primitive, tint and label information. Unity creates/updates/removes the corresponding views.
+4. A native snapshot of entities with Position supplies hierarchy, transform, primitive, tint and label information. Unity creates/updates/removes views, then batches actual object transform/material observations back into the reflected Presented component (C ABI v2). Presented is an acknowledgement, not a second authoritative transform or physics simulation.
 5. Explorer edits are live world changes; they are not automatically written back to source. Persist intended starting changes in `Assets/Ecaty/Resources/EcatyWorld.flecs`.
 
 The demo supports Position/Rotation/Scale/Color/Primitive/Label, ChildOf hierarchy, prefab instantiation and the application's native Spin system. Script-defined extra data is queryable without a C# class; new visual effects still require an adapter.

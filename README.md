@@ -1,14 +1,14 @@
 # Ecaty
 
-An exploratory interactive creation app: users give life to their creations with an AI agent. Native Flecs C++ owns the world; Unity displays it. The initial milestone is a small, working runtime foundation.
+An exploratory interactive creation app. Native Flecs C++ owns the world; Unity presents it; an AI agent inspects and changes it at runtime.
 
-1. Clone with submodules: `git clone --recurse-submodules https://github.com/Ecaty/Ecaty.git`.
-2. Open with Unity **6000.4.10f1** on Windows x64. A matching native plugin is included.
-3. Press Play: a rotating cube, sphere and label appear.
-4. Connect [Flecs Explorer](https://www.flecs.dev/explorer/?host=localhost:27750) to `localhost:27750` while Play is running. Inspect/query/edit entities or the `World` managed Script.
+1. Clone recursively and install Git LFS: `git clone --recurse-submodules https://github.com/Ecaty/Ecaty.git`.
+2. Open in Unity **6000.4.10f1**, Windows x64. A matching native plugin is included.
+3. Press Play. Use the account icon to connect an eligible ChatGPT account in your browser.
+4. Try **“Make the cube blue and twice as big.”** The small interface uses bundled Google Material Symbols.
 
-Start a new AI-assisted work session by asking it to read [AGENTS.md](AGENTS.md). Architecture and product intent: [PROJECT](docs/PROJECT.md). Setup/build/tests: [DEVELOPMENT](docs/DEVELOPMENT.md). Completed work and next tasks: [STATUS](docs/STATUS.md).
+Developer tools: [Flecs Explorer](https://www.flecs.dev/explorer/?host=localhost:27750) while running; **Ecaty > Agent Trace** for collapsible requests, queries, Script and results. Logs stay local in ignored `Logs/Agents/`.
 
-The reusable [AI-agent package](https://github.com/Ecaty/ai-agent-unity) contains minimal chat UI assets and provider/tool/speech interfaces. It is not mounted in the app yet. ChatGPT sign-in/inference, speech, scanning, physics and multiplayer are **not implemented**.
+The native/Unity loop and account protocol are verified with synthetic service responses. Live ChatGPT authorization/inference still needs an eligible account test. Voice, scanning, physics and multiplayer are not implemented.
 
-Use Visual Studio for Unity C# and native C++: open the `Native` folder as a CMake project, or run `Native/Generate-Solution.ps1` for an optional generated native solution. See DEVELOPMENT for the exact workflow.
+New chat/account: start with [AGENTS.md](AGENTS.md). [PROJECT](docs/PROJECT.md) records decisions; [DEVELOPMENT](docs/DEVELOPMENT.md) covers builds/workflow; [AI-INTEGRATION](docs/AI-INTEGRATION.md) covers sign-in/tools; [STATUS](docs/STATUS.md) records actual verification and limits.

@@ -35,6 +35,8 @@ query = bind("fu_query_json", P, P, c.c_char_p)
 entity = bind("fu_entity_json", P, P, c.c_char_p)
 label = bind("fu_label", P, P, c.c_uint64)
 free = bind("fu_free", None, P)
+write_presented = bind("fu_write_presented", c.c_int32, P, c.POINTER(View), c.c_int32, c.c_int32)
+abi = bind("fu_abi_version", c.c_int32)
 size = bind("fu_view_size", c.c_int32)
 version = bind("fu_version", c.c_char_p)
 checks = []
@@ -88,6 +90,7 @@ def request(w, port, path, method="GET", body=None):
 report = {"passed": False, "flecs": version().decode(), "checks": checks}
 w = None
 try:
+    assert abi() == 2
     assert size() == c.sizeof(View)
     w = create(0)
     assert w, error(None)
@@ -99,6 +102,13 @@ try:
     checks.append("ABI layout, reflected components, managed scene, prefab instantiation")
     cube = next(v for v in a if v.primitive == 0)
     assert cube.parent != 0
+    ack = (View * 1)(cube)
+    ack[0].b = 0.314
+    assert write_presented(w, ack, 1, 7) == 0
+    data = value(entity(w, b"scene.Cube"))
+    assert 'Presented' in json.dumps(data) and '0.314' in json.dumps(data)
+    assert abs(next(v for v in views(w) if v.entity == cube.entity).b - cube.b) < .0001
+    checks.append("presentation acknowledgement is reflected without changing authoritative color")
     assert tick(w, 0.25) == 0
     cube_after = next(v for v in views(w) if v.entity == cube.entity)
     assert cube_after.ry > cube.ry + 1
