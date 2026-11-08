@@ -1,0 +1,5 @@
+module WorkshopLooks
+
+Paper { CapPostProcessing: {exposure: 0.15, contrast: -11, saturation: -18, temperature: 3, bloom: 0, threshold: 0.9, vignette: 0.16, tonemap: 0} }
+Honey { CapPostProcessing: {exposure: 0.2, contrast: 8, saturation: 14, temperature: 24, bloom: 0.18, threshold: 0.8, vignette: 0.24, tonemap: 0} }
+Twilight { CapPostProcessing: {exposure: -0.18, contrast: 15, saturation: -9, temperature: -25, bloom: 0.23, threshold: 0.7, vignette: 0.35, tonemap: 0} }

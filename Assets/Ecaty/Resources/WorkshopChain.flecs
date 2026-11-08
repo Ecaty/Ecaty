@@ -1,0 +1,88 @@
+using flecs.script
+
+struct WorkshopConnection(source: entity, target: entity)
+struct WorkshopOutput(target: entity)
+struct WorkshopPlateState(occupied: bool)
+struct WorkshopGateState(open: bool)
+WorkshopGateOpen {}
+
+template WorkshopBell {
+    prop bell: entity
+    prop actor: entity
+    prop goal: entity
+    prop home: entity
+    prop hearingRange: f32 = 2.5
+    prop approachDistance: f32 = 0.85
+    mut rings = 0
+    mut following = false
+
+    const origin = home[Position]
+    const sound = bell[Position]
+    const x = match following { true: sound.x; false: origin.x }
+    const z = match following { true: sound.z; false: origin.z }
+    const stop = match following { true: approachDistance; false: 0.24 }
+    motion { WorkshopOutput: {goal}; MoveGoal: {x,z,stop} }
+
+    const volume = match rings > 0 { true: 0.16; false: 0.0 }
+    chime {
+        CapBinding: {target: bell, enabled: true, revision: 1}
+        CapAudio: {program: 9, note: 79, gain: volume, spatial: 0, pitch: 1, lowPass: 22000, trigger: 0, synthesis: 0}
+        if rings > 0 { CapAudioNote: {79,0.7,0,0.23,rings} }
+    }
+
+    async {
+        while true {
+            await on.activate(bell)
+            rings = rings + 1
+            const source = bell[Position]
+            const receiver = actor[ActorMotion]
+            const dx = source.x - receiver.x
+            const dz = source.z - receiver.z
+            if dx * dx + dz * dz <= hearingRange * hearingRange {
+                following = true
+            }
+        }
+    }
+}
+
+template WorkshopPlate {
+    prop plate: entity
+    prop actor: entity
+
+    const center = plate[Position]
+    const measured = actor[ActorMotion]
+    const dx = measured.x - center.x
+    const dz = measured.z - center.z
+    const occupied = dx * dx + dz * dz < 0.16
+    WorkshopPlateState: {occupied}
+    const height = match occupied { true: 0.025; false: 0.065 }
+    const tint = match occupied { true: 0.31; false: 0.77 }
+    feedback { WorkshopOutput: {plate}; Scale: {0.92,height,0.92}; Color: {tint,0.52,0.24,1} }
+}
+
+template WorkshopGate {
+    prop sensor: entity
+    prop gate: entity
+    prop waiting: entity
+
+    const open = !sensor[WorkshopPlateState].occupied
+    WorkshopGateState: {open}
+    if open { WorkshopGateOpen }
+    const spot = waiting[Position]
+    const y = match open { true: 1.45; false: 0.4 }
+    pose { WorkshopOutput: {gate}; Position: {spot.x,y,spot.z + 1.25} }
+}
+
+template WorkshopCrossing {
+    prop gate: entity
+    prop goal: entity
+    prop waiting: entity
+    prop farSide: entity
+
+    const open = gate[WorkshopGateState].open
+    const start = waiting[Position]
+    const finish = farSide[Position]
+    const z = match open { true: finish.z; false: start.z }
+    motion { WorkshopOutput: {goal}; MoveGoal: {start.x,z,0.24} }
+}
+

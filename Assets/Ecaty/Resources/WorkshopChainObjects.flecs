@@ -1,0 +1,25 @@
+// The play fixture uses neutral primitives until art is authored in the workshop.
+WorkshopProp {}
+ChainBell {
+    WorkshopProp
+    PersistState: {"[\"Position\"]"}
+    Position: {3,0.28,0}
+    Scale: {0.42,0.48,0.42}
+    Color: {0.94,0.67,0.22,1}
+    Primitive: {kind: 3}
+}
+ChainPlate {
+    Position: {0,0.05,0}
+    Scale: {0.92,0.025,0.92}
+    Color: {0.31,0.52,0.24,1}
+    Primitive: {kind: 0}
+}
+ChainGate {
+    Position: {0,0.4,0.65}
+    Scale: {0.9,0.8,0.1}
+    Color: {0.67,0.4,0.22,1}
+    Primitive: {kind: 0}
+}
+ChainWait { Position: {0,0,-0.6} }
+ChainExit { Position: {0,0,2} }
+

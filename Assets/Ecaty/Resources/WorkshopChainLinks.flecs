@@ -1,0 +1,5 @@
+WorkshopBell ChainBellLink(bell:ChainBell,actor:ChainBunny,goal:ChainBunnyGoal,home:ChainPlate) { Persistent }
+WorkshopPlate ChainPlateLink(plate:ChainPlate,actor:ChainBunny) {}
+WorkshopGate ChainGateLink(sensor:ChainPlateLink,gate:ChainGate,waiting:ChainWait) {}
+WorkshopCrossing ChainCrossLink(gate:ChainGateLink,goal:ChainDuckGoal,waiting:ChainWait,farSide:ChainExit) {}
+

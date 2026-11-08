@@ -1,0 +1,169 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Ecaty.Agents;
+using Ecaty.Flecs;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using Object = UnityEngine.Object;
+
+namespace Ecaty.Editor
+{
+    public static class RuntimeExperienceVerification
+    {
+        public static bool Running { get; private set; }
+        private static void Require(bool value, string error) { if (!value) throw new InvalidOperationException(error); }
+        private static async Task Frames(int count)
+        {
+            int first = Time.frameCount; var deadline = DateTime.UtcNow.AddSeconds(30);
+            while (Time.frameCount < first + count) { if (DateTime.UtcNow > deadline) throw new TimeoutException("Runtime stopped advancing."); await Task.Yield(); }
+        }
+        [InitializeOnLoadMethod]
+        private static void Hook() => EditorApplication.playModeStateChanged += state => {
+            if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Ecaty.ExperienceVerification", false)) Run();
+        };
+        [MenuItem("Ecaty/Runtime engine/Verify runtime experience")]
+        public static void Start()
+        {
+            if (Running) return;
+            if (EditorApplication.isPlaying) Run();
+            else { SessionState.SetBool("Ecaty.ExperienceVerification", true); EditorApplication.isPlaying = true; }
+        }
+        private static async void Run()
+        {
+            if (Running) return;
+            Running = true;
+            bool owned = SessionState.GetBool("Ecaty.ExperienceVerification", false);
+            SessionState.EraseBool("Ecaty.ExperienceVerification");
+            var checks = new JArray(); var errors = new List<string>();
+            var report = new JObject { ["passed"] = false, ["testedUtc"] = DateTime.UtcNow.ToString("O"), ["checks"] = checks };
+            GameObject root = null;
+            Keyboard keyboard = null;
+            Application.LogCallback capture = (message, stack, type) => { if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) errors.Add(message); };
+            Application.logMessageReceived += capture;
+            try
+            {
+                Application.runInBackground = true; await Frames(3);
+                var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("EcatyWorld"), Resources.Load<Material>("EcatyMaterial"), 0);
+                root = world.gameObject; root.name = "Runtime experience verification";
+                var clay = root.AddComponent<ClayCreation>(); clay.SaveAcceptedRecipes = false;
+                var actor = root.AddComponent<DioramaRuntime>(); actor.Initialize(world, clay); actor.ReadDevices = false;
+                var experience = root.AddComponent<RuntimeExperience>(); experience.Initialize(world, clay, actor);
+                var tools = EcatyAgentTools.Create(world, new AgentMainThread(), clay, actor);
+                async Task<string> Call(string name, string field = null, string value = null)
+                {
+                    var args = new JObject(); if (field != null) args[field] = value;
+                    return await tools.Single(t => t.Name == name).ExecuteAsync(args.ToString(Formatting.None), CancellationToken.None);
+                }
+                var recipe = JObject.Parse(Resources.Load<TextAsset>("RuntimeCreature").text);
+                var config = JObject.Parse(Resources.Load<TextAsset>("RuntimeCreatureControl").text); config["driver"] = "idle";
+                foreach (string id in new[] { "Alpha", "Beta" }) {
+                    config["spawn"] = new JArray(id == "Alpha" ? -2 : 2, 0, 0);
+                    await Call("create_model", "creation", new JObject { ["id"]=id, ["recipe"]=recipe.DeepClone(), ["config"]=config.DeepClone() }.ToString(Formatting.None));
+                    experience.Models[id].Actor.ReadDevices = false;
+                }
+                await Frames(12);
+                var alpha = experience.Models["Alpha"]; var beta = experience.Models["Beta"];
+                Require(alpha.Actor.Motor && beta.Actor.Motor && alpha.Actor.Motor != beta.Actor.Motor, "Independent motors were not bound.");
+                Require(alpha.Actor.Legs && beta.Actor.Legs && alpha.Actor.Secondary && beta.Actor.Secondary, "Procedural rigs did not bind independently.");
+                Require(alpha.Creation.RuntimeNodes.Keys.All(p => p.StartsWith("Alpha")) && beta.Creation.RuntimeNodes.Keys.All(p => p.StartsWith("Beta")), "Model hierarchy ownership is mixed.");
+                checks.Add("Real chat tools create two independent MudBun models, motors, FImpossible rigs and Boing chains during Play Mode");
+                var cap = JObject.Parse(await Call("inspect_capabilities"));
+                Require(cap["results"].Any(r => ((string)r["name"]) == "Input"), "Capabilities are not queryable ECS data.");
+                string PathOf(RuntimeExperience.Model model, string id) => model.Creation.RuntimeNodes.Single(p => p.Value == model.Creation.FindPart(id)).Key;
+                string alphaTarget = PathOf(alpha,"body"), betaTarget = PathOf(beta,"body");
+                foreach (string id in new[] { "Alpha", "Beta" }) {
+                    string target = id == "Alpha" ? alphaTarget : betaTarget;
+                    string code = "TogglePose toggle_" + id + "(listener:" + id + ",target:" + target + ",degrees:30) { Persistent }";
+                    await Call("apply_runtime_behavior", "definition", new JObject { ["id"]=id.ToLowerInvariant(), ["code"]=code }.ToString(Formatting.None));
+                }
+                await Frames(3);
+                Quaternion MeasuredRotation(string path) {
+                    var pose = JObject.Parse(world.Session.EntityJson(path))["components"]["PoseObserved"];
+                    return Quaternion.Euler((float)pose["rx"], (float)pose["ry"], (float)pose["rz"]);
+                }
+                var before = MeasuredRotation(alphaTarget);
+                experience.SendPointer(world.Session.Lookup("Alpha"), Vector2.zero, 1);
+                experience.SendPointer(world.Session.Lookup("Alpha"), Vector2.zero, 0);
+                await Frames(4);
+                bool Active(string name) => (bool)JObject.Parse(world.Session.EntityJson(name))["components"]["TogglePose.mut"]["active"];
+                Require(Active("toggle_Alpha") && !Active("toggle_Beta"), "Input leaked across behavior instances.");
+                Require(Quaternion.Angle(before, MeasuredRotation(alphaTarget)) > 20, "Async state did not change the actual live part pose.");
+                var observed = JObject.Parse(await Call("observe_over_time", "path", alphaTarget));
+                Require((bool)observed["presentation_available"] && (long)observed["presentation_frames_advanced"] > 0, "Actual presentation feedback did not advance.");
+                checks.Add("Unity event API -> native async template state -> PoseOffset -> actual MudBun part pose -> Flecs observation; peer state remains unchanged");
+                string editSource = world.Session.ManagedScriptSource("Models.Alpha");
+                world.Session.EditScript("Models.Alpha", alphaTarget, "ClayStyle", "{0,1,0,0,0,0.45,0,false,0.07}");
+                await Frames(4);
+                Require(alpha.Creation.FindPart("body").GetComponent<MudBun.MudMaterial>().Color.r > .9f, "Native material edit did not reach MudBun.");
+                world.Session.UndoScript("Models.Alpha"); await Frames(4);
+                Require(world.Session.ManagedScriptSource("Models.Alpha") == editSource, "Source undo did not preserve the original definition.");
+                checks.Add("Source-preserving edits and undo update the live MudBun material through ECS reconciliation");
+                experience.ApplyBehavior("keyboard", "using flecs.script\nstruct KeySignal(value:bool)\ntemplate KeyListener { prop target:entity; mut hit=false; KeySignal:{hit}; async { while true { const event = await on.key_down(target); if event.key == \"ArrowLeft\" { hit=true } } } }\nKeyListener key_test(target:Alpha) { Persistent }");
+                await Frames(2);
+                // Establish focus after the source-edit/undo round trip; release off-target avoids activating the click rule.
+                experience.SendPointer(world.Session.Lookup("Alpha"), Vector2.zero, 1);
+                experience.SendPointer(0, Vector2.zero, 0);
+                keyboard = InputSystem.AddDevice<Keyboard>();
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.LeftArrow)); await Frames(3);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState()); await Frames(2);
+                Require((bool)JObject.Parse(world.Session.EntityJson("key_test"))["components"]["KeySignal"]["value"], "Keyboard input was not normalized and forwarded to the native listener.");
+                Require(world.Session.Lookup("EngineMetrics.models") != 0 && world.Session.Lookup("EngineAlerts.AdapterFault") != 0 &&
+                    world.Session.Query("flecs.metrics.Value").Contains("EngineMetrics"), "Native metrics/alerts were not configured.");
+                checks.Add("Actual Input System keyboard events reach native async listeners; Flecs metrics and adapter alerts are configured");
+                world.Session.SetManagedScript("ExtraBrush", "Alpha { part_hips { part_torso { extra { ClayPart: {\"extra\",40}; ClayRest: {0,0.6,0,0,0,0,0.2,0.2,0.2}; ClayStyle: {0,1,1,0,0,0.4,0,false,0.07} } } } }");
+                await Frames(4);
+                Require(alpha.Creation.FindPart("extra"), "A runtime ECS entity did not create its brush.");
+                world.Session.SetManagedScript("ExtraBrush", "// Removed"); await Frames(4);
+                Require(!alpha.Creation.FindPart("extra"), "Removing a runtime entity did not remove its brush.");
+                checks.Add("Native Script creates and removes a brush without a recipe-tool round trip");
+                string saved = experience.Capture();
+                string savePath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Native/build-flecs-audit/experience-test.json"));
+                int revision = world.Session.SourceRevision;
+                experience.Save(savePath); Require(File.Exists(savePath), "Local save was not written.");
+                Require(Active("toggle_Alpha") && world.Session.SourceRevision == revision, "Saving changed the running behavior/source state.");
+                var savedAlphaPosition = alpha.Actor.Motor.transform.position;
+                experience.RemoveBehavior("alpha"); await Frames(3);
+                Require(world.Session.ManagedScriptSource("RuntimeBehaviors.beta") != null, "Removing one behavior removed its peer.");
+                experience.Load(saved); await Frames(10);
+                alpha = experience.Models["Alpha"]; beta = experience.Models["Beta"];
+                Require(Active("toggle_Alpha") && !Active("toggle_Beta"), "Saved independent mut state was not restored.");
+                Require(Vector3.Distance(savedAlphaPosition, alpha.Actor.Motor.transform.position) < .15f, "Actor position did not resume.");
+                experience.SendPointer(world.Session.Lookup("Alpha"), Vector2.zero, 1);
+                experience.SendPointer(world.Session.Lookup("Alpha"), Vector2.zero, 0); await Frames(4);
+                Require(!Active("toggle_Alpha"), "Restored behavior did not accept another event.");
+                checks.Add("Independent source modules, models, controllers, motor position and template mut state save/reload without AI regeneration; events continue after reload");
+                string timed = "struct RuntimeSignal(value:i32)\ntemplate RuntimeTimer { mut ready=false; if ready { RuntimeSignal:{1} } else { RuntimeSignal:{0} }; async { await engine.wait(0.05); ready=true } }\nRuntimeTimer timer_test() { Persistent }";
+                experience.ApplyBehavior("timer", timed); await Frames(20);
+                Require((int)JObject.Parse(world.Session.EntityJson("timer_test"))["components"]["RuntimeSignal"]["value"] == 1, "Native timed async sequence did not run.");
+                var diagnostic = JObject.Parse(world.Session.BridgeDiagnostics());
+                Require((long)diagnostic["binaryWrites"] > 0 && (long)diagnostic["binaryReads"] > 0 && (long)diagnostic["queryHits"] > 0, "Binary/cache paths were not exercised.");
+                report["bridge"] = diagnostic;
+                checks.Add("Native simulation-time async wait and generic binary command/readback paths run in the Editor");
+                experience.RemoveModel("Alpha"); await Frames(3);
+                Require(beta.Creation.PresentationRoot && beta.Actor.Motor, "Removing one model damaged its peer.");
+                checks.Add("Removing one model tears down its motor/presentation without removing the other model");
+                Require(errors.Count == 0, "Runtime exceptions: " + string.Join("; ", errors.Take(3)));
+                report["passed"] = true;
+            }
+            catch (Exception error) { report["error"] = error.ToString(); Debug.LogException(error); }
+            finally
+            {
+                if (keyboard != null && keyboard.added) InputSystem.RemoveDevice(keyboard);
+                if (root) Object.DestroyImmediate(root);
+                Application.logMessageReceived -= capture;
+                report["runtimeErrors"] = JArray.FromObject(errors);
+                report["limits"] = new JArray("Windows Editor with supplied fixtures through real tools; no live AI inference or mobile/IL2CPP build", "Selected state persistence; pending awaits restart, not a VM/physics solver snapshot");
+                File.WriteAllText(Path.GetFullPath(Path.Combine(Application.dataPath,"../Verification/runtime-experience-checks.json")),report.ToString());
+                Running=false; if (owned) EditorApplication.isPlaying=false;
+            }
+        }
+    }
+}

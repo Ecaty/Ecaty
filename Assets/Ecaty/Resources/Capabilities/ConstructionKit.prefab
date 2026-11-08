@@ -1,0 +1,199 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4022935509707890030
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5871559932241389671}
+  - component: {fileID: 6043643975251995604}
+  m_Layer: 0
+  m_Name: Control point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5871559932241389671
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4022935509707890030}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6938614972942680627}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6043643975251995604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4022935509707890030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7eb279141b588c41a26eade17ed7f33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ProjectDawn.CozyBuilder::ProjectDawn.CozyBuilder.CozyPoint
+--- !u!1 &8972719545986208416
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6938614972942680627}
+  - component: {fileID: 7432802672475960240}
+  - component: {fileID: 6138794382243333496}
+  - component: {fileID: 1569346866057776339}
+  - component: {fileID: 3375444535479222412}
+  m_Layer: 0
+  m_Name: ConstructionKit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6938614972942680627
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8972719545986208416}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7447106666847706569}
+  - {fileID: 5871559932241389671}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7432802672475960240
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8972719545986208416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 186fe534d35124746a54f71eecad1838, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ProjectDawn.CozyBuilder::ProjectDawn.CozyBuilder.CozyRenderer
+  BuildMode: 1
+--- !u!114 &6138794382243333496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8972719545986208416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24b1b336aa7325948bd4c6e00a8c1992, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ProjectDawn.CozyBuilder::ProjectDawn.CozyBuilder.CozySpline
+  Topology: 0
+  Detail: 25
+  m_Points:
+  - {fileID: 3043359817195425010}
+  - {fileID: 6043643975251995604}
+--- !u!114 &1569346866057776339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8972719545986208416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57b8a6beb42ada446be92c524e50cf30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ProjectDawn.CozyBuilder::ProjectDawn.CozyBuilder.CozySegments
+  Spacing: 0.5
+--- !u!114 &3375444535479222412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8972719545986208416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b066ece8d1e70954d9ed371d1cf1cadd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ProjectDawn.CozyBuilder::ProjectDawn.CozyBuilder.CozyDraw
+  Prefabs:
+  - {fileID: 8342571916598016648, guid: e25ab6cdd56bd9b4eb0d30566b59c7c5, type: 3}
+  OverrideMaterial: {fileID: 2100000, guid: 522176da3c8e32f429eac54b0aece5ad, type: 2}
+  Seed: 1
+  Rotation:
+    x: 0
+    y: 0
+    z: 0
+  WidthScaling: 1
+  HeightScaling: 1
+  DepthScaling: 1
+  CellSize:
+    x: 0.2
+    y: 0.2
+    z: 0.2
+  GlobalRotation: 0
+  MinArea: 0.001
+--- !u!1 &9127010960043207310
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7447106666847706569}
+  - component: {fileID: 3043359817195425010}
+  m_Layer: 0
+  m_Name: Control point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7447106666847706569
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9127010960043207310}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6938614972942680627}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3043359817195425010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9127010960043207310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7eb279141b588c41a26eade17ed7f33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ProjectDawn.CozyBuilder::ProjectDawn.CozyBuilder.CozyPoint

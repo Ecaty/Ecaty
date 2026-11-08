@@ -1,0 +1,24 @@
+// Live-managed by Flecs. In Explorer open World's Script tab.
+// Position entities have Unity transforms. Primitive and Label add visuals.
+prefab ColoredCube {
+    Position: {0, 0, 0}
+    Rotation: {0, 0, 0}
+    Scale: {1, 1, 1}
+    Primitive: {kind: 0}
+    Color: {0.65, 0.65, 0.65, 1}
+}
+
+scene {
+    Position: {0, 0, 0}
+
+    Cube : ColoredCube {
+        Position: {-1.5, 0, 0}
+        Spin: {0, 40, 15}
+    }
+
+    Sphere {
+        Position: {1.5, 0, 0}
+        Primitive: {kind: 1}
+        Color: {1, 0.55, 0.15, 1}
+    }
+}

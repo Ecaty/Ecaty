@@ -1,0 +1,10 @@
+// A runtime feedback rule, not a compiled flying behavior.
+using flecs.script.math
+const t = Clock[Clock].time
+const p = PhotoClay[ActorMotion]
+const settings = MotionTuning[HoverParameters]
+ScriptInput { SpatialIntent: {settings.sway * sin(t),settings.height - p.y,0} }
+EarWiggle {
+    (PoseTarget, PhotoClay.part_hips.part_torso.part_ear_base.part_ear_tip.part_ear_brush)
+    PoseOffset: {1 + 0.2 * sin(t),0,0,0,0,25 * sin(t * 3)}
+}

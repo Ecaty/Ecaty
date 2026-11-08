@@ -1,0 +1,35 @@
+// One template instance per actor. Adapters only execute its motor intent.
+using flecs.script.math
+template RuntimeMotorDriver {
+prop input: entity
+prop goal: entity
+prop command: entity
+const mode = this[ActorControl].mode
+if mode == 0 {
+    MoveIntent: {0,0}; SpatialIntent: {0,0,0}
+} else if mode == 1 {
+    const stick = input[PlayerMotion]
+    const lift = input[LiftIntent].y
+    MoveIntent: {stick.x,stick.z}; SpatialIntent: {stick.x,lift,stick.z}
+} else if mode == 2 {
+    const p = this[ActorMotion]
+    const destination = goal[MoveGoal]
+    const dx = destination.x - p.x
+    const dz = destination.z - p.z
+    const distance = sqrt(dx * dx + dz * dz)
+    if distance > destination.stopDistance {
+        MoveIntent: {dx / distance,dz / distance}; SpatialIntent: {dx / distance,0,dz / distance}
+    } else {
+        MoveIntent: {0,0}; SpatialIntent: {0,0,0}
+    }
+} else if mode == 3 {
+    const spatial = this[MotorPolicy].spatial
+    if spatial {
+        const custom = command[SpatialIntent]
+        MoveIntent: {custom.x,custom.z}; SpatialIntent: {custom.x,custom.y,custom.z}
+    } else {
+        const custom = command[MoveIntent]
+        MoveIntent: {custom.x,custom.z}; SpatialIntent: {custom.x,0,custom.z}
+    }
+}
+}

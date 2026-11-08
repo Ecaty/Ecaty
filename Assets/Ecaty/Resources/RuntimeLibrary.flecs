@@ -1,0 +1,19 @@
+using flecs.script
+// Reusable, runtime-interpreted building block; AI can define additional templates.
+template TogglePose {
+    prop listener: entity
+    prop target: entity
+    prop degrees: f32 = 20
+    mut active = false
+    command {
+        (PoseTarget, target)
+        if active { PoseOffset: {0,0,0,0,0,degrees} }
+        else { PoseOffset: {0,0,0,0,0,0} }
+    }
+    async {
+        while true {
+            await on.activate(listener)
+            active = !active
+        }
+    }
+}

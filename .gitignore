@@ -122,3 +122,63 @@ InitTestScene*.unity*
 !.env.example
 *.local.json
 /Verification/*.log
+
+# Licensed Asset Store files are imported locally.
+/Assets/MudBun/
+/Assets/MudBun.meta
+/Assets/FImpossible Creations/
+/Assets/FImpossible Creations.meta
+
+/Assets/Boing Kit/
+/Assets/Boing Kit.meta
+
+/Assets/Feel/
+/Assets/Feel.meta
+
+/Packages/xyz.staggart-creations.splinemesher-pro/
+
+# Additional locally licensed runtime plugins (adapters remain versioned).
+/Assets/Crest/
+/Assets/Crest.meta
+/Assets/FluXY/
+/Assets/FluXY.meta
+/Assets/Flexalon/
+/Assets/Flexalon.meta
+/Assets/Waldemarst/
+/Assets/Waldemarst.meta
+/Assets/UniStorm Weather System/
+/Assets/UniStorm Weather System.meta
+/Packages/com.projectdawn.cozy-builder/
+
+/Assets/PostProcessing/
+/Assets/PostProcessing.meta
+
+# Asset Store imports are installed locally; Ecaty adapters and settings stay versioned.
+/Assets/Artificer/
+/Assets/Artificer.meta
+/Assets/Complete Sound suite/
+/Assets/Complete Sound suite.meta
+/Assets/FronkonGames/
+/Assets/FronkonGames.meta
+/Assets/Screen Space Cavity Curvature/
+/Assets/Screen Space Cavity Curvature.meta
+/Assets/Plugins/DarkTonic/
+/Assets/Plugins/DarkTonic.meta
+/Assets/Plugins/RelationsInspector/
+/Assets/Plugins/RelationsInspector.meta
+/Assets/Plugins/Editor/DarkTonic/
+/Assets/Plugins/Editor/DarkTonic.meta
+/Assets/Plugins/Editor/RelationsInspector/
+/Assets/Plugins/Editor/RelationsInspector.meta
+/Assets/Resources/MasterAudio/
+/Assets/Resources/MasterAudio.meta
+/Assets/Gizmos/MasterAudio/
+/Assets/Gizmos/MasterAudio.meta
+/Assets/Editor Default Resources/MasterAudio/
+/Assets/Editor Default Resources/MasterAudio.meta
+/Packages/com.distantlands.lumen/
+/Packages/com.distantlands.lumen.meta
+/Packages/com.distantlands.zephyr/
+/Packages/com.distantlands.zephyr.meta
+/Packages/com.arongranberg.aline/
+/Packages/com.arongranberg.aline.meta

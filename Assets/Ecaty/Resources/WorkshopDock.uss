@@ -1,0 +1,36 @@
+.workshop-popover {
+    width: 280px;
+    max-width: 100%;
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 18px;
+    border-width: 1px;
+    border-color: rgba(208, 225, 245, 0.24);
+    background-color: rgba(23, 30, 39, 0.87);
+    backdrop-filter: blur(10px);
+    color: #edf3f9;
+}
+.workshop-popover__title {
+    margin: 2px 8px 6px;
+    -unity-font-style: bold;
+}
+.workshop-popover__message {
+    margin: 0 8px 8px;
+    white-space: normal;
+    font-size: 13px;
+    color: #b9c5d2;
+}
+.workshop-popover__action {
+    min-height: 36px;
+    margin: 2px 0;
+    padding: 0 9px;
+    border-width: 0;
+    border-radius: 8px;
+    color: #edf3f9;
+    -unity-text-align: middle-left;
+    background-color: rgba(143, 171, 196, 0.14);
+}
+.workshop-popover__action:hover {
+    background-color: rgba(143, 171, 196, 0.31);
+}
+

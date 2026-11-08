@@ -1,0 +1,18 @@
+// Runtime protocol shared by inputs, behavior rules and Unity motor adapters.
+struct ActorControl(mode: i32, speed: f32, acceleration: f32)
+struct MoveIntent(x: f32, z: f32)
+struct ActorMotion(x: f32, y: f32, z: f32, yaw: f32, vx: f32, vy: f32, vz: f32, grounded: bool)
+struct ActorRig(json: string)
+struct PlayerMotion(x: f32, z: f32)
+struct MoveGoal(x: f32, z: f32, stopDistance: f32)
+Input { PlayerMotion: {0,0} }
+Goal { MoveGoal: {3,2,0.25} }
+
+ScriptInput { MoveIntent: {0,0} }
+
+// Generic three-dimensional steering, with no aircraft-specific behavior.
+struct SpatialIntent(x: f32, y: f32, z: f32)
+struct MotorPolicy(spatial: bool, gravityScale: f32)
+struct LiftIntent(y: f32)
+Input { LiftIntent: {0} }
+ScriptInput { SpatialIntent: {0,0,0} }

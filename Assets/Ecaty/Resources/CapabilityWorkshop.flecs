@@ -1,0 +1,43 @@
+CapBall { Position: {0,3,0}; Scale: {1,1,1}; Primitive: {2}; Color: {0.2,0.6,0.8,1} }
+CapScene { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1} }
+CapRoad { Position: {-4,0,0}; Scale: {1,1,1}; Primitive: {-1} }
+CapFloor { Position: {-4,0,0}; Scale: {1,1,1}; Primitive: {-1} }
+BodyBinding { CapBinding: {target:CapBall,enabled:true,revision:1}; CapBody: {mass:1,radius:0.3,height:0.6,gravity:1,kinematic:false}; CapForce: {0,0,0,0} }
+MaterialBinding { CapBinding: {target:CapBall,enabled:true,revision:1}; CapMaterial: {colorR:0.2,colorG:0.8,colorB:0.6,metallic:0,smoothness:0.5,material:"default"} }
+AudioBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapAudio: {program:10,note:60,gain:0.15,spatial:0,pitch:1,lowPass:18000,trigger:1,synthesis:0} }
+ParticleBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapParticles: {rate:8,lifetime:0.5,speed:0.3,size:0.05,colorR:0.4,colorG:0.8,colorB:1} }
+LightBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapLight: {kind:0,intensity:1,range:8,colorR:0.7,colorG:0.8,colorB:1} }
+RoadBinding { CapBinding: {target:CapRoad,enabled:true,revision:1}; CapSpline: {points:"[[-2,0.5,0],[0,1,0],[2,0.5,1]]",width:0.7,profile:"",closed:false,fill:false} }
+TerrainBinding { CapBinding: {target:CapFloor,enabled:true,revision:1}; CapTerrain: {source:RoadBinding,points:"[]",size:6,resolution:33,height:0,falloff:1.2}; (CapDependsOn,RoadBinding) }
+NavSurfaceBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapNavSurface: {radius:15,height:10,rebuild:1}; (CapDependsOn,TerrainBinding) }
+NavigationBinding { CapBinding: {target:CapBall,enabled:true,revision:1}; CapNavigation: {command:0,x:2,y:0,z:2,speed:1,stopping:0.2}; (CapDependsOn,NavSurfaceBinding) }
+HandleBinding { CapBinding: {target:CapBall,enabled:true,revision:1}; CapHandle: {radius:0.12,grid:0.1,enabled:true,edit:0,component:"",index:0} }
+FeedbackBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapFeedback: {prefab:"burst",trigger:1} }
+SequenceBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapSequence: {pattern:"[[\"chime\",1,0,1,0]]",bpm:100,playing:true} }
+BuildingBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapBuilding: {prefab:"building",points:"[[1,0,-2],[3,0,-2],[3,0,-1]]"} }
+CapWaterRoot { Position: {10,0,0}; Scale: {1,1,1}; Primitive: {-1} }
+CapFloat { Position: {10,-0.2,0}; Scale: {0.3,0.3,0.3}; Primitive: {1} }
+WaterBinding { CapBinding: {target:CapWaterRoot,enabled:true,revision:1}; CapWater: {level:0,density:1000} }
+FloatBodyBinding { CapBinding: {target:CapFloat,enabled:true,revision:1}; CapBody: {mass:1,radius:0.15,height:0.3,gravity:1,kinematic:false} }
+BuoyancyBinding { CapBinding: {target:CapFloat,enabled:true,revision:1}; CapBuoyancy: {volume:CapWaterRoot,displacement:0.003,drag:2}; (CapDependsOn,FloatBodyBinding); (CapDependsOn,WaterBinding) }
+CameraBinding { CapBinding: {target:CapBall,enabled:true,revision:1}; CapCamera: {distance:6,height:3,priority:5} }
+TimelineBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapTimeline: {duration:2,playing:true,time:0,audio:"chime"} }
+TreeBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapVegetation: {pipeline:"tree",seed:5} }
+LayoutRoot { Position: {5,0,0}; Scale: {1,1,1}; Primitive: {-1}
+    One { Position: {0,0,0}; Scale: {0.2,0.2,0.2}; Primitive: {0} }
+    Two { Position: {0,0,0}; Scale: {0.2,0.2,0.2}; Primitive: {0} }
+}
+LayoutBinding { CapBinding: {target:LayoutRoot,enabled:true,revision:1}; CapLayout: {radius:1,spacing:90} }
+RigModel { Position: {0,1,3}; Scale: {1,1,1}; Primitive: {-1}
+    Root { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1}
+        Mid { Position: {0,1,0}; Scale: {1,1,1}; Primitive: {-1}
+            Tip { Position: {0,1,0}; Scale: {0.15,0.15,0.15}; Primitive: {0} }
+        }
+    }
+}
+RigGoal { Position: {1,2,3}; Scale: {0.1,0.1,0.1}; Primitive: {1} }
+RigBinding { CapBinding: {target:RigModel,enabled:true,revision:1}; CapRig: {root:RigModel.Root,mid:RigModel.Root.Mid,tip:RigModel.Root.Mid.Tip,goal:RigGoal,weight:1} }
+VfxBinding { CapBinding: {target:CapScene,enabled:true,revision:1}; CapVfx: {asset:"particles",rate:10,event:"OnPlay",trigger:1} }
+
+CapArea { Position: {3,0.2,3}; Scale: {1,1,1}; Primitive: {-1} }
+AreaBinding { CapBinding: {target:CapArea,enabled:true,revision:1}; CapSpline: {points:"[[0,0,0],[2,0,0],[2,0,2],[0,0,2]]",width:1,profile:"",closed:true,fill:true} }

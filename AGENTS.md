@@ -16,3 +16,7 @@ Read `docs/PROJECT.md`, then `docs/DEVELOPMENT.md`, then `docs/STATUS.md` before
 - Publishing the initial public repositories/submodules is authorized for setup. Future pushes, releases, paid services and destructive actions require authorization from the current task.
 
 If working on a child repository alone, read its `AGENTS.md` and follow its link to Ecaty's canonical context.
+
+Runtime capability continuation: read docs/RUNTIME-CAPABILITIES.md. Use one registered capability component per CapBinding entity, explicit dependencies, one transform owner and disposable owned instances. New plugin adapters must be independent/gated by imports; avoid a replacement C# ECS or arbitrary Inspector reflection. Clone persistent inputs before vendor APIs that may destroy them. Verify real outputs and reconstruction, not only component existence. MicroSplat/TVE are excluded.
+
+Maintain docs/BACKLOG.md as the canonical short task list. Read docs/LOCAL-AI.md for local inference/speech and docs/PRODUCT-DIRECTION.md for cozy workshop/theme intent. Distribution and licensing findings are in docs/DISTRIBUTION.md; do not imply store approval or automatic Unity platform rights.
