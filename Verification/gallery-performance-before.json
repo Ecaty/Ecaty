@@ -1,0 +1,146 @@
+{
+  "frames": 60,
+  "note": "Editor capture, inclusive CPU sample means; includes profiling and unfocused Editor overhead. Not a player/device FPS benchmark.",
+  "top": [
+    {
+      "name": "UpdateScene",
+      "milliseconds": 92.751337909698492
+    },
+    {
+      "name": "Main Thread",
+      "milliseconds": 60.087214914957684
+    },
+    {
+      "name": "EditorLoop",
+      "milliseconds": 59.584013748168942
+    },
+    {
+      "name": "Application.Tick",
+      "milliseconds": 58.548036575317383
+    },
+    {
+      "name": "Application.UpdateScene",
+      "milliseconds": 53.725248146057126
+    },
+    {
+      "name": "UpdateSceneIfNeeded",
+      "milliseconds": 53.724164962768555
+    },
+    {
+      "name": "PlayerLoop",
+      "milliseconds": 44.567811784482792
+    },
+    {
+      "name": "Update.ScriptRunBehaviourUpdate",
+      "milliseconds": 36.99221496582031
+    },
+    {
+      "name": "BehaviourUpdate",
+      "milliseconds": 36.991433143615723
+    },
+    {
+      "name": "Assembly-CSharp.dll!Ecaty::CrystalWorldGallery.Update() [Invoke]",
+      "milliseconds": 36.394731616973878
+    },
+    {
+      "name": "GUIView.RepaintAll.PlayerLoopController",
+      "milliseconds": 14.611749935150147
+    },
+    {
+      "name": "UnityEditor.CoreModule.dll!UnityEditor::GUIView.ProcessEvent() [Invoke]",
+      "milliseconds": 14.421928270657856
+    },
+    {
+      "name": "UIElementsUtility.DoDispatch(Repaint Event)",
+      "milliseconds": 14.367588297526042
+    },
+    {
+      "name": "UIR.DrawChain",
+      "milliseconds": 14.314446644624695
+    },
+    {
+      "name": "IMGUIContainer",
+      "milliseconds": 13.834871627142032
+    },
+    {
+      "name": "OnGUI",
+      "milliseconds": 13.339394984402073
+    },
+    {
+      "name": "GameView.Paint",
+      "milliseconds": 7.5631682952245081
+    },
+    {
+      "name": "GameView.Repaint",
+      "milliseconds": 7.5328033208847049
+    },
+    {
+      "name": "GameView.Render",
+      "milliseconds": 7.4049033006032312
+    },
+    {
+      "name": "SceneView.Paint",
+      "milliseconds": 7.0373033364613855
+    },
+    {
+      "name": "SceneView.Repaint",
+      "milliseconds": 6.9994199832280479
+    },
+    {
+      "name": "SceneView.Render",
+      "milliseconds": 6.7985299984614054
+    },
+    {
+      "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+      "milliseconds": 6.4718016465504968
+    },
+    {
+      "name": "Inl_UniversalRenderTotal",
+      "milliseconds": 6.3981900215148926
+    },
+    {
+      "name": "RenderPlayModeViewCameras",
+      "milliseconds": 5.5380899826685583
+    },
+    {
+      "name": "Application.TickSceneTracker",
+      "milliseconds": 4.4507451963921385
+    },
+    {
+      "name": "UnityEditor.CoreModule.dll!UnityEditor::EditorApplication.Internal_CallUpdateFunctions() [Invoke]",
+      "milliseconds": 4.4032316196709873
+    },
+    {
+      "name": "EditorApplication.update: Unity.Pipeline.Editor.Commands.Profiling.ProfilerRecordCommands.OnUpdate",
+      "milliseconds": 4.280923472503976
+    },
+    {
+      "name": "WaitForJobGroupID",
+      "milliseconds": 4.1271966547996275
+    },
+    {
+      "name": "Inl_RenderCameraStack",
+      "milliseconds": 3.6106633206208545
+    },
+    {
+      "name": "SceneCamera.Render",
+      "milliseconds": 3.6076899737119676
+    },
+    {
+      "name": "Gfx.EndAsyncJobFrame",
+      "milliseconds": 2.4140116730636993
+    },
+    {
+      "name": "WaitForRenderJobs",
+      "milliseconds": 2.4090383247718514
+    },
+    {
+      "name": "GC.Alloc",
+      "milliseconds": 2.3985132753895111
+    },
+    {
+      "name": "Idle",
+      "milliseconds": 2.3051366549819554
+    }
+  ]
+}

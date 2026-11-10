@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "flecs": "4.2.0+6879066",
+  "checks": [
+    "Pinned upstream revision and unmodified distribution hashes match the binary",
+    "Script-defined type and native Clock drive continuous scale through Flecs reactivity",
+    "Query-visible runtime component changes reevaluate behavior without reloading source",
+    "Hot replacement with target-following logic preserves the existing entity",
+    "Failed replacement parse preserves prior source and its live observers",
+    "Conditional reactions and stopping a module use the same interpreter",
+    "Saved source reloads into a fresh world and resumes execution without AI regeneration",
+    "Repeated ticking, independent reconstruction and teardown complete"
+  ],
+  "limits": [
+    "Windows x64 native verification; no phone/IL2CPP test",
+    "Generated source persistence is tested; full session-state persistence is not implemented",
+    "No live inference service request; generated Script supplied by test fixture"
+  ],
+  "upstream_commit": "68790666a02b1dc679cdc9bc2d19fc285ba4fe1b",
+  "local_native_measurement": {
+    "baseline_microseconds_per_tick": 26.986299999407493,
+    "reactive_microseconds_per_tick": 33.53829999832669
+  }
+}

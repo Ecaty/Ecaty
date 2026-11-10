@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "testedUtc": "2026-11-06T20:02:23.8101226Z",
+  "unity": "6000.6.7f1",
+  "flecs": "4.2.0+6879066",
+  "graphics": "Direct3D12",
+  "checks": [
+    "Two independent MudBun models with motors, FImpossible rigs and Boing chains created in the built player",
+    "Native async input -> runtime behavior -> actual post-animation pose feedback",
+    "Versioned source/state save/reload recreates models and continues independent runtime behavior without AI regeneration"
+  ],
+  "bridge": {
+    "queryBuilds": 32,
+    "queryHits": 11,
+    "cachedQueries": 27,
+    "binaryReads": 104,
+    "binaryWrites": 547
+  },
+  "frames": 38
+}

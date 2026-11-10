@@ -1,0 +1,21 @@
+{
+  "name": "Ecaty.Tests.EditMode",
+  "rootNamespace": "Ecaty.Tests",
+  "references": [
+    "Ecaty.Flecs",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "autoReferenced": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll",
+    "Newtonsoft.Json.dll"
+  ]
+}

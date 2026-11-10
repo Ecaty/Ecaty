@@ -1,0 +1,147 @@
+{
+  "items": [
+    {
+      "id": "ChainBell",
+      "shape": "Cylinder",
+      "size": [
+        0.42,
+        0.48,
+        0.42
+      ],
+      "color": [
+        0.96,
+        0.68,
+        0.27
+      ],
+      "source": "ChainBell { WorkshopProp; PersistState: {\"[\\\"Position\\\"]\"}; Position: {%x%,0.28,%z%}; Scale: {0.42,0.48,0.42}; Color: {0.96,0.68,0.27,1}; Primitive: {kind:3} }"
+    },
+    {
+      "id": "ChainBunny",
+      "shape": "Sphere",
+      "size": [
+        0.53,
+        0.48,
+        0.42
+      ],
+      "color": [
+        0.51,
+        0.76,
+        0.84
+      ],
+      "actor": true
+    },
+    {
+      "id": "ChainPlate",
+      "shape": "Cylinder",
+      "size": [
+        0.63,
+        0.16,
+        0.63
+      ],
+      "color": [
+        0.53,
+        0.73,
+        0.36
+      ],
+      "source": "ChainPlate { Position: {%x%,0.05,%z%}; Scale: {0.92,0.06,0.92}; Color: {0.53,0.73,0.36,1}; Primitive: {kind:0} }"
+    },
+    {
+      "id": "ChainGate",
+      "shape": "Cube",
+      "size": [
+        0.64,
+        0.59,
+        0.16
+      ],
+      "color": [
+        0.8,
+        0.48,
+        0.33
+      ],
+      "source": "ChainGate { Position: {%x%,0.4,%z%}; Scale: {0.9,0.8,0.1}; Color: {0.8,0.48,0.33,1}; Primitive: {kind:0} }\nChainWait { Position: {%x%,0,%before%} }\nChainExit { Position: {%x%,0,%after%} }"
+    },
+    {
+      "id": "ChainDuck",
+      "shape": "Sphere",
+      "size": [
+        0.55,
+        0.43,
+        0.43
+      ],
+      "color": [
+        0.98,
+        0.81,
+        0.36
+      ],
+      "actor": true
+    }
+  ],
+  "wires": [
+    {
+      "from": "ChainBell",
+      "to": "ChainBunny",
+      "id": "wireBell",
+      "needs": [
+        "ChainPlate"
+      ],
+      "source": "WorkshopBell ChainBellLink(bell:ChainBell,actor:ChainBunny,goal:ChainBunnyGoal,home:ChainPlate) { Persistent; WorkshopConnection: {ChainBell,ChainBunny} }",
+      "instance": "ChainBellLink"
+    },
+    {
+      "from": "ChainBunny",
+      "to": "ChainPlate",
+      "id": "wirePlate",
+      "needs": [],
+      "source": "WorkshopPlate ChainPlateLink(plate:ChainPlate,actor:ChainBunny) { WorkshopConnection: {ChainBunny,ChainPlate} }",
+      "instance": "ChainPlateLink"
+    },
+    {
+      "from": "ChainPlate",
+      "to": "ChainGate",
+      "id": "wireGate",
+      "needs": [
+        "ChainPlateLink"
+      ],
+      "source": "WorkshopGate ChainGateLink(sensor:ChainPlateLink,gate:ChainGate,waiting:ChainWait) { WorkshopConnection: {ChainPlate,ChainGate} }",
+      "instance": "ChainGateLink"
+    },
+    {
+      "from": "ChainGate",
+      "to": "ChainDuck",
+      "id": "wireCrossing",
+      "needs": [
+        "ChainGateLink"
+      ],
+      "source": "WorkshopCrossing ChainCrossLink(gate:ChainGateLink,goal:ChainDuckGoal,waiting:ChainWait,farSide:ChainExit) { WorkshopConnection: {ChainGate,ChainDuck} }",
+      "instance": "ChainCrossLink"
+    },
+    {
+      "from": "ChainBell",
+      "to": "ChainDuck",
+      "id": "wireBell",
+      "needs": [
+        "ChainPlate"
+      ],
+      "source": "WorkshopBell ChainBellLink(bell:ChainBell,actor:ChainDuck,goal:ChainDuckGoal,home:ChainPlate) { Persistent; WorkshopConnection: {ChainBell,ChainDuck} }",
+      "instance": "ChainBellLink"
+    },
+    {
+      "from": "ChainDuck",
+      "to": "ChainPlate",
+      "id": "wirePlate",
+      "needs": [],
+      "source": "WorkshopPlate ChainPlateLink(plate:ChainPlate,actor:ChainDuck) { WorkshopConnection: {ChainDuck,ChainPlate} }",
+      "instance": "ChainPlateLink"
+    },
+    {
+      "from": "ChainGate",
+      "to": "ChainBunny",
+      "id": "wireCrossing",
+      "needs": [
+        "ChainGateLink"
+      ],
+      "source": "WorkshopCrossing ChainCrossLink(gate:ChainGateLink,goal:ChainBunnyGoal,waiting:ChainWait,farSide:ChainExit) { WorkshopConnection: {ChainGate,ChainBunny} }",
+      "instance": "ChainCrossLink"
+    }
+  ]
+}

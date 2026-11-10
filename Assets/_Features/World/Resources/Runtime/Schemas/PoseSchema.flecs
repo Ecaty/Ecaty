@@ -1,0 +1,6 @@
+// Live command and measured scene result. Separate from authored ClayRest.
+struct PoseOffset(x: f32, y: f32, z: f32, rx: f32, ry: f32, rz: f32)
+struct PoseObserved(x: f32, y: f32, z: f32, rx: f32, ry: f32, rz: f32, sx: f32, sy: f32, sz: f32, lx: f32, ly: f32, lz: f32, offsetApplied: bool, frame: u64)
+
+// Link a behavior-owned pose command entity to an existing view entity.
+PoseTarget {}

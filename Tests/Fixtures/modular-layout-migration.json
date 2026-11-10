@@ -1,0 +1,1791 @@
+{
+  "version": 1,
+  "moves": [
+    {
+      "from": "Assets/Ecaty",
+      "to": "Assets/__Common"
+    },
+    {
+      "from": "Assets/__Common/Runtime",
+      "to": "Assets/__Common/Bootstrap"
+    },
+    {
+      "from": "Assets/__Common/Tests",
+      "to": "Assets/_Features/Gallery/Tests"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/Adapters",
+      "to": "Assets/_Adapters/Runtime/Vendor"
+    },
+    {
+      "from": "Assets/__Common/Resources/Gallery",
+      "to": "Assets/_Features/Gallery/Resources/Gallery"
+    },
+    {
+      "from": "Assets/__Common/Resources/Runtime",
+      "to": "Assets/_Features/World/Resources/Runtime"
+    },
+    {
+      "from": "Assets/__Common/Resources/Workshop",
+      "to": "Assets/_Features/Creation/Resources/Workshop"
+    },
+    {
+      "from": "Assets/__Common/Resources/Agent",
+      "to": "Assets/__Common/Agent/Resources/Agent"
+    },
+    {
+      "from": "Assets/__Common/Resources/Tests",
+      "to": "Assets/_Tests/Fixtures/Resources/Tests"
+    },
+    {
+      "from": "Assets/_Features/Creation/Resources/Workshop/UI/WorkshopDock.uss",
+      "to": "Assets/_Settings/Resources/Workshop/UI/WorkshopDock.uss"
+    },
+    {
+      "from": "Assets/__Common/Resources",
+      "to": "Assets/__Common/Theme/Resources"
+    },
+    {
+      "from": "Assets/__Common/UI",
+      "to": "Assets/__Common/Theme/Styles"
+    },
+    {
+      "from": "Assets/__Common/Theme/Styles/EcatyTheme.tss",
+      "to": "Assets/__Common/Theme/Styles/Theme.tss"
+    },
+    {
+      "from": "Assets/Scenes",
+      "to": "Assets/_Scenes"
+    },
+    {
+      "from": "Assets/Settings",
+      "to": "Assets/_Settings/Project/Rendering"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/CapabilitySmoke.cs",
+      "to": "Assets/_Tests/Integration/Runtime/CapabilitySmoke.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/ClayCreation.cs",
+      "to": "Assets/_Features/Creation/Runtime/ClayCreation.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/CrystalGalleryExperience.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryExperience.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/CrystalGalleryInteraction.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryInteraction.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/CrystalGalleryNavigation.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryNavigation.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/CrystalGalleryPicking.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryPicking.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/CrystalGalleryPortal.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryPortal.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/CrystalWorldGallery.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalWorldGallery.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/DioramaRuntime.cs",
+      "to": "Assets/_Features/World/Runtime/DioramaRuntime.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/EcatyAgentTools.cs",
+      "to": "Assets/__Common/Agent/Runtime/EcatyAgentTools.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/EcatyTheme.cs",
+      "to": "Assets/__Common/Theme/Runtime/EcatyTheme.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/GalleryExitFeedback.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryExitFeedback.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/GalleryExperienceStore.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryExperienceStore.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/GalleryFeedbackSpring.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryFeedbackSpring.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/GalleryLayoutProfile.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryLayoutProfile.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/GalleryMockPreview.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryMockPreview.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/GalleryPreviewStage.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryPreviewStage.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/GalleryTreeArt.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryTreeArt.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/GalleryWorkbenchPresentation.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryWorkbenchPresentation.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/LocalAiSmoke.cs",
+      "to": "Assets/_Tests/Integration/Runtime/LocalAiSmoke.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/PhotoRecipeInput.cs",
+      "to": "Assets/_Features/Creation/Runtime/PhotoRecipeInput.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/PlayerSmoke.cs",
+      "to": "Assets/_Tests/Integration/Runtime/PlayerSmoke.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/ReferencePhotoPicker.cs",
+      "to": "Assets/_Features/Creation/Runtime/ReferencePhotoPicker.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/RuntimeDioramaAssets.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimeDioramaAssets.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/RuntimeExperience.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimeExperience.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/RuntimeExperienceSmoke.cs",
+      "to": "Assets/_Tests/Integration/Runtime/RuntimeExperienceSmoke.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/RuntimeExperienceTools.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimeExperienceTools.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/RuntimeMudRenderer.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimeMudRenderer.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/RuntimePoseBridge.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimePoseBridge.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/RuntimePoseObservation.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimePoseObservation.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/RuntimePoseReset.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimePoseReset.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorkshopDock.cs",
+      "to": "Assets/_Settings/Runtime/WorkshopDock.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorkshopExamples.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopExamples.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorkshopOrbit.cs",
+      "to": "Assets/_Features/World/Runtime/WorkshopOrbit.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorkshopPropInput.cs",
+      "to": "Assets/_Features/World/Runtime/WorkshopPropInput.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorkshopRadialMenu.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopRadialMenu.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorkshopSeed.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopSeed.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorkshopTools.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopTools.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorkshopVisuals.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopVisuals.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorldGalleryInteraction.cs",
+      "to": "Assets/_Features/Gallery/Runtime/WorldGalleryInteraction.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorldGalleryLifecycle.cs",
+      "to": "Assets/_Features/Gallery/Runtime/WorldGalleryLifecycle.cs"
+    },
+    {
+      "from": "Assets/__Common/Bootstrap/WorldGalleryPrototype.cs",
+      "to": "Assets/_Features/Gallery/Runtime/WorldGalleryPrototype.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/AssetValidation.cs",
+      "to": "Assets/_Tests/Editor/AssetValidation.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/BrowserTraceVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/BrowserTraceVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/CapabilityPluginDiscovery.cs",
+      "to": "Assets/_Adapters/Editor/CapabilityPluginDiscovery.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/CapabilitySetup.cs",
+      "to": "Assets/_Adapters/Editor/CapabilitySetup.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/CapabilityVerification.cs",
+      "to": "Assets/_Adapters/Editor/CapabilityVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/ChatLoopSetup.cs",
+      "to": "Assets/__Common/Agent/Editor/ChatLoopSetup.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/ChatLoopVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/ChatLoopVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/ClayPhotoMenu.cs",
+      "to": "Assets/_Features/Creation/Editor/ClayPhotoMenu.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/ConfigurationInspectors.cs",
+      "to": "Assets/_Features/Gallery/Editor/ConfigurationInspectors.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/GalleryDesignerMenu.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryDesignerMenu.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/GalleryPerformanceProbe.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryPerformanceProbe.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/GalleryRunArtifacts.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryRunArtifacts.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/GalleryScenarioSuite.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryScenarioSuite.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/GalleryTestMenu.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryTestMenu.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/LiveProviderVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/LiveProviderVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/LocalAiVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/LocalAiVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/LocalShutdownVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/LocalShutdownVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/MultiProviderVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/MultiProviderVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/PhotoObjectVerification.cs",
+      "to": "Assets/_Features/Creation/Editor/PhotoObjectVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/PostProcessingSetup.cs",
+      "to": "Assets/_Features/Creation/Editor/PostProcessingSetup.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/ResourceVerification.cs",
+      "to": "Assets/_Tests/Editor/ResourceVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/RuntimeActorMenu.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeActorMenu.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/RuntimeActorVerification.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeActorVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/RuntimeBehaviorVerification.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeBehaviorVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/RuntimeExperienceMenu.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeExperienceMenu.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/RuntimeExperienceVerification.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeExperienceVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/RuntimeSpatialVerification.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeSpatialVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/Verification.cs",
+      "to": "Assets/_Tests/Integration/Editor/Verification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/WorkshopChainVerification.cs",
+      "to": "Assets/_Features/Creation/Editor/WorkshopChainVerification.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/WorkshopSeedArt.cs",
+      "to": "Assets/_Features/Creation/Editor/WorkshopSeedArt.cs"
+    },
+    {
+      "from": "Assets/__Common/Editor/WorldGalleryVerification.cs",
+      "to": "Assets/_Features/Gallery/Editor/WorldGalleryVerification.cs"
+    },
+    {
+      "from": "Assets/_Features/Gallery/Editor/ConfigurationInspectors.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryLayoutInspector.cs"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities"
+    },
+    {
+      "from": "Assets/__Common/Agent/Resources/Agent/Config/EcatyAgentPanel.asset",
+      "to": "Assets/__Common/Agent/Resources/Agent/Config/AgentPanel.asset"
+    },
+    {
+      "from": "Assets/__Common/Agent/Resources/Agent/Config/EcatyAgentUi.asset",
+      "to": "Assets/__Common/Agent/Resources/Agent/Config/AgentUi.asset"
+    },
+    {
+      "from": "Assets/_Features/World/Resources/Runtime/Config/EcatyCapabilityAssets.asset",
+      "to": "Assets/_Features/World/Resources/Runtime/Config/CapabilityAssets.asset"
+    },
+    {
+      "from": "Assets/_Features/World/Resources/Runtime/Config/EcatyRuntimeAssets.asset",
+      "to": "Assets/_Features/World/Resources/Runtime/Config/WorldAssets.asset"
+    },
+    {
+      "from": "Assets/_Features/World/Resources/Runtime/Examples/EcatyWorld.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/World.flecs"
+    },
+    {
+      "from": "Assets/__Common/Theme/Resources/Shared/Rendering/EcatyMaterial.mat",
+      "to": "Assets/__Common/Theme/Resources/Shared/Rendering/PresentationMaterial.mat"
+    },
+    {
+      "from": "Assets/_Features/Gallery/Resources/Gallery/Config",
+      "to": "Assets/_Features/Gallery/Config"
+    },
+    {
+      "from": "Assets/__Common/Theme/Resources/Shared/Config",
+      "to": "Assets/__Common/Theme/Config"
+    },
+    {
+      "from": "Assets/__Common/Agent/Resources/Agent/Config",
+      "to": "Assets/__Common/Agent/Config"
+    },
+    {
+      "from": "Assets/_Features/World/Resources/Runtime/Config",
+      "to": "Assets/_Features/World/Config"
+    },
+    {
+      "from": "Assets/_Features/Creation/Resources/Workshop/Config",
+      "to": "Assets/_Features/World/Config/Looks"
+    },
+    {
+      "from": "Assets/_Features/Creation/Resources/Workshop/Runtime/WorkshopWorldLooks.flecs",
+      "to": "Assets/_Features/World/Resources/Workshop/Runtime/WorkshopWorldLooks.flecs"
+    },
+    {
+      "from": "Assets/_Features/Creation/Editor/PostProcessingSetup.cs",
+      "to": "Assets/_Features/World/Editor/PostProcessingSetup.cs"
+    },
+    {
+      "from": "Assets/InputSystem_Actions.inputactions",
+      "to": "Assets/_Settings/Project/Input/InputSystem_Actions.inputactions"
+    },
+    {
+      "from": "Assets/_Features/Gallery/Runtime/WorldGalleryPrototype.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryPreviewEntry.cs"
+    },
+    {
+      "from": "Assets/_Features/Gallery/Resources/Gallery/Examples/WorldGalleryPrototype.flecs",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Examples/GalleryCatalog.flecs"
+    },
+    {
+      "from": "Assets/_Features/Gallery/Config/GalleryLayout.asset",
+      "to": "Assets/_Features/Gallery/Gallery.asset"
+    },
+    {
+      "from": "Assets/__Common/Theme/Config/Theme.asset",
+      "to": "Assets/__Common/Theme/Theme.asset"
+    },
+    {
+      "from": "Assets/__Common/Agent/Config/AgentUi.asset",
+      "to": "Assets/__Common/Agent/Agent.asset"
+    },
+    {
+      "from": "Assets/__Common/Agent/Config/AgentPanel.asset",
+      "to": "Assets/__Common/Agent/Presentation/PanelSettings.asset"
+    },
+    {
+      "from": "Assets/_Features/World/Config/WorldAssets.asset",
+      "to": "Assets/_Features/World/World.asset"
+    },
+    {
+      "from": "Assets/_Features/World/Config/CapabilityAssets.asset",
+      "to": "Assets/_Adapters/Adapters.asset"
+    },
+    {
+      "from": "Assets/_Features/World/Config/Looks/WorkshopPostProcessing.asset",
+      "to": "Assets/_Features/World/Environment/Environment.asset"
+    }
+  ],
+  "assets": [
+    {
+      "from": "Assets/Ecaty/Editor",
+      "to": "Assets/__Common/Editor",
+      "guid": "eec384cdde726404d81216092302f008",
+      "sha256": null,
+      "retired": true,
+      "reason": "Empty folder shell is obsolete and already absent; no runtime assets depend on it."
+    },
+    {
+      "from": "Assets/Ecaty/Resources",
+      "to": "Assets/__Common/Theme/Resources",
+      "guid": "eabead4464d17eb47ac3690deeca61d9",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Runtime",
+      "to": "Assets/__Common/Bootstrap",
+      "guid": "7ef321606ddbb3b46a49ead7c07b394d",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Tests",
+      "to": "Assets/_Features/Gallery/Tests",
+      "guid": "ff89b182fdd6fd344b501a6743c48af4",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/UI",
+      "to": "Assets/__Common/Theme/Styles",
+      "guid": "c6c8d2c9d81aded44911973f11e01093",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Editor/AssetValidation.cs",
+      "to": "Assets/_Tests/Editor/AssetValidation.cs",
+      "guid": "5529f1c23b39ed04099ff7a881f93b6f",
+      "sha256": "4c753ff0d6c39cba237439781c48b3f2f3f69e7dd5e5d577cc0430184ca2c5be"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/BrowserTraceVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/BrowserTraceVerification.cs",
+      "guid": "0ab32ee92fa3f4b4d98274f9ca144abf",
+      "sha256": "66ff2c6891681d298dd898b6c8c9f50ff47239b0dcb6dc42bf3bba0abe9a8c52"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/CapabilityPluginDiscovery.cs",
+      "to": "Assets/_Adapters/Editor/CapabilityPluginDiscovery.cs",
+      "guid": "ba8b0c08528f0ff4fa22b312615b4fa2",
+      "sha256": "453ed18d8f959a57fa20807ac0bd97a99b5cee9eddb976157320e362d1b71422"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/CapabilitySetup.cs",
+      "to": "Assets/_Adapters/Editor/CapabilitySetup.cs",
+      "guid": "2297df6d0c61cfb45bafda057dd2c412",
+      "sha256": "36acfbb8388e394c6f05631302612a1186f202c01dd47c04ad28ce1925b62be2"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/CapabilityVerification.cs",
+      "to": "Assets/_Adapters/Editor/CapabilityVerification.cs",
+      "guid": "273d2aca48701714fb9c435e217e9514",
+      "sha256": "bed12c3ef85dd343680f3ab5ad0fa3d86311f878bebf996a23fbf50a371cfc89"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/ChatLoopSetup.cs",
+      "to": "Assets/__Common/Agent/Editor/ChatLoopSetup.cs",
+      "guid": "44203052e00daea40a7e05de1b3b4c38",
+      "sha256": "e988a491d82347015ddbad512f9303018125df2949433e099907ee513bd796e3"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/ChatLoopVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/ChatLoopVerification.cs",
+      "guid": "56045e74476ca324487de308adb2f809",
+      "sha256": "0e8af3581c0ca6ab2abca5f1958521fdb0f5c11829f0e59a0598f27ede46b489"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/ClayPhotoMenu.cs",
+      "to": "Assets/_Features/Creation/Editor/ClayPhotoMenu.cs",
+      "guid": "666159b5c0d57384c8b48f56fc950b44",
+      "sha256": "a3492c1cf32024ca5bf8c3b1db56846867dcfc369bea0c51a6adf584477c4c6a"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/ConfigurationInspectors.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryLayoutInspector.cs",
+      "guid": "37120586127100748bcfd25d1e8669a7",
+      "sha256": "63925a7bf1f2844f70152edfefe3c59cbeb9dd3e365d31970cf31898928873af"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/GalleryDesignerMenu.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryDesignerMenu.cs",
+      "guid": "4782c4d4dbefff44184ec64affaa6bcc",
+      "sha256": "c1fc947214c5b356d38f1603bf53c1c3b333d54cdf870f5c317f622c59c2ebfa"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/GalleryPerformanceProbe.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryPerformanceProbe.cs",
+      "guid": "73cf80476b26e1742ad28f2f58f6ecc5",
+      "sha256": "7de3795d80ac15b31a8a8a364a126a7f57dfaaa088590274095e9932e5eae239"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/GalleryRunArtifacts.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryRunArtifacts.cs",
+      "guid": "2c843a61504664544b7ac4e280030b5c",
+      "sha256": "0c5d67f323c7ebfad2d852c44413d09d35216c25afa1b37739982a493988138d"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/GalleryScenarioSuite.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryScenarioSuite.cs",
+      "guid": "1b9784a78bbac394bb193237b6d4bc41",
+      "sha256": "767bf5bc50947b6e6a1ef85f8d38ea28b1fd4e7dd410dcf6e66e8dfb606bab37"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/GalleryTestMenu.cs",
+      "to": "Assets/_Features/Gallery/Editor/GalleryTestMenu.cs",
+      "guid": "9eb164748aca148489076da49aa8383a",
+      "sha256": "f52d115f969f931b03cb471ae7b72e4d8b2e35211002c07bc6c1e5630ed425b5"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/LiveProviderVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/LiveProviderVerification.cs",
+      "guid": "8d7cf2059735c894bae45ce5e91a03a6",
+      "sha256": "58637da66532e926d84fee66324587f41265679977f2063e3cd779983a803b5a"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/LocalAiVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/LocalAiVerification.cs",
+      "guid": "59376db423cf86f43bed60a04148fced",
+      "sha256": "9b60a59b03b373687c22bed5aa36bf850eb4f0bedc1cc326a444bdcca151121a"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/LocalShutdownVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/LocalShutdownVerification.cs",
+      "guid": "f16a723f0713319489a26e9edd452787",
+      "sha256": "6cee45d75b6e071506b273bada585e5ac8c6b78dd87b34dec9c32ab63c1eef18"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/MultiProviderVerification.cs",
+      "to": "Assets/__Common/Agent/Editor/MultiProviderVerification.cs",
+      "guid": "2355f052a4799d241ae1358520e934b2",
+      "sha256": "7059431ca3467be03fde61bedd66e2db2cf68dc3aff370230f30e3615ed37261"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/PhotoObjectVerification.cs",
+      "to": "Assets/_Features/Creation/Editor/PhotoObjectVerification.cs",
+      "guid": "a63d2fedaaffec44ba6933cf51eb4c77",
+      "sha256": "c046e51a03afa5658f2e5f495c9eff1e8f98c983525662c7e59df9db5a0dc6cb"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/PostProcessingSetup.cs",
+      "to": "Assets/_Features/World/Editor/PostProcessingSetup.cs",
+      "guid": "4e923c52cd6402d428f830e85670b337",
+      "sha256": "71939bbabfe8812a0f3806b777c5dc92c53c9798455b87da724fc3f2f385b7c5"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/ResourceVerification.cs",
+      "to": "Assets/_Tests/Editor/ResourceVerification.cs",
+      "guid": "5f42de93df8d70c4ca1e7b9d9380a238",
+      "sha256": "157410cb045c6e6aab6ec810cb078358b37bf868a33f794beee3d9c28a90bffe"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/RuntimeActorMenu.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeActorMenu.cs",
+      "guid": "dc250a16fee22dc45a2e8de09074b4d8",
+      "sha256": "27e607b9a3f843a9d7d6ec62a20a6584e65aa545db37d40168baf8b7d3435a2a"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/RuntimeActorVerification.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeActorVerification.cs",
+      "guid": "fd255edcbb5e6b540ad35b53aecfa23a",
+      "sha256": "3eb50b9680c926bfe526f9491dc70842822112c4a62083b93e2420968a313b4b"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/RuntimeBehaviorVerification.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeBehaviorVerification.cs",
+      "guid": "89a713d87497dc440b605be9141a5b77",
+      "sha256": "2e70ca819a7a2cf560cd5535e0469bf9eeee99970e3642354dc9fc808dafb44e"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/RuntimeExperienceMenu.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeExperienceMenu.cs",
+      "guid": "1bb42626b4099a04695ca2284ada08a7",
+      "sha256": "b7b127e4c87790a8ca050aa666ed636040720eea827c0dcc532bc7abe6d196ae"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/RuntimeExperienceVerification.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeExperienceVerification.cs",
+      "guid": "66e83a75d3631df40aed3baf93eb8fb8",
+      "sha256": "c19ad8cf98e0d78ca3f66659cd50144ab326b6df4908c41312c59c35c760ae0c"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/RuntimeSpatialVerification.cs",
+      "to": "Assets/_Features/World/Editor/RuntimeSpatialVerification.cs",
+      "guid": "02375301a767e7643ab7a9b6f77ccf57",
+      "sha256": "117605526091864f9a246db68114b501986152cefab58857a35c3406cd54dcd9"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/Verification.cs",
+      "to": "Assets/_Tests/Integration/Editor/Verification.cs",
+      "guid": "24f46abfbf755f54baf5937dceeb11e4",
+      "sha256": "d36644d31597d7b44f77410a579f33cf1600a82c4f01b9948a63f4fd0949b0ec"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/WorkshopChainVerification.cs",
+      "to": "Assets/_Features/Creation/Editor/WorkshopChainVerification.cs",
+      "guid": "3309bc01d1c3ca24b8da6a8eb22ac23e",
+      "sha256": "32c451fc8e128100ff209bc90220e362e352de378138ff01e9a3306ad600e81b"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/WorkshopSeedArt.cs",
+      "to": "Assets/_Features/Creation/Editor/WorkshopSeedArt.cs",
+      "guid": "2c48319485d95fe43ad26fa7d4c033d8",
+      "sha256": "f808e2dd0f2022ba7383297e74026496cab896ec08620c5ba7d741794b2c69f0"
+    },
+    {
+      "from": "Assets/Ecaty/Editor/WorldGalleryVerification.cs",
+      "to": "Assets/_Features/Gallery/Editor/WorldGalleryVerification.cs",
+      "guid": "b2b66426d2172db469ef12569e73efce",
+      "sha256": "6fcb8ec6f4f1e1d584fc54af693b135838e2e33347c06e63482377218d8ffc35",
+      "retired": true,
+      "reason": "Superseded flat-table presenter and its validation/art removed at user request."
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Agent",
+      "to": "Assets/__Common/Agent/Resources/Agent",
+      "guid": "ee54aebfb2fc71948989710dab65be51",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery",
+      "to": "Assets/_Features/Gallery/Resources/Gallery",
+      "guid": "3a2022056fa301e4897b97e472cd2da4",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime",
+      "to": "Assets/_Features/World/Resources/Runtime",
+      "guid": "3c97078fed1a7064f80f0d7cc970b17b",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Shared",
+      "to": "Assets/__Common/Theme/Resources/Shared",
+      "guid": "0c51af6bd5e18524a9e8ab92a9902775",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Tests",
+      "to": "Assets/_Tests/Fixtures/Resources/Tests",
+      "guid": "3e0d150fc6a25fb438ffa202832a4558",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop",
+      "to": "Assets/_Features/Creation/Resources/Workshop",
+      "guid": "c67c011a7270f484cae6facdb3eb475b",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Agent/Config",
+      "to": "Assets/__Common/Agent/Config",
+      "guid": "65df64087246c944591cccb9be63d463",
+      "sha256": null,
+      "retired": true,
+      "reason": "Primary configuration now lives at its owner base; empty Config folders retired."
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Agent/Prompts",
+      "to": "Assets/__Common/Agent/Resources/Agent/Prompts",
+      "guid": "47458e050ff524643a1881c4114e53dc",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Agent/Config/EcatyAgentPanel.asset",
+      "to": "Assets/__Common/Agent/Presentation/PanelSettings.asset",
+      "guid": "b461a9424d0fe3d4688f7adb7d67a584",
+      "sha256": "fd9d25aa39bac384f2cb8f471c1678d9c529ac495d5542b679aacbeb6b751641"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Agent/Config/EcatyAgentUi.asset",
+      "to": "Assets/__Common/Agent/Agent.asset",
+      "guid": "db7d5b0265a7cb14990c4519f07e175e",
+      "sha256": "dadc18e023d4a32434f8a632ad94c2752e940f437494b3adb2cf1c4a38cfe14c"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Agent/Prompts/AgentInstructions.txt",
+      "to": "Assets/__Common/Agent/Resources/Agent/Prompts/AgentInstructions.txt",
+      "guid": "5cd8a7c38b24b6f4f9a294be000d3ff6",
+      "sha256": "864b7ad283ce1c062cd11d202fb02c33fae34c26bea52ddcad8a7d178c9fc9e1"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Config",
+      "to": "Assets/_Features/Gallery/Config",
+      "guid": "39d363f44c4279046853a99bead7164b",
+      "sha256": null,
+      "retired": true,
+      "reason": "Primary configuration now lives at its owner base; empty Config folders retired."
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Examples",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Examples",
+      "guid": "6274fa0e358be964eb79f01e35a98cec",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Runtime",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Runtime",
+      "guid": "ef527a92f15a7c54aa0cee7c4d26ec36",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Shaders",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Shaders",
+      "guid": "19a3c3942b7cbc1488e5c06a3f2eb032",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Config/GalleryLayout.asset",
+      "to": "Assets/_Features/Gallery/Gallery.asset",
+      "guid": "69f1f5dffc2077048ab6c5d1973d30e6",
+      "sha256": "e2bc2a745aba3c8e11925fa274b8d6a62330c6d676d338b9cefb66ac217f94a3"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Examples/WorldGalleryPrototype.flecs",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Examples/GalleryCatalog.flecs",
+      "guid": "4f725a16bba28cc43a540d16bc547565",
+      "sha256": "c38458ec0c6ead1209cf1ac069d961b93edb0aa497b8f4d41cecd365afa30927"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Runtime/WorldGalleryNavigation.flecs",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Runtime/WorldGalleryNavigation.flecs",
+      "guid": "fe3ecfde2e40f6840b58d7d669212c4d",
+      "sha256": "4771d30ca98dc451c96422581de2e80435884b2e57affd376d6d4e17e9ae3581"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Runtime/WorldGalleryTree.flecs",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Runtime/WorldGalleryTree.flecs",
+      "guid": "db8202d425f59f2499e413ad501fb481",
+      "sha256": "8ce2eb44d8ef79d64e80ec0fefbd5959a48f1c5d644d7593bbe1a82059605b07"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Runtime/WorldGalleryTreeMotion.flecs",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Runtime/WorldGalleryTreeMotion.flecs",
+      "guid": "93b4d32169981774aae2efd5af29dc68",
+      "sha256": "a213c6f55d9d635a90128696694a524072c7a253939d78e6b93632ece6bbbcec"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Shaders/GalleryCrystal.shader",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GalleryCrystal.shader",
+      "guid": "5e256521fc4d66b4aa31de8e45585545",
+      "sha256": "6b5c714e3b7c55aae6345120441a796a75b3d37efb634d8a0bb345427d3a2370"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Shaders/GalleryExitFeedback.shader",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GalleryExitFeedback.shader",
+      "guid": "e73089305dde7f74eb4484449116ce62",
+      "sha256": "0563470258c73d7bb5f68ae55e3c1527fe2e66e06d340103d4b3746cb18cb1c7"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Shaders/GalleryOrbit.shader",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GalleryOrbit.shader",
+      "guid": "eade452b73465674ea00d07b2b571b78",
+      "sha256": "8db8458ec07718dd3b51e365af7771f319ff993453cfe6e8f9ff84c4b08a84d2"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Shaders/GallerySeed.shader",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GallerySeed.shader",
+      "guid": "e4888da8f14971645b08af3a13134dc4",
+      "sha256": "1c89d2871e07d53698256fd6ebefc254ea133af2c2358de95292b1426cfca248"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Gallery/Shaders/GallerySurface.shader",
+      "to": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GallerySurface.shader",
+      "guid": "3da0f2dd041e95845bac43d4755ae800",
+      "sha256": "14ac91c6423fe4b6f8858d636d68ec821c012d09059a0c795960c32edb0a68bf",
+      "retired": true,
+      "reason": "Superseded flat-table presenter and its validation/art removed at user request."
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Behaviors",
+      "to": "Assets/_Features/World/Resources/Runtime/Behaviors",
+      "guid": "c5e4f602b592c164e9428981366cd636",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Catalog",
+      "to": "Assets/_Features/World/Resources/Runtime/Catalog",
+      "guid": "374b2d4412dcfa645a76947367b6729b",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Config",
+      "to": "Assets/_Features/World/Config",
+      "guid": "9f633ed43436a2e48845dd1f11b72603",
+      "sha256": null,
+      "retired": true,
+      "reason": "Primary configuration now lives at its owner base; empty Config folders retired."
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples",
+      "guid": "eaebe33e84812b24e9521a4c02161065",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Schemas",
+      "to": "Assets/_Features/World/Resources/Runtime/Schemas",
+      "guid": "848e88a452b9427408881f6d8b0df524",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Behaviors/ActorBehavior.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Behaviors/ActorBehavior.flecs",
+      "guid": "f61ec74ad7a3b604da9be96156a90ffb",
+      "sha256": "058c608119eb6e598712caa100b67d4953e353b744ef2b9dcf01fb1ba02a7c96"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Behaviors/ReactiveBehavior.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Behaviors/ReactiveBehavior.flecs",
+      "guid": "dbcd472fd2af0954fb00685301b37441",
+      "sha256": "7e363204d0dbdfe3566e86fe2cff7093b65b1598895c4515aac5cde57a0157fc"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Behaviors/RuntimeSpatialBehavior.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Behaviors/RuntimeSpatialBehavior.flecs",
+      "guid": "d4a5d004129c247479ce9b8d6680c486",
+      "sha256": "e50825987e015321529380c44797e7799d7c73bb0a3532cc5edbbb34b1a8b91b"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Catalog/RuntimeLibrary.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Catalog/RuntimeLibrary.flecs",
+      "guid": "360219ecd25559544b773a2e452f979c",
+      "sha256": "574fe671cc807117322b7dd9c3f5394d0e4b10d03ab8d0dd396437a3513facc9"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Config/EcatyCapabilityAssets.asset",
+      "to": "Assets/_Adapters/Adapters.asset",
+      "guid": "e42983bafb560d84dbc0a4fa63484357",
+      "sha256": "cf4a51b68fb0f5d402108503c6cedd565fe24c54a14bbbda7628ca087438eec1"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Config/EcatyRuntimeAssets.asset",
+      "to": "Assets/_Features/World/World.asset",
+      "guid": "c1c2160109355c042b21df4ee7aa50ed",
+      "sha256": "c7a93d46808d43457a77155b8d7dc3b5b0dd8825241545204351faa62d811404"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/Capabilities",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities",
+      "guid": "22398324261518042a42d79da6023fb1",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/EcatyWorld.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/World.flecs",
+      "guid": "d47f8c4aff4edd340ad711402aad46d9",
+      "sha256": "327bc27484f62827c020b03dc6c3158e44dca627e004401eec19489f8062930b"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/RuntimeCreature.json",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/RuntimeCreature.json",
+      "guid": "5bbe98f1177d27b448063cabf36326e0",
+      "sha256": "50eec697112f184b9001609bd721639d69ac8170ea9f0e74243e0c8b2d10f2ae"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/RuntimeCreatureControl.json",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/RuntimeCreatureControl.json",
+      "guid": "eee6763cca6d0f941a84052747369d86",
+      "sha256": "18faaf03773b6fa2c868d51c089f577fbe870ba3b89dff588a3c304cbee35df1"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/Capabilities/Brick.prefab",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/Brick.prefab",
+      "guid": "e25ab6cdd56bd9b4eb0d30566b59c7c5",
+      "sha256": "97e3dacf28cc508c8f3561e8d3554607f0269070bdf137c5daf28b0200b0feac"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/Capabilities/BurstFeedback.prefab",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/BurstFeedback.prefab",
+      "guid": "9980236ddc41d1f4f8ab16d21f1bc260",
+      "sha256": "1f5cd5369f446d0dfac22581389a25aa7e6048b292b221ee2e7ddd48a459a7db"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/Capabilities/CapabilityWorkshop.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/CapabilityWorkshop.flecs",
+      "guid": "1d3fbeefe9fe7e44996130b9063fc84b",
+      "sha256": "471d71b1f22a3645d80e55157702d0add3e5d431438c7f8956ef99be6dfe4256"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/Capabilities/Chime.wav",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/Chime.wav",
+      "guid": "92bd293a3dbddcc4c8145cd4c4d24ddb",
+      "sha256": "4731057ea2ad81c886e00bc0e83697e952c97085e07fdcb20603cf7401e751f5"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/Capabilities/ConstructionKit.prefab",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/ConstructionKit.prefab",
+      "guid": "c165f9331a8efc44cb15a48611d38f79",
+      "sha256": "603c37e5c0eae66297e21e2337afe3709ed1926547ba7a1a49fe3516287013e8"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Examples/Capabilities/PeacefulParticles.vfx",
+      "to": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/PeacefulParticles.vfx",
+      "guid": "e89c4691f3413f044ac69cac03dedf3f",
+      "sha256": "77316ff98a1747ef432ce90bc56fef49285e33a88719082ab637b4a40c3bd957"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Schemas/ActorSchema.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Schemas/ActorSchema.flecs",
+      "guid": "e9bee7e933861ec469625a3ec01dd9a3",
+      "sha256": "351b843d9b22a2230ade04c49a45fdea0afb02ff404e7b3a9809102947bd2a24"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Schemas/ClaySchema.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Schemas/ClaySchema.flecs",
+      "guid": "21ebd9296da527c48ad4ca331e5331da",
+      "sha256": "34c2ede67a8c802e03fe3cc83e31e5f6417df31d666fefb06743ab932801585c"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Schemas/EngineSchema.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Schemas/EngineSchema.flecs",
+      "guid": "4077dba3e109124409b34a5ca2120eb0",
+      "sha256": "2aa5aef21614ec7973a3a43f4470316ea06a15c6fe75392b2b405bb2e4350b6a"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Runtime/Schemas/PoseSchema.flecs",
+      "to": "Assets/_Features/World/Resources/Runtime/Schemas/PoseSchema.flecs",
+      "guid": "ca1827c65cbefd94595cf11885d16488",
+      "sha256": "6817192e2d919a554f41c09f04ca59f131cf0f45eb7a646e4ae29ad42cffbe30"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Shared/Config",
+      "to": "Assets/__Common/Theme/Config",
+      "guid": "7eb86051b3c87d04da94a2806a6a8e4e",
+      "sha256": null,
+      "retired": true,
+      "reason": "Primary configuration now lives at its owner base; empty Config folders retired."
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Shared/Rendering",
+      "to": "Assets/__Common/Theme/Resources/Shared/Rendering",
+      "guid": "261d58159bf10b54f96dba4b7ab78496",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Shared/Config/Theme.asset",
+      "to": "Assets/__Common/Theme/Theme.asset",
+      "guid": "ea35aaaf244af924bbc488e943f99c63",
+      "sha256": "83395ab555d2b4321dbde90752ac616de085aa1ce20446e6516a3107657b8f1d"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Shared/Rendering/EcatyMaterial.mat",
+      "to": "Assets/__Common/Theme/Resources/Shared/Rendering/PresentationMaterial.mat",
+      "guid": "522176da3c8e32f429eac54b0aece5ad",
+      "sha256": "0bbe2623f5c7e8373bcd844cc74329e32fe0f8e8fc55dc1f42ec642d942e8f61"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Tests/Fixtures",
+      "to": "Assets/_Tests/Fixtures/Resources/Tests/Fixtures",
+      "guid": "e82ed3871a64f914b89fc476254df07c",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Tests/Fixtures/VerificationWorld.flecs",
+      "to": "Assets/_Tests/Fixtures/Resources/Tests/Fixtures/VerificationWorld.flecs",
+      "guid": "8914156856373214b81f1a7e7c713aa0",
+      "sha256": "740c4960b1af1fabc968c6be5b4274099b4d653ccef0b8facdac29f1f49652fa"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art",
+      "guid": "ebbd8ea8bea4ca9488eca35b111521d4",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Config",
+      "to": "Assets/_Features/World/Config/Looks",
+      "guid": "c02634bb7a7f64a48b8f28aceb130a41",
+      "sha256": null,
+      "retired": true,
+      "reason": "Primary configuration now lives at its owner base; empty Config folders retired."
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Data",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Data",
+      "guid": "5cb1e12dbdbf2024bb751a808e26fa48",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Examples",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Examples",
+      "guid": "5782dba989e67c348a5bcdd51ab41761",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Runtime",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Runtime",
+      "guid": "a8ea8d0b4d7447d459ac9ce7f3070ed2",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/UI",
+      "to": "Assets/_Features/Creation/Resources/Workshop/UI",
+      "guid": "93ced21f3ed036e45b69b50e33f016e8",
+      "sha256": null,
+      "retired": true,
+      "reason": "Empty folder shell is obsolete and already absent; no runtime assets depend on it."
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons",
+      "guid": "0f23f6a15564d6b48b670ed580002257",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Seed",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Seed",
+      "guid": "2f43295a1791bc243b753a71d305a6fa",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/Bell.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Bell.prefab",
+      "guid": "28b0f69f42c68d441ac816e8ce6a0201",
+      "sha256": "e20c4479c54e0e64ec4696b61590f5d675f63ee14c30128e55e30894c34facb5"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/BellMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/BellMesh.asset",
+      "guid": "88a5ee92d8d05374695b6df576d38d2b",
+      "sha256": "022b3d7938f6284eb157408b8410dddd0d6b670fc3ef7a698be18923ccf978e4"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/Confirm.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Confirm.prefab",
+      "guid": "3748e1c454157e34abf28d5bfd103ef9",
+      "sha256": "0aa530fa4c147198812597cab1852a8c0d083af41bb92512d40437edc9244af0"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/ConfirmMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/ConfirmMesh.asset",
+      "guid": "70118e02470a642449ab1b1644767232",
+      "sha256": "df294860c068a043bf63e6b163ba2bd76b914ec02ae4512d80f0064e888dff74"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/Environment.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Environment.prefab",
+      "guid": "0f999cdad3ee6ca47a9b29769565f68a",
+      "sha256": "c996081621fc20f9bd33b7d0cad10e9038975a2b43f90ab3fd8d913421234586"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/EnvironmentMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/EnvironmentMesh.asset",
+      "guid": "a39859ddf2d66344eb5a25751a90655f",
+      "sha256": "81efc320182e1e814eb665887160f5ee22132f64c044e974bf935bc10d436e32"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/Honey.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Honey.prefab",
+      "guid": "f0cbc232654c166429133a91b37760ce",
+      "sha256": "008050669fc998ba622ae9367ec78c3341564e94e09b4a5dace4be3ba5b020a4"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/HoneyMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/HoneyMesh.asset",
+      "guid": "5180d1c38f1217d4898ec888cf805c84",
+      "sha256": "2b6e15d0fc8204d7688442ea6f15f42b0e2b38a557d2343011e8fe3890466cf4"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/Neutral.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Neutral.prefab",
+      "guid": "f9b871cf4b3bb544382a9e4648515124",
+      "sha256": "60df56a686762a4ee827e271f40543b0df3c96f6c6a9f4c590af5118172aa3bd"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/NeutralMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/NeutralMesh.asset",
+      "guid": "0a52c390f40400f468a063e3d025b716",
+      "sha256": "6b35c4941f642dc97f9382db904022b6602006470a98240041506eb300c7e203"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/NewWorld.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/NewWorld.prefab",
+      "guid": "3fa6ccfd0b3b8dd4f8c0fba33b7cfa72",
+      "sha256": "ee480ea7bf38cc95456027b87dcdee8dc5221a146cb126bdbc8c8a37db2707fe"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/NewWorldMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/NewWorldMesh.asset",
+      "guid": "045692da3c517dc4b938d6b5d38d81d4",
+      "sha256": "5ec689eeda91e960bec31ddbf96e37c07ac442f45b5d812b1038346ee96c4012"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/OpenWorld.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/OpenWorld.prefab",
+      "guid": "33831b5949bc2624594a15af7705137c",
+      "sha256": "b38ce4f34d1e4d5a0831c947687c25513bcdb3bf306e61b69cf5ced5247e8771"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/OpenWorldMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/OpenWorldMesh.asset",
+      "guid": "0ea88a9479529014baf7a8387e87290d",
+      "sha256": "a3be076f610e45af5cda7a6022ec6f123a190e42856ab28244a00b5a4f89ff0e"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/Paper.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Paper.prefab",
+      "guid": "f09471eb27e60d047b251a9f75e4ec56",
+      "sha256": "0b53b4b7e04286cea0cb78aad0d80e0721cccfa5757f7a20f076364fd0cbbef9"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/PaperMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/PaperMesh.asset",
+      "guid": "131c7ba4120b0014fac70a1bf0a189c1",
+      "sha256": "cdc77eb8b39848f2a3f14ed59b06436107829270ffa47ce63bbfba08fbdd0d2d"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/Playground.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Playground.prefab",
+      "guid": "ac9a1a9b4deb75a4baf1eec663383276",
+      "sha256": "e2d5b6e27db9e6a76da6119742cdf04d60059bdef40f7ccf10183050fd921bfe"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/PlaygroundMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/PlaygroundMesh.asset",
+      "guid": "81884f9e004e06f43a86673c073afe97",
+      "sha256": "0f4ef5fe0eff09be294ced752f938a7deabc28509ec1fae18624cf77fb4452a4"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/SaveWorld.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/SaveWorld.prefab",
+      "guid": "3e9e67f0720b294488410a6d4a3f9a15",
+      "sha256": "0ec5219f762b98bcb35199fdae26ba68058c69238dd299101acc3bbfca638a1e"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/SaveWorldMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/SaveWorldMesh.asset",
+      "guid": "163ebf7665a87f54998883980dd37793",
+      "sha256": "3133dfd44630ef452b131edbefd7932e6d163634b2f457d338bf2686a9872d79"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/Twilight.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Twilight.prefab",
+      "guid": "66f027a44f2cddd4da9e23b3c6a9fe5b",
+      "sha256": "10f4ac56956bc6a348df23639ac073f34ee473f0f460c75784f04034f04b895f"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Icons/TwilightMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/TwilightMesh.asset",
+      "guid": "6dff907f4b898da43b24ff2ad5da6e15",
+      "sha256": "f99d559fc065788f8ff8edbaf54c4abf0b17eb4a702c27367ca864a524bb4f34"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Seed/WorkshopSeedArt.prefab",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Seed/WorkshopSeedArt.prefab",
+      "guid": "db8bada924ca3f2498278e4ce945ebaa",
+      "sha256": "93db1d7cd76562b226ae055d411804d66f62b842e8fd7fdbc525663fcd0a7a32"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Art/Seed/WorkshopSeedArtMesh.asset",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Art/Seed/WorkshopSeedArtMesh.asset",
+      "guid": "4c73990c4af3b6040b584df24bcc5f48",
+      "sha256": "f5cc8ad50c62c9cb52a1e56121d268b6a0ea2ac021edcbede75c3b0ac367028c"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Config/WorkshopPostProcessing.asset",
+      "to": "Assets/_Features/World/Environment/Environment.asset",
+      "guid": "38fedd627e0ce564dbd0f65b2ec5c4b3",
+      "sha256": "577eadd6736a837d0c81d1a2c4acb3da86ea457335ceb9135fd0a1f641639a5f"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Data/WorkshopKit.json",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Data/WorkshopKit.json",
+      "guid": "2c240a55fb1fc5644b0dd01f09938d60",
+      "sha256": "eecb33824d4472c2e38dde8520bb183d3005906d227dea95a7b3df9190fb54fb"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Examples/AssemblyChain",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Examples/AssemblyChain",
+      "guid": "994c10eb12e2f8043978807f894d8146",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Examples/AssemblyChain/WorkshopChain.flecs",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Examples/AssemblyChain/WorkshopChain.flecs",
+      "guid": "529466e0052e1d648b91c8ae76111297",
+      "sha256": "9fb7c873ae17edef83de5fb4abd7fb304c1f32e5e7fc89b81a903b13b4611a96"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Examples/AssemblyChain/WorkshopChainLinks.flecs",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Examples/AssemblyChain/WorkshopChainLinks.flecs",
+      "guid": "e6c86aa42d845974abad4e220d25457f",
+      "sha256": "1e8636174a512cf889a8e30b546c31dfd31d70265bc25adaaa4f89cca7d3ab05"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Examples/AssemblyChain/WorkshopChainObjects.flecs",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Examples/AssemblyChain/WorkshopChainObjects.flecs",
+      "guid": "4cd9ea66e01241d4da19718cbfd274db",
+      "sha256": "b67373af155782da9dd9848f4567cbdcd78eb3f49c35f2337e1da9be2d64c2dc"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Runtime/WorkshopLobby.flecs",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Runtime/WorkshopLobby.flecs",
+      "guid": "5e539a5d4d2347f44a7945b1f01f2eba",
+      "sha256": "ee0f1be8c83b4e690ebbd457da9b9f7662989d6df906b0f9ed1da7e8d051b81f"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Runtime/WorkshopSeedMotion.flecs",
+      "to": "Assets/_Features/Creation/Resources/Workshop/Runtime/WorkshopSeedMotion.flecs",
+      "guid": "637d0123b3445d54f9faea8ea7ddc895",
+      "sha256": "fb15d38d30c8f9eb2f7ceca92829293148184aa1c515ddc0e47d1363f91eda2d"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/Runtime/WorkshopWorldLooks.flecs",
+      "to": "Assets/_Features/World/Resources/Workshop/Runtime/WorkshopWorldLooks.flecs",
+      "guid": "bab8a56fcde7c2b43a4a41cd76dca287",
+      "sha256": "63f21fa8b9213196eb74ae9a539a38cdd14c0033a2a9932c25ff219bd816a8b2"
+    },
+    {
+      "from": "Assets/Ecaty/Resources/Workshop/UI/WorkshopDock.uss",
+      "to": "Assets/_Settings/Resources/Workshop/UI/WorkshopDock.uss",
+      "guid": "727a6136e12de434493f9dbd76be69e0",
+      "sha256": "a1474260a735075f61a88c7169c260ec8410c352c25c8579899ea327399dc55b"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters",
+      "to": "Assets/_Adapters/Runtime/Vendor",
+      "guid": "8aecb62795eb1434ab2500b4b781b7f0",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/CapabilitySmoke.cs",
+      "to": "Assets/_Tests/Integration/Runtime/CapabilitySmoke.cs",
+      "guid": "8e1156e6d99c8a547bbd93e3f8d450d5",
+      "sha256": "8139b5b900eea1a0bd2bfcaa2c3576c7f1dc24fdecc46715329d7b397a35e9ae"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/ClayCreation.cs",
+      "to": "Assets/_Features/Creation/Runtime/ClayCreation.cs",
+      "guid": "7e7e2f3832b16f542bf61956ed4164f6",
+      "sha256": "45e85c540a7ff1be7d0f05e2e09d8bc62c54b83b0c345dd16db19ca9bc645281"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/CrystalGalleryExperience.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryExperience.cs",
+      "guid": "30f9aff1ee011b8458fff3b9869059c9",
+      "sha256": "f6a10f32c45d1c926cf278e791241304970aa725aef5111950738df372d810ac"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/CrystalGalleryInteraction.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryInteraction.cs",
+      "guid": "6b89b86beaa0dd247a6f7ec0eec10a88",
+      "sha256": "9ae5e98f331f13dcbc477dc1fa8bfc7071ffdfc8b6b91144f66fd8d243107c1b"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/CrystalGalleryNavigation.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryNavigation.cs",
+      "guid": "d70fd66b68dd1f942a94452efc5fcc27",
+      "sha256": "8a441e40ee6ff0435544aabe88df97e21ea5a46ce0e64250265b9f18f0541f00"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/CrystalGalleryPicking.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryPicking.cs",
+      "guid": "3c267ed731ccef54393276c85d463c49",
+      "sha256": "859676e9113261d847db8a7e933684cd86f26cc862535a29d5a6224758b686fb"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/CrystalGalleryPortal.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalGalleryPortal.cs",
+      "guid": "ee294b9ef76567d4687ea07b963e1f3b",
+      "sha256": "7cc96351efac29cb3799a403174900840f41ec12c15afa3fd8c0f1e8de50f609"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/CrystalWorldGallery.cs",
+      "to": "Assets/_Features/Gallery/Runtime/CrystalWorldGallery.cs",
+      "guid": "36540ceee634d2a4dbfc1b1362317d75",
+      "sha256": "bda6196c8e1686614c1b7a216f2661eb5e6d6fec3a77444b2da72b828842f1ba"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/DioramaRuntime.cs",
+      "to": "Assets/_Features/World/Runtime/DioramaRuntime.cs",
+      "guid": "7f9bef06fe9e86b49b1fa9aeae1dbac4",
+      "sha256": "426c06939573e8783a7b85a23787045bcc1617f197a0ca762a8a09bb79440f5e"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/EcatyAgentTools.cs",
+      "to": "Assets/__Common/Agent/Runtime/EcatyAgentTools.cs",
+      "guid": "c2da89cadf99a614daeeb2e78358c6bc",
+      "sha256": "347eaf0730f86ef1932c641060f01c80c25641117cac83fc2a039bdb55d93cf8"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/EcatyBootstrap.cs",
+      "to": "Assets/__Common/Bootstrap/EcatyBootstrap.cs",
+      "guid": "82fdd7c2ca302a84b9a1727f603bb9ec",
+      "sha256": "58700b7d114e7729d2774a4502ed32bd25e32fc3a24751cc43fd050fa9009ead"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/EcatyTheme.cs",
+      "to": "Assets/__Common/Theme/Runtime/EcatyTheme.cs",
+      "guid": "bd7038b7a4fbbc94c8b714074edb853c",
+      "sha256": "46cec43fbf2ef3319e437511be0fc7eb675b74dfc4a3e47d400283c48bd3922e"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/GalleryExitFeedback.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryExitFeedback.cs",
+      "guid": "60249c2c4636b8c45a034926261aaf9d",
+      "sha256": "dc8b62e58ffb588e53aff38d42a099c432696e6eb2af7b09426076ad532c6184"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/GalleryExperienceStore.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryExperienceStore.cs",
+      "guid": "06b4273544e16c14a853b3eefb2c3c88",
+      "sha256": "418cc8a07bf87e67d180f948eb8c6b56d33fa9e4b439667a6cdaa2a821c2a825"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/GalleryFeedbackSpring.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryFeedbackSpring.cs",
+      "guid": "deb8ae8fb1e143f4fbd9c029da7f6d28",
+      "sha256": "aa18d459bd59e7aab57f46b427d7e117ade90bc569db24118949ef30de3c2ecb"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/GalleryLayoutProfile.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryLayoutProfile.cs",
+      "guid": "d410ee9ae89829647a71dbe070f36041",
+      "sha256": "8ee6aae70af7d93adab404859e048184558c9ef269474ac3af1d75e321bca962"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/GalleryMockPreview.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryMockPreview.cs",
+      "guid": "3cf67c27b9c42f64b8c3262fb789a81d",
+      "sha256": "e4f3777dfc43b6caf7e42cc5660bc0bab9feb5ba3bd06a6e2ddf214abf1413ef"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/GalleryPreviewStage.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryPreviewStage.cs",
+      "guid": "ea32b7c6d9a7002448166c1490cb5522",
+      "sha256": "e84e83b6e0eb5231ee1b93051d9d30d60252bf28c47627f6d6fce8942e1f0143"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/GalleryTreeArt.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryTreeArt.cs",
+      "guid": "98e9e4b935a7e2d4cb3bc6ba468fb028",
+      "sha256": "33a78824aea6963e9bf58d6f975a2ce2b6a4771696b13c66fabe7354356ab42d"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/GalleryWorkbenchPresentation.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryWorkbenchPresentation.cs",
+      "guid": "3a087ae5c34dd4c4e874d68397733618",
+      "sha256": "72ea6a05a36022409e40d7e3254b9e8f319621ec91661d389da612984bd34294",
+      "retired": true,
+      "reason": "Superseded flat-table presenter and its validation/art removed at user request."
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/LocalAiSmoke.cs",
+      "to": "Assets/_Tests/Integration/Runtime/LocalAiSmoke.cs",
+      "guid": "da6ba0adc1fd03249b19ce5caca9ea84",
+      "sha256": "9271a306e90c8bec92a01e878ee9e6310f04fb9d42ad4c0fb7a69ea5a114444e"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/PhotoRecipeInput.cs",
+      "to": "Assets/_Features/Creation/Runtime/PhotoRecipeInput.cs",
+      "guid": "f70cee7fc72a68242bed7c310b9ae6fe",
+      "sha256": "0dc83bbb57db7dd7d82d1f2c3aa23792a0059186079b9e35f5738c95999c8c7f"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/PlayerSmoke.cs",
+      "to": "Assets/_Tests/Integration/Runtime/PlayerSmoke.cs",
+      "guid": "474b3d5c5035aca47998a3163ac4b719",
+      "sha256": "5bb60676ffc81ee5b5078b16342028c7f8582c358b4b0d5446f6c699f82ce53e"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/ReferencePhotoPicker.cs",
+      "to": "Assets/_Features/Creation/Runtime/ReferencePhotoPicker.cs",
+      "guid": "a3e04a8a1205f09468049d9e1155e240",
+      "sha256": "102385c4806573d4e40dd8ab9475c32c048d2df9a93b4b53f508b26c6b70c134"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/RuntimeDioramaAssets.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimeDioramaAssets.cs",
+      "guid": "81fc5565f03f08447a02b957c071b1da",
+      "sha256": "3182a2b42e2b7979cc0fbce089bbb0b91d9136d079c3e93c5ecd2c8be343c717"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/RuntimeExperience.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimeExperience.cs",
+      "guid": "1f11f2d397d47ac45a6ec02d9f4490f6",
+      "sha256": "74009d630605cf7738fe260c0cc9456d2f2ce672c64a6b88b9e6873603c05668"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/RuntimeExperienceSmoke.cs",
+      "to": "Assets/_Tests/Integration/Runtime/RuntimeExperienceSmoke.cs",
+      "guid": "6f19360acc09097428489a7d43491376",
+      "sha256": "32a57d9c99d44f25bbbc25706264a052441f47090ccce2f29aefc688fd2553d5"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/RuntimeExperienceTools.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimeExperienceTools.cs",
+      "guid": "4f2b72fb008df0145b5a2f55b73b7732",
+      "sha256": "1c8c5ce6da4f1044307a3acf634c96b48d05370edd3161fa7ffb490439d697cb"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/RuntimeMudRenderer.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimeMudRenderer.cs",
+      "guid": "319806084405231499aff027eaf98479",
+      "sha256": "25f9ecce114c080e8b2d57d0109ac8450fb80e1f16a14709a3b84bfacf2bd4a1"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/RuntimePoseBridge.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimePoseBridge.cs",
+      "guid": "f0027c538b3a21744ac29c145c2b5fa5",
+      "sha256": "deea0a6afb97907f3c44e5abb3b70ece5683c77f8f28e0a5b0b230cda50c58b8"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/RuntimePoseObservation.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimePoseObservation.cs",
+      "guid": "fafabc8590b55fa4abf35e51893a67d5",
+      "sha256": "1d8e4d6fd0b5a3b50766ea66589f0334e1ca76aa934cb59c026c37b5d52719b0"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/RuntimePoseReset.cs",
+      "to": "Assets/_Features/World/Runtime/RuntimePoseReset.cs",
+      "guid": "8785cc949df7c48459acf06907b43cc4",
+      "sha256": "99d296953964f069801da2c5bfd613731c52967370e79e01cd8670780a0565b0"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorkshopDock.cs",
+      "to": "Assets/_Settings/Runtime/WorkshopDock.cs",
+      "guid": "d17ae5e4d102a424698b21fc5a931c52",
+      "sha256": "034e9162fb06cbb6087546327a62d092737f97ac686a03900e4d65a776eb54db"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorkshopExamples.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopExamples.cs",
+      "guid": "2faa86c5a48a5fe429784b28d29b6dda",
+      "sha256": "a341378640e0b5be0d6e71689a90664f0aaaa9d097d65ebda371542ef94158cf"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorkshopOrbit.cs",
+      "to": "Assets/_Features/World/Runtime/WorkshopOrbit.cs",
+      "guid": "a16fee2b17578aa4a8b1f3c605af5c4b",
+      "sha256": "a359ba7a4c4a6914441f6d6bb76825dfe1afe75e0e07b5833031906204434110"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorkshopPropInput.cs",
+      "to": "Assets/_Features/World/Runtime/WorkshopPropInput.cs",
+      "guid": "834753f081f32f1489b14cf73aa3dd13",
+      "sha256": "06fa0195e2662ce80192d58c5265b072276dd7ca9fd91fb8b6643cc4207f6d20"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorkshopRadialMenu.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopRadialMenu.cs",
+      "guid": "c60d6047b6a3fc3488677e5ec1e8a659",
+      "sha256": "f04e59bbc86d53187464be07c997625df3ca375d5a5a2d470c4a86da16854316"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorkshopSeed.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopSeed.cs",
+      "guid": "28f52b17486b62745a6d733d17841308",
+      "sha256": "b437c5750fde95a3970bc121f11172d9799a372b60da9064fe8ee6cf5707858c"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorkshopTools.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopTools.cs",
+      "guid": "59ff42b43b3cccc4681c26399af67d22",
+      "sha256": "51fcaa898470b5bffc79fb5fceef1cdd31f0cb7e0e35155daa59a9637ea1d097"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorkshopVisuals.cs",
+      "to": "Assets/_Features/Creation/Runtime/WorkshopVisuals.cs",
+      "guid": "27e8cc0c3d03e8b4495797ff7dffd2f0",
+      "sha256": "d2093e5dd4faa986f9ef15dbb2acbc96dc2802784830c8c17762235b790f165d"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorldGalleryInteraction.cs",
+      "to": "Assets/_Features/Gallery/Runtime/WorldGalleryInteraction.cs",
+      "guid": "5ed54e2d4c31e0a4591b5e0084751e88",
+      "sha256": "b5cd42166083bfa010d3a834cf42f9da0d94db9f8c83dcc186403e038378be1a",
+      "retired": true,
+      "reason": "Superseded flat-table presenter and its validation/art removed at user request."
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorldGalleryLifecycle.cs",
+      "to": "Assets/_Features/Gallery/Runtime/WorldGalleryLifecycle.cs",
+      "guid": "daf2c2851599f0a44a0904cdb2180eb9",
+      "sha256": "7ef74f6d357ac47dd8cfa5598fa9e4414ae04c2a999801b514aa74c1b6fda37b",
+      "retired": true,
+      "reason": "Superseded flat-table presenter and its validation/art removed at user request."
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/WorldGalleryPrototype.cs",
+      "to": "Assets/_Features/Gallery/Runtime/GalleryPreviewEntry.cs",
+      "guid": "c618d59811984d64298deabadad04248",
+      "sha256": "56477afab8054f40a43ed7c8586b0a9769376a9bba4eadfbd4b146e6e60c8491"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/BuildingCapability.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/BuildingCapability.cs",
+      "guid": "f1e440637eba46c45b2afd458fa43656",
+      "sha256": "ec061e09a9f9c6987155bb1371b20f2697a3d52376dfebe4cf92950c43f7466f"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/FeedbackCapability.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/FeedbackCapability.cs",
+      "guid": "366e415f4c634564588511a38cd17953",
+      "sha256": "2a0413691294ff66e37bfa64a46abfe10a7cc5ab4ea70b8455f400f644148349"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/LayoutCapability.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/LayoutCapability.cs",
+      "guid": "a68b991de0304eb4193d26a958a77389",
+      "sha256": "b097d6f4e5bcb5dfe233d3b3d129b5e9338408ac1fc1aadb0da5942c701aba87"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/OceanCapability.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/OceanCapability.cs",
+      "guid": "4365d6e52d439824e88283ea0fdb2880",
+      "sha256": "11722d66c1f89f452c6344a8218d0dd06e871f1bd5457f832b6368d29d49e6fc"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/SequenceCapability.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/SequenceCapability.cs",
+      "guid": "c0cd267fec7fb45458f255c2216298e4",
+      "sha256": "50752dac86044526634826682badcb67b75e2ada8b7e01c97e82a46f791ac443"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/SplineCapability.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/SplineCapability.cs",
+      "guid": "b8cacef5bb763b04ab072527e981ae41",
+      "sha256": "03bb9372e57abc5cf95c478b1e69227bef47807b53d1a9ee50f2d12b9af8f392"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/VegetationCapability.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/VegetationCapability.cs",
+      "guid": "67a2f7b154059794c8bb97effa44823c",
+      "sha256": "bd79882981598db07ed49d69c8cda47fdeb4d49375c42537cc4cc52ab4db44f6"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/VendorCapabilities.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/VendorCapabilities.cs",
+      "guid": "6ef874930fb4dde408c8c7966e0529a9",
+      "sha256": "d3e3a5e9e501c205cff8c8b27f01055ac0aed7b0b6318c522df9f6f3835be7c7"
+    },
+    {
+      "from": "Assets/Ecaty/Runtime/Adapters/WeatherCapability.cs",
+      "to": "Assets/_Adapters/Runtime/Vendor/WeatherCapability.cs",
+      "guid": "bdce3b794c09cb740839a186205b8ed2",
+      "sha256": "1c379940377ee1ea1361dccee2327f12d881a44d62a3ca45b0cbffc5b745e9e5"
+    },
+    {
+      "from": "Assets/Ecaty/Tests/EditMode",
+      "to": "Assets/_Features/Gallery/Tests/EditMode",
+      "guid": "bd5584061de26f845af18404c807fc16",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Tests/PlayMode",
+      "to": "Assets/_Features/Gallery/Tests/PlayMode",
+      "guid": "d3595c27b0ead9e4882be110c1266a37",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Ecaty/Tests/EditMode/Ecaty.Tests.EditMode.asmdef",
+      "to": "Assets/_Features/Gallery/Tests/EditMode/Ecaty.Tests.EditMode.asmdef",
+      "guid": "73c2d71f60bc7e54faecd2e855a110be",
+      "sha256": "5b93cd5c1284abd1df383adac111bc9b8dab1aff86968ce95f70140b33332a81"
+    },
+    {
+      "from": "Assets/Ecaty/Tests/EditMode/NativeGalleryTests.cs",
+      "to": "Assets/_Features/Gallery/Tests/EditMode/NativeGalleryTests.cs",
+      "guid": "b864292a5af7cdd4bae073f76e8686ff",
+      "sha256": "eb71f6be01e2c1bd8c14926d310d925366a8765e7ec15b59fab46ca63f4347a9"
+    },
+    {
+      "from": "Assets/Ecaty/Tests/PlayMode/Ecaty.Tests.PlayMode.asmdef",
+      "to": "Assets/_Features/Gallery/Tests/PlayMode/Ecaty.Tests.PlayMode.asmdef",
+      "guid": "804a67d97a809e84b9731b98933577a4",
+      "sha256": "8ec676c8c6ef4e874539338c4b2a5996d68a1424b1c9824c1ed75d9cb1d72e87"
+    },
+    {
+      "from": "Assets/Ecaty/Tests/PlayMode/GalleryPlayTests.cs",
+      "to": "Assets/_Features/Gallery/Tests/PlayMode/GalleryPlayTests.cs",
+      "guid": "b52fa1ed552cc4640b1e1ab04a0126b3",
+      "sha256": "e494b4904a182c56213c435662d34d398a89407957911136413d4875cff9f6c1"
+    },
+    {
+      "from": "Assets/Ecaty/UI/EcatyTheme.tss",
+      "to": "Assets/__Common/Theme/Styles/Theme.tss",
+      "guid": "92a6254cd80aaee4b9c7971228e7650d",
+      "sha256": "0b4bc16bc3ebb06f5debf24192f7edfa4a023d15eca77903d8169e2369aaa6f3"
+    },
+    {
+      "from": "Assets/Ecaty",
+      "to": "Assets/__Common",
+      "guid": "de2fe55ba3be05a4bbe0f4b33e537ce0",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Scenes/SampleScene.unity",
+      "to": "Assets/_Scenes/SampleScene.unity",
+      "guid": "99c9720ab356a0642a771bea13969a05",
+      "sha256": "07fce8b04804ddccb3026db5b43d8dc41ba138e49d50d36a5c24877081eacdca"
+    },
+    {
+      "from": "Assets/Scenes",
+      "to": "Assets/_Scenes",
+      "guid": "bd1e9a5ade051054d9dd742a4382f97c",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Settings/DefaultVolumeProfile.asset",
+      "to": "Assets/_Settings/Project/Rendering/DefaultVolumeProfile.asset",
+      "guid": "ab09877e2e707104187f6f83e2f62510",
+      "sha256": "463776c51ae49d4fef980e8fd268081b2f505610d79315003faae1acff8f4115"
+    },
+    {
+      "from": "Assets/Settings/Mobile_Renderer.asset",
+      "to": "Assets/_Settings/Project/Rendering/Mobile_Renderer.asset",
+      "guid": "65bc7dbf4170f435aa868c779acfb082",
+      "sha256": "aa93274c9521fa941170becec9e87c5fa36b8587eefd5eeb5c0eed0d1d4b1dbe"
+    },
+    {
+      "from": "Assets/Settings/Mobile_RPAsset.asset",
+      "to": "Assets/_Settings/Project/Rendering/Mobile_RPAsset.asset",
+      "guid": "5e6cbd92db86f4b18aec3ed561671858",
+      "sha256": "1578187f63cdf6241acd59a5a2710777244a4bebdf4d7d3b74bdace2d14848b8"
+    },
+    {
+      "from": "Assets/Settings/PC_Renderer.asset",
+      "to": "Assets/_Settings/Project/Rendering/PC_Renderer.asset",
+      "guid": "f288ae1f4751b564a96ac7587541f7a2",
+      "sha256": "3d0b01d8ded3327263b6690be128a3de58d17c514943ae42fe743a3e084a9c79"
+    },
+    {
+      "from": "Assets/Settings/PC_RPAsset.asset",
+      "to": "Assets/_Settings/Project/Rendering/PC_RPAsset.asset",
+      "guid": "4b83569d67af61e458304325a23e5dfd",
+      "sha256": "49a8a4fea6e4dbad1e11209c32daf7eaccff4f18dbe4994bfab7ea9915cc7faa"
+    },
+    {
+      "from": "Assets/Settings/Resources",
+      "to": "Assets/_Settings/Project/Rendering/Resources",
+      "guid": "9ffe65be819c99c4da95e52eca6f0e9c",
+      "sha256": null
+    },
+    {
+      "from": "Assets/Settings/SampleSceneProfile.asset",
+      "to": "Assets/_Settings/Project/Rendering/SampleSceneProfile.asset",
+      "guid": "10fc4df2da32a41aaa32d77bc913491c",
+      "sha256": "a8677d4bac051d24caa11cd622e39f968155ee277bfce132274f1de225692fe9"
+    },
+    {
+      "from": "Assets/Settings/UniversalRenderPipelineGlobalSettings.asset",
+      "to": "Assets/_Settings/Project/Rendering/UniversalRenderPipelineGlobalSettings.asset",
+      "guid": "18dc0cd2c080841dea60987a38ce93fa",
+      "sha256": "5f2d89eea387d7c97febad3c5ca1fceca9100b45ea2c966c33c9921674505452"
+    },
+    {
+      "from": "Assets/Settings/Resources/ALINE.asset",
+      "to": "Assets/_Settings/Project/Rendering/Resources/ALINE.asset",
+      "guid": "181d8121d1cdcd64985ecdd47efff79c",
+      "sha256": "7f0d0d5e95741832d30b70bf081e1ff844df6a9fd1e22ea6991300e80013ae97"
+    },
+    {
+      "from": "Assets/Settings",
+      "to": "Assets/_Settings/Project/Rendering",
+      "guid": "709f11a7f3c4041caa4ef136ea32d874",
+      "sha256": null
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/CapabilityAssets.cs",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/CapabilityAssets.cs",
+      "guid": "a708af6294c833d4eadf23b6a2532f88",
+      "sha256": "1df6dffbda193c21405777a0a584cac8b67cc32aa3e3eaf338d0484cf63cf893"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/CapabilityRuntime.cs",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/CapabilityRuntime.cs",
+      "guid": "cd2c01463ae83254195400a1ef3f7b71",
+      "sha256": "0531e4920a11db833768b6986753ed3c2497cc4586e077e8ec602760037e72d7"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/NativeCapabilities.cs",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/NativeCapabilities.cs",
+      "guid": "cf7032391723869438989a9f86915955",
+      "sha256": "cdc1c1406af2682582eaee55a5835a4e16ad0d8ddce16963da78b99e03fd335b"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/PostProcessingCapability.cs",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/PostProcessingCapability.cs",
+      "guid": "7d1ea3b4eae4ae94185da7d2313a5fe1",
+      "sha256": "a408fc07e8c486fc0d2d1899789ebf355cc73b445be36cb7b062c62cdc4f3055"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/Resources",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/Resources",
+      "guid": "3af04fc148f710244bae45217d13c786",
+      "sha256": null
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/SpatialCapabilities.cs",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/SpatialCapabilities.cs",
+      "guid": "1d303b84c61475b43afd132b05577005",
+      "sha256": "32c4c266ef4f06dc15be12dfc4baa1e8b932e0c7a50982990f7c67b06bbfe3b7"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/UnityCapabilities.cs",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/UnityCapabilities.cs",
+      "guid": "2a9f4b4fa7bf4a84f85e1bdd9784dc74",
+      "sha256": "8093d32908d77aca24cff35174e8d41ca50c11b12dca0c5d38535964cbbdcc62"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/Resources/CapabilityPostProcessingSchema.flecs",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/Resources/CapabilityPostProcessingSchema.flecs",
+      "guid": "3690c3f68f4ba634b888757a0adc1589",
+      "sha256": "71ce07bde5cae49a490f58b5cb54e820df13b6a9842a917b886994f85f9ced81"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/Resources/CapabilitySchema.flecs",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/Resources/CapabilitySchema.flecs",
+      "guid": "2a58f94d798459f409860a8ceb4ecdd1",
+      "sha256": "b416e6aa628b14cd7ee0e08016cefaa89b65ee13955d4af1983efbf7f7d88fe1"
+    },
+    {
+      "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities",
+      "to": "Packages/com.runtime.capabilities/Runtime/Capabilities",
+      "guid": "e3c8bd1ee442be04889821700543d898",
+      "sha256": null
+    },
+    {
+      "from": "Assets/InputSystem_Actions.inputactions",
+      "to": "Assets/_Settings/Project/Input/InputSystem_Actions.inputactions",
+      "guid": "052faaac586de48259a63d0c4782560b",
+      "sha256": "1c6cbb519d65ecfe19a29231735b7f54741a20ac1a8ad4f46a18e1bfb28a3c39"
+    }
+  ]
+}

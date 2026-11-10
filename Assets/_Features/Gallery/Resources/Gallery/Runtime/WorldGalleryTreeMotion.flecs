@@ -1,0 +1,24 @@
+using flecs.script.math
+GalleryTreeSettings { GalleryTreeMotion: {GalleryTreeSettings[GalleryTreeActivity].elapsed + (Clock[Clock].time - GalleryTreeSettings[GalleryTreeActivity].started) * GalleryTreeSettings[GalleryTreeActivity].rate} }
+GalleryTreeLayer1 { GalleryLayerState: {GalleryTreeLayer1[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer1[GalleryLayerIntent].started) * GalleryTreeLayer1[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
+GalleryTreeLayer2 { GalleryLayerState: {GalleryTreeLayer2[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer2[GalleryLayerIntent].started) * GalleryTreeLayer2[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
+GalleryTreeLayer3 { GalleryLayerState: {GalleryTreeLayer3[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer3[GalleryLayerIntent].started) * GalleryTreeLayer3[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
+GalleryTreeLayer4 { GalleryLayerState: {GalleryTreeLayer4[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer4[GalleryLayerIntent].started) * GalleryTreeLayer4[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
+GalleryTreeLayer5 { GalleryLayerState: {GalleryTreeLayer5[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer5[GalleryLayerIntent].started) * GalleryTreeLayer5[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
+GalleryTreeLayer6 { GalleryLayerState: {GalleryTreeLayer6[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer6[GalleryLayerIntent].started) * GalleryTreeLayer6[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
+
+GalleryTreeSettings {
+    GalleryReturnState: {
+        GalleryTreeSettings[GalleryReturnIntent].started,
+        min(1, max(0, (Clock[Clock].time - GalleryTreeSettings[GalleryReturnIntent].started) / GalleryTreeSettings[GalleryReturnStyle].seconds)),
+        min(1, max(0, (Clock[Clock].time - GalleryTreeSettings[GalleryReturnIntent].started - 0.12) / GalleryTreeSettings[GalleryReturnStyle].revealSeconds))
+    }
+}
+
+GalleryTreeSettings {
+    GalleryGlassState: {GalleryTreeSettings[GalleryGlassIntent].started, min(1, max(0, (Clock[Clock].time - GalleryTreeSettings[GalleryGlassIntent].started) / GalleryTreeSettings[GalleryReturnStyle].glassSeconds))}
+    GalleryRecenterState: {min(1, max(0,
+        (1 / max(0.08, GalleryTreeSettings[GalleryCameraMeasure].zoom) - 1 / max(0.08, GalleryTreeSettings[GalleryCameraAnchor].zoom)) /
+        max(0.00001, 1 / max(0.08, GalleryTreeSettings[GalleryCameraAnchor].minimum) - 1 / max(0.08, GalleryTreeSettings[GalleryCameraAnchor].zoom))
+    ))}
+}

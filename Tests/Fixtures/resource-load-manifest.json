@@ -1,0 +1,349 @@
+[
+  {
+    "key": "Gallery/Config/GalleryLayout",
+    "path": "Assets/_Features/Gallery/Gallery.asset",
+    "guid": "69f1f5dffc2077048ab6c5d1973d30e6",
+    "composition": "Gallery"
+  },
+  {
+    "key": "Shared/Config/Theme",
+    "path": "Assets/__Common/Theme/Theme.asset",
+    "guid": "ea35aaaf244af924bbc488e943f99c63",
+    "composition": "Theme"
+  },
+  {
+    "key": "Shared/Rendering/PresentationMaterial",
+    "path": "Assets/__Common/Theme/Resources/Shared/Rendering/PresentationMaterial.mat",
+    "guid": "522176da3c8e32f429eac54b0aece5ad"
+  },
+  {
+    "key": "Agent/Config/AgentUi",
+    "path": "Assets/__Common/Agent/Agent.asset",
+    "guid": "db7d5b0265a7cb14990c4519f07e175e",
+    "composition": "AgentUi"
+  },
+  {
+    "key": "Agent/Config/AgentPanel",
+    "path": "Assets/__Common/Agent/Presentation/PanelSettings.asset",
+    "guid": "b461a9424d0fe3d4688f7adb7d67a584",
+    "composition": "AgentPanel"
+  },
+  {
+    "key": "Agent/Prompts/AgentInstructions",
+    "path": "Assets/__Common/Agent/Resources/Agent/Prompts/AgentInstructions.txt",
+    "guid": "5cd8a7c38b24b6f4f9a294be000d3ff6"
+  },
+  {
+    "key": "Gallery/Runtime/WorldGalleryTree",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Runtime/WorldGalleryTree.flecs",
+    "guid": "db8202d425f59f2499e413ad501fb481"
+  },
+  {
+    "key": "Gallery/Runtime/WorldGalleryTreeMotion",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Runtime/WorldGalleryTreeMotion.flecs",
+    "guid": "93b4d32169981774aae2efd5af29dc68"
+  },
+  {
+    "key": "Gallery/Runtime/WorldGalleryNavigation",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Runtime/WorldGalleryNavigation.flecs",
+    "guid": "fe3ecfde2e40f6840b58d7d669212c4d"
+  },
+  {
+    "key": "Gallery/Examples/GalleryCatalog",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Examples/GalleryCatalog.flecs",
+    "guid": "4f725a16bba28cc43a540d16bc547565"
+  },
+  {
+    "key": "Gallery/Shaders/GalleryOrbit",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GalleryOrbit.shader",
+    "guid": "eade452b73465674ea00d07b2b571b78"
+  },
+  {
+    "key": "Gallery/Shaders/GalleryCrystal",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GalleryCrystal.shader",
+    "guid": "5e256521fc4d66b4aa31de8e45585545"
+  },
+  {
+    "key": "Gallery/Shaders/GallerySeed",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GallerySeed.shader",
+    "guid": "e4888da8f14971645b08af3a13134dc4"
+  },
+  {
+    "key": "Gallery/Shaders/GalleryExitFeedback",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GalleryExitFeedback.shader",
+    "guid": "e73089305dde7f74eb4484449116ce62"
+  },
+  {
+    "key": "Runtime/Config/WorldAssets",
+    "path": "Assets/_Features/World/World.asset",
+    "guid": "c1c2160109355c042b21df4ee7aa50ed",
+    "composition": "World"
+  },
+  {
+    "key": "Runtime/Config/CapabilityAssets",
+    "path": "Assets/_Adapters/Adapters.asset",
+    "guid": "e42983bafb560d84dbc0a4fa63484357",
+    "composition": "Capabilities"
+  },
+  {
+    "key": "Runtime/Schemas/EngineSchema",
+    "path": "Assets/_Features/World/Resources/Runtime/Schemas/EngineSchema.flecs",
+    "guid": "4077dba3e109124409b34a5ca2120eb0"
+  },
+  {
+    "key": "Runtime/Schemas/ActorSchema",
+    "path": "Assets/_Features/World/Resources/Runtime/Schemas/ActorSchema.flecs",
+    "guid": "e9bee7e933861ec469625a3ec01dd9a3"
+  },
+  {
+    "key": "Runtime/Schemas/ClaySchema",
+    "path": "Assets/_Features/World/Resources/Runtime/Schemas/ClaySchema.flecs",
+    "guid": "21ebd9296da527c48ad4ca331e5331da"
+  },
+  {
+    "key": "Runtime/Schemas/PoseSchema",
+    "path": "Assets/_Features/World/Resources/Runtime/Schemas/PoseSchema.flecs",
+    "guid": "ca1827c65cbefd94595cf11885d16488"
+  },
+  {
+    "key": "Runtime/Behaviors/ActorBehavior",
+    "path": "Assets/_Features/World/Resources/Runtime/Behaviors/ActorBehavior.flecs",
+    "guid": "f61ec74ad7a3b604da9be96156a90ffb"
+  },
+  {
+    "key": "Runtime/Behaviors/ReactiveBehavior",
+    "path": "Assets/_Features/World/Resources/Runtime/Behaviors/ReactiveBehavior.flecs",
+    "guid": "dbcd472fd2af0954fb00685301b37441"
+  },
+  {
+    "key": "Runtime/Behaviors/RuntimeSpatialBehavior",
+    "path": "Assets/_Features/World/Resources/Runtime/Behaviors/RuntimeSpatialBehavior.flecs",
+    "guid": "d4a5d004129c247479ce9b8d6680c486"
+  },
+  {
+    "key": "Runtime/Catalog/RuntimeLibrary",
+    "path": "Assets/_Features/World/Resources/Runtime/Catalog/RuntimeLibrary.flecs",
+    "guid": "360219ecd25559544b773a2e452f979c"
+  },
+  {
+    "key": "Runtime/Examples/World",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/World.flecs",
+    "guid": "d47f8c4aff4edd340ad711402aad46d9"
+  },
+  {
+    "key": "Runtime/Examples/RuntimeCreature",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/RuntimeCreature.json",
+    "guid": "5bbe98f1177d27b448063cabf36326e0"
+  },
+  {
+    "key": "Runtime/Examples/RuntimeCreatureControl",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/RuntimeCreatureControl.json",
+    "guid": "eee6763cca6d0f941a84052747369d86"
+  },
+  {
+    "key": "Runtime/Examples/Capabilities/CapabilityWorkshop",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/CapabilityWorkshop.flecs",
+    "guid": "1d3fbeefe9fe7e44996130b9063fc84b"
+  },
+  {
+    "key": "Workshop/Config/WorkshopPostProcessing",
+    "path": "Assets/_Features/World/Environment/Environment.asset",
+    "guid": "38fedd627e0ce564dbd0f65b2ec5c4b3",
+    "composition": "WorldLook"
+  },
+  {
+    "key": "Workshop/Data/WorkshopKit",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Data/WorkshopKit.json",
+    "guid": "2c240a55fb1fc5644b0dd01f09938d60"
+  },
+  {
+    "key": "Workshop/Runtime/WorkshopLobby",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Runtime/WorkshopLobby.flecs",
+    "guid": "5e539a5d4d2347f44a7945b1f01f2eba"
+  },
+  {
+    "key": "Workshop/Runtime/WorkshopSeedMotion",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Runtime/WorkshopSeedMotion.flecs",
+    "guid": "637d0123b3445d54f9faea8ea7ddc895"
+  },
+  {
+    "key": "Workshop/Runtime/WorkshopWorldLooks",
+    "path": "Assets/_Features/World/Resources/Workshop/Runtime/WorkshopWorldLooks.flecs",
+    "guid": "bab8a56fcde7c2b43a4a41cd76dca287"
+  },
+  {
+    "key": "Workshop/Examples/AssemblyChain/WorkshopChain",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Examples/AssemblyChain/WorkshopChain.flecs",
+    "guid": "529466e0052e1d648b91c8ae76111297"
+  },
+  {
+    "key": "Workshop/Examples/AssemblyChain/WorkshopChainObjects",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Examples/AssemblyChain/WorkshopChainObjects.flecs",
+    "guid": "4cd9ea66e01241d4da19718cbfd274db"
+  },
+  {
+    "key": "Workshop/Examples/AssemblyChain/WorkshopChainLinks",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Examples/AssemblyChain/WorkshopChainLinks.flecs",
+    "guid": "e6c86aa42d845974abad4e220d25457f"
+  },
+  {
+    "key": "Workshop/UI/WorkshopDock",
+    "path": "Assets/_Settings/Resources/Workshop/UI/WorkshopDock.uss",
+    "guid": "727a6136e12de434493f9dbd76be69e0"
+  },
+  {
+    "key": "Workshop/Art/Seed/WorkshopSeedArt",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Seed/WorkshopSeedArt.prefab",
+    "guid": "db8bada924ca3f2498278e4ce945ebaa"
+  },
+  {
+    "key": "Workshop/Art/Seed/WorkshopSeedArtMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Seed/WorkshopSeedArtMesh.asset",
+    "guid": "4c73990c4af3b6040b584df24bcc5f48"
+  },
+  {
+    "key": "Tests/Fixtures/VerificationWorld",
+    "path": "Assets/_Tests/Fixtures/Resources/Tests/Fixtures/VerificationWorld.flecs",
+    "guid": "8914156856373214b81f1a7e7c713aa0"
+  },
+  {
+    "key": "Workshop/Art/Icons/Bell",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Bell.prefab",
+    "guid": "28b0f69f42c68d441ac816e8ce6a0201"
+  },
+  {
+    "key": "Workshop/Art/Icons/BellMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/BellMesh.asset",
+    "guid": "88a5ee92d8d05374695b6df576d38d2b"
+  },
+  {
+    "key": "Workshop/Art/Icons/Confirm",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Confirm.prefab",
+    "guid": "3748e1c454157e34abf28d5bfd103ef9"
+  },
+  {
+    "key": "Workshop/Art/Icons/ConfirmMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/ConfirmMesh.asset",
+    "guid": "70118e02470a642449ab1b1644767232"
+  },
+  {
+    "key": "Workshop/Art/Icons/Environment",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Environment.prefab",
+    "guid": "0f999cdad3ee6ca47a9b29769565f68a"
+  },
+  {
+    "key": "Workshop/Art/Icons/EnvironmentMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/EnvironmentMesh.asset",
+    "guid": "a39859ddf2d66344eb5a25751a90655f"
+  },
+  {
+    "key": "Workshop/Art/Icons/Honey",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Honey.prefab",
+    "guid": "f0cbc232654c166429133a91b37760ce"
+  },
+  {
+    "key": "Workshop/Art/Icons/HoneyMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/HoneyMesh.asset",
+    "guid": "5180d1c38f1217d4898ec888cf805c84"
+  },
+  {
+    "key": "Workshop/Art/Icons/Neutral",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Neutral.prefab",
+    "guid": "f9b871cf4b3bb544382a9e4648515124"
+  },
+  {
+    "key": "Workshop/Art/Icons/NeutralMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/NeutralMesh.asset",
+    "guid": "0a52c390f40400f468a063e3d025b716"
+  },
+  {
+    "key": "Workshop/Art/Icons/NewWorld",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/NewWorld.prefab",
+    "guid": "3fa6ccfd0b3b8dd4f8c0fba33b7cfa72"
+  },
+  {
+    "key": "Workshop/Art/Icons/NewWorldMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/NewWorldMesh.asset",
+    "guid": "045692da3c517dc4b938d6b5d38d81d4"
+  },
+  {
+    "key": "Workshop/Art/Icons/OpenWorld",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/OpenWorld.prefab",
+    "guid": "33831b5949bc2624594a15af7705137c"
+  },
+  {
+    "key": "Workshop/Art/Icons/OpenWorldMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/OpenWorldMesh.asset",
+    "guid": "0ea88a9479529014baf7a8387e87290d"
+  },
+  {
+    "key": "Workshop/Art/Icons/Paper",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Paper.prefab",
+    "guid": "f09471eb27e60d047b251a9f75e4ec56"
+  },
+  {
+    "key": "Workshop/Art/Icons/PaperMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/PaperMesh.asset",
+    "guid": "131c7ba4120b0014fac70a1bf0a189c1"
+  },
+  {
+    "key": "Workshop/Art/Icons/Playground",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Playground.prefab",
+    "guid": "ac9a1a9b4deb75a4baf1eec663383276"
+  },
+  {
+    "key": "Workshop/Art/Icons/PlaygroundMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/PlaygroundMesh.asset",
+    "guid": "81884f9e004e06f43a86673c073afe97"
+  },
+  {
+    "key": "Workshop/Art/Icons/SaveWorld",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/SaveWorld.prefab",
+    "guid": "3e9e67f0720b294488410a6d4a3f9a15"
+  },
+  {
+    "key": "Workshop/Art/Icons/SaveWorldMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/SaveWorldMesh.asset",
+    "guid": "163ebf7665a87f54998883980dd37793"
+  },
+  {
+    "key": "Workshop/Art/Icons/Twilight",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/Twilight.prefab",
+    "guid": "66f027a44f2cddd4da9e23b3c6a9fe5b"
+  },
+  {
+    "key": "Workshop/Art/Icons/TwilightMesh",
+    "path": "Assets/_Features/Creation/Resources/Workshop/Art/Icons/TwilightMesh.asset",
+    "guid": "6dff907f4b898da43b24ff2ad5da6e15"
+  },
+  {
+    "key": "Runtime/Examples/Capabilities/Brick",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/Brick.prefab",
+    "guid": "e25ab6cdd56bd9b4eb0d30566b59c7c5"
+  },
+  {
+    "key": "Runtime/Examples/Capabilities/BurstFeedback",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/BurstFeedback.prefab",
+    "guid": "9980236ddc41d1f4f8ab16d21f1bc260"
+  },
+  {
+    "key": "Runtime/Examples/Capabilities/Chime",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/Chime.wav",
+    "guid": "92bd293a3dbddcc4c8145cd4c4d24ddb"
+  },
+  {
+    "key": "Runtime/Examples/Capabilities/ConstructionKit",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/ConstructionKit.prefab",
+    "guid": "c165f9331a8efc44cb15a48611d38f79"
+  },
+  {
+    "key": "Runtime/Examples/Capabilities/PeacefulParticles",
+    "path": "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/PeacefulParticles.vfx",
+    "guid": "e89c4691f3413f044ac69cac03dedf3f"
+  },
+  {
+    "key": "Gallery/Shaders/GalleryGlassHandoff",
+    "path": "Assets/_Features/Gallery/Resources/Gallery/Shaders/GalleryGlassHandoff.shader",
+    "guid": "fd9a896b8128c6047b2d26ac47e9bfd6"
+  }
+]

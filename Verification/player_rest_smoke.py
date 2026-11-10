@@ -39,13 +39,13 @@ try:
             time.sleep(0.2)
     report["checks"].append("built Unity player serves native Flecs REST while Update runs")
     request("PUT","entity/PlayerRemote")
-    code="Remote { Position: {3, 1, 0} Primitive: {1} Color: {0,1,0,1} }"
+    code="Remote { Position: {3, 1, 0}; Primitive: {1}; Color: {0,1,0,1} }"
     request("PUT","script/PlayerRemote?code="+urllib.parse.quote(code,safe=""))
     response=request("GET","entity/Remote?values=true")
     assert "Position" in json.dumps(response)
     request("GET","query?expr="+urllib.parse.quote("Position, Primitive",safe=""))
     report["checks"].append("remote Script creates a live entity; queries and reflection work")
-    code="Remote { Position: {-3, 2, 0} Primitive: {2} }"
+    code="Remote { Position: {-3, 2, 0}; Primitive: {2} }"
     request("PUT","script/PlayerRemote?code="+urllib.parse.quote(code,safe=""))
     request("DELETE","entity/Remote")
     request("GET","stats/world")

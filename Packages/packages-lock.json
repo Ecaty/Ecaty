@@ -1,5 +1,40 @@
 {
   "dependencies": {
+    "com.arongranberg.aline": {
+      "version": "file:com.arongranberg.aline",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.burst": "1.7.2",
+        "com.unity.collections": "1.4.0",
+        "com.unity.mathematics": "1.2.1",
+        "com.unity.modules.physics": "1.0.0",
+        "com.unity.modules.physics2d": "1.0.0",
+        "com.unity.modules.ui": "1.0.0",
+        "com.unity.ugui": "1.0.0"
+      }
+    },
+    "com.autodesk.fbx": {
+      "version": "5.1.3",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.distantlands.lumen": {
+      "version": "file:com.distantlands.lumen",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
+    "com.distantlands.zephyr": {
+      "version": "file:com.distantlands.zephyr",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.visualeffectgraph": "17.0.4"
+      }
+    },
     "com.ecaty.ai-agent": {
       "version": "file:com.ecaty.ai-agent",
       "depth": 0,
@@ -12,7 +47,37 @@
       "version": "file:com.ecaty.flecs-unity",
       "depth": 0,
       "source": "embedded",
-      "dependencies": {}
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.2"
+      }
+    },
+    "com.projectdawn.cozy-builder": {
+      "version": "file:com.projectdawn.cozy-builder",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.mathematics": "1.2.6",
+        "com.unity.collections": "1.4.0",
+        "com.unity.burst": "1.6.6",
+        "com.unity.shadergraph": "14.0.11",
+        "com.unity.formats.fbx": "5.1.2"
+      }
+    },
+    "com.runtime.capabilities": {
+      "version": "file:com.runtime.capabilities",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.ai.navigation": "2.0.16",
+        "com.unity.animation.rigging": "6.6.0",
+        "com.unity.cinemachine": "6.6.0",
+        "com.unity.inputsystem": "1.20.1",
+        "com.unity.render-pipelines.universal": "17.6.0",
+        "com.unity.timeline": "6.6.0",
+        "com.unity.visualeffectgraph": "17.6.0",
+        "com.unity.nuget.newtonsoft-json": "3.2.2",
+        "com.ecaty.flecs-unity": "0.2.1"
+      }
     },
     "com.unity.ai.navigation": {
       "version": "2.0.16",
@@ -23,15 +88,34 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.animation.rigging": {
+      "version": "6.6.0",
+      "depth": 0,
+      "source": "builtin",
+      "dependencies": {
+        "com.unity.burst": "1.4.1",
+        "com.unity.test-framework": "1.1.24",
+        "com.unity.modules.animation": "1.0.0"
+      }
+    },
     "com.unity.burst": {
       "version": "2.0.0",
-      "depth": 2,
+      "depth": 1,
       "source": "builtin",
       "dependencies": {}
     },
+    "com.unity.cinemachine": {
+      "version": "6.6.0",
+      "depth": 0,
+      "source": "builtin",
+      "dependencies": {
+        "com.unity.splines": "2.8.4",
+        "com.unity.modules.imgui": "1.0.0"
+      }
+    },
     "com.unity.collections": {
       "version": "6.6.0",
-      "depth": 2,
+      "depth": 1,
       "source": "builtin",
       "dependencies": {
         "com.unity.burst": "1.8.25",
@@ -45,6 +129,16 @@
       "depth": 1,
       "source": "builtin",
       "dependencies": {}
+    },
+    "com.unity.formats.fbx": {
+      "version": "5.1.6",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "com.autodesk.fbx": "5.1.3",
+        "com.unity.timeline": "1.7.1"
+      },
+      "url": "https://packages.unity.com"
     },
     "com.unity.graph-authoring": {
       "version": "1.0.0",
@@ -68,6 +162,12 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.mathematics": {
+      "version": "1.4.0",
+      "depth": 1,
+      "source": "builtin",
+      "dependencies": {}
+    },
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.6",
       "depth": 1,
@@ -83,7 +183,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.pipeline": {
-      "version": "0.9.1-exp.1",
+      "version": "0.10.0-exp.1",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -139,6 +239,13 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
+    "com.unity.settings-manager": {
+      "version": "2.1.1",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
     "com.unity.shadergraph": {
       "version": "17.6.0",
       "depth": 1,
@@ -148,6 +255,17 @@
         "com.unity.searcher": "4.9.5",
         "com.unity.graph-authoring": "1.0.0"
       }
+    },
+    "com.unity.splines": {
+      "version": "2.9.1",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.mathematics": "1.2.1",
+        "com.unity.modules.imgui": "1.0.0",
+        "com.unity.settings-manager": "1.0.3"
+      },
+      "url": "https://packages.unity.com"
     },
     "com.unity.test-framework": {
       "version": "1.8.0",
@@ -161,7 +279,7 @@
     },
     "com.unity.test-framework.performance": {
       "version": "6.6.0",
-      "depth": 3,
+      "depth": 2,
       "source": "builtin",
       "dependencies": {
         "com.unity.test-framework": "1.1.33",
@@ -177,6 +295,38 @@
         "com.unity.modules.animation": "1.0.0",
         "com.unity.modules.audio": "1.0.0",
         "com.unity.modules.particlesystem": "1.0.0"
+      }
+    },
+    "com.unity.ugui": {
+      "version": "2.6.0",
+      "depth": 0,
+      "source": "builtin",
+      "dependencies": {
+        "com.unity.modules.ui": "1.0.0",
+        "com.unity.modules.imgui": "1.0.0",
+        "com.unity.modules.audio": "1.0.0",
+        "com.unity.modules.physics2d": "1.0.0",
+        "com.unity.modules.physics": "1.0.0"
+      }
+    },
+    "com.unity.visualeffectgraph": {
+      "version": "17.6.0",
+      "depth": 0,
+      "source": "builtin",
+      "dependencies": {
+        "com.unity.shadergraph": "17.6.0",
+        "com.unity.render-pipelines.core": "17.6.0"
+      }
+    },
+    "xyz.staggart-creations.splinemesher-pro": {
+      "version": "file:xyz.staggart-creations.splinemesher-pro",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.splines": "2.8.3",
+        "com.unity.mathematics": "1.3.2",
+        "com.unity.collections": "2.6.2",
+        "com.unity.burst": "1.8.28"
       }
     },
     "com.unity.modules.accessibility": {

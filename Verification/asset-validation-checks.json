@@ -1,0 +1,17 @@
+{
+  "installed": true,
+  "passed": true,
+  "validations": 147,
+  "assets": [
+    "Assets/__Common/Agent/Config/AgentPanel.asset",
+    "Assets/__Common/Agent/Config/AgentUi.asset",
+    "Assets/__Common/Bootstrap/Resources/RuntimeComposition.asset",
+    "Assets/__Common/Theme/Config/Theme.asset",
+    "Assets/_Features/Gallery/Config/GalleryLayout.asset",
+    "Assets/_Features/World/Config/CapabilityAssets.asset",
+    "Assets/_Features/World/Config/Looks/WorkshopPostProcessing.asset",
+    "Assets/_Features/World/Config/WorldAssets.asset",
+    "Assets/_Settings/Resources/Workshop/UI/WorkshopDock.uss"
+  ],
+  "results": []
+}

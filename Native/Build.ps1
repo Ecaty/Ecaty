@@ -12,22 +12,11 @@ if ($Compiler -eq 'GCC' -or ($Compiler -eq 'Auto' -and (Get-Command gcc -ErrorAc
     if (!(Get-Command gcc -ErrorAction SilentlyContinue) -or !(Get-Command g++ -ErrorAction SilentlyContinue)) {
         throw 'MinGW-w64 needs both gcc (upstream Flecs C) and g++ (our C++17 simulation).'
     }
-    $common=@('-O2','-DNDEBUG','-DFLECS_SOFT_ASSERT','-DFLECS_KEEP_ASSERT','-DFLECS_CREATE_MEMBER_ENTITIES','-DFLECS_SCRIPT_MATH','-I',(Join-Path $nativeRoot 'Core/vendor'),'-I',(Join-Path $nativeRoot 'Core/include'),'-I',(Join-Path $nativeRoot 'App/include'))
-    $flags=@('-std=c99') + $common
-    $source=Join-Path $nativeRoot 'Core/vendor/flecs.c'
-    $object=Join-Path $objects 'flecs.o'
-    $header=Join-Path $nativeRoot 'Core/vendor/flecs.h'
-    $stamp=Join-Path $objects 'flags.txt'
-    $flagsText=$flags -join '|'
-    if (!(Test-Path -LiteralPath $object) -or !(Test-Path -LiteralPath $stamp) -or (Get-Content -LiteralPath $stamp -Raw) -ne $flagsText -or (Get-Item $source).LastWriteTime -gt (Get-Item $object).LastWriteTime -or (Get-Item $header).LastWriteTime -gt (Get-Item $object).LastWriteTime) {
-        & gcc @flags -c $source -o $object
-        if ($LASTEXITCODE -ne 0) { throw 'Flecs compilation failed.' }
-        [System.IO.File]::WriteAllText($stamp,$flagsText)
-    }
-    & g++ -std=c++17 @common -shared -static -static-libgcc -static-libstdc++ '-Wl,--export-all-symbols' `
-      (Join-Path $nativeRoot 'Core/src/flecs_unity.cpp') (Join-Path $nativeRoot 'Core/src/Components.cpp') (Join-Path $nativeRoot 'App/src/Application.cpp') $object `
-      -o (Join-Path $output 'flecs_unity.dll') -lws2_32 -ldbghelp
-    if ($LASTEXITCODE -ne 0) { throw "GCC failed: $LASTEXITCODE" }
+    $build=Join-Path $nativeRoot 'build-mingw'
+    & cmake -S $nativeRoot -B $build -G 'MinGW Makefiles' -DCMAKE_BUILD_TYPE=Release "-DUNITY_PLUGIN_DIR=$([IO.Path]::GetFullPath($output))"
+    if($LASTEXITCODE -ne 0){throw 'MinGW CMake configuration failed.'}
+    & cmake --build $build --parallel 4
+    if($LASTEXITCODE -ne 0){throw 'MinGW native build failed.'}
 } else {
     & (Join-Path $nativeRoot 'Generate-Solution.ps1') -Build -Configuration Release
 }

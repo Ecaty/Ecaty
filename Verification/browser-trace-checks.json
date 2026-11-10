@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "transport": "real HTTP; synthetic trace data; no AI requests",
+  "unity": "6000.6.7f1",
+  "checks": [
+    "paired read-only HTTP viewer; CSP/no-store; wrong/missing key rejected; incremental cursor/session polling",
+    "cross-origin reads and mutations blocked; recent log read works; file traversal rejected",
+    "LAN binding is opt-in and still requires pairing; loopback HTTP checks only, no phone-device claim",
+    "same collector/redaction feeds Editor and browser, paginated without clearing prior user traces"
+  ],
+  "checkedAt": "2026-11-03T09:13:53.6450355+00:00"
+}

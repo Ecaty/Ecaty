@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "checkedAt": "2026-11-06T21:26:06.6316094+00:00",
+  "transport": "real loopback llama.cpp and whisper.cpp; real native Flecs and Unity views",
+  "speechSeconds": 4.5240006,
+  "loadSeconds": 6.2071242999999994,
+  "model": "ecaty-local",
+  "vision": true,
+  "visionSeconds": 5.4817203999999995,
+  "engineSeconds": 17.2996138,
+  "tools": {
+    "query": 2,
+    "apply_script": 1,
+    "observe_world": 1
+  },
+  "replyReceived": true,
+  "checks": [
+    "multilingual Whisper base: official JFK WAV transcribed locally; no microphone opened",
+    "actual JPEG through CPU vision projector",
+    "actual local tool loop: query -> Flecs Script -> Unity color/scale -> native readback; sphere preserved"
+  ]
+}

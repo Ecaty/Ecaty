@@ -1,0 +1,6 @@
+// Startup contains the world chooser anchor and no active world.
+WorldSeed {
+    Position: {0,0.62,0}
+    Primitive: {kind: -1}
+}
+

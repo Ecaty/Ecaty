@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "testedUtc": "2026-11-06T20:04:38.453922+00:00",
+  "unity": "6000.6.7f1",
+  "target": "Windows x64 development player",
+  "bindingCount": 23,
+  "adapterTypesExercised": 21,
+  "reports": {
+    "capability-native-checks.json": true,
+    "capability-unity-checks.json": true,
+    "capability-build-checks.json": true,
+    "capability-player-checks.json": true,
+    "native-checks.json": true,
+    "runtime-engine-native-checks.json": true,
+    "runtime-engine-player-checks.json": true,
+    "player-checks.json": true
+  },
+  "nativeDllSha256": "7d69afb76fd69197842c789844f882b5237abdb016eb46e45a0ec912f0d9b40c",
+  "sourcePipelinesUnchanged": true,
+  "excluded": [
+    "MicroSplat",
+    "The Visual Engine"
+  ],
+  "remaining": [
+    "Configured UniStorm/Crest rendered-scene verification",
+    "Mobile/XR/IL2CPP target builds",
+    "Spatial creation UI and wider plugin feature coverage"
+  ],
+  "pushed": false
+}

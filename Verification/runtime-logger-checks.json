@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "checkedUtc": "2026-11-05T22:05:39.622Z",
+  "checks": [
+    "Viewer source parses",
+    "Independent behavior source and expression edits retain exact text and select Flecs highlighting",
+    "Nested creation data becomes readable JSON",
+    "Existing Script/query inputs remain compatible",
+    "Malformed nested input falls back safely"
+  ],
+  "limits": [
+    "Pure formatter checks, not a new visual browser inspection"
+  ]
+}

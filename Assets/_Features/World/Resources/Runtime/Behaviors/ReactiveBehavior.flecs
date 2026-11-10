@@ -1,0 +1,12 @@
+// Example runtime behavior. The same source can be produced by the chat agent.
+// This is evaluated by Flecs' native reactivity; no C++ breathing algorithm.
+using flecs.script.math
+
+const t = Clock[Clock].time
+const size = 1 + 0.2 * sin(t * 4)
+
+scene {
+    Sphere {
+        Scale: {size, size, size}
+    }
+}

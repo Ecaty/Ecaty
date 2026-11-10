@@ -1,0 +1,26 @@
+{
+  "testedUtc": "2026-11-07T07:34:41.7072467Z",
+  "passed": true,
+  "checks": [
+    "new reflected control type and feedback rule installed during Play lift the real collision motor; actual motor and visual poses match ECS results",
+    "additive pose reaches a real brush after procedural animation and changes generated MudBun geometry",
+    "the same agent observation tool returns advancing actual scene pose frames",
+    "runtime source replacement changes direction and pose frequency; collision readback reports blocked ascent rather than echoing the command",
+    "removing behavior-owned command entities restores additive pose and normal-gravity policy lands the same collider without rebuilding it"
+  ],
+  "hoverHeight": 1.7967335,
+  "meshBounds": {
+    "rest": "(1.09865236, 2.198724, 0.848540664)",
+    "unposed": "(1.09930468, 2.22449017, 0.848520756)",
+    "posed": "(1.60741806, 2.20260978, 0.848520756)"
+  },
+  "ceilingHeight": 2.41011763,
+  "landedHeight": 0.004999876,
+  "landedGrounded": true,
+  "limits": [
+    "Windows Editor; supplied Script through actual tools; no live AI inference",
+    "controlled 3D motion, not aerodynamics; one actor",
+    "no mobile/IL2CPP or full experience persistence test"
+  ],
+  "runtimeErrors": []
+}

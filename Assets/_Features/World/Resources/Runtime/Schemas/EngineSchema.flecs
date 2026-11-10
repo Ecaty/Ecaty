@@ -1,0 +1,16 @@
+struct EngineCapability(category: string, command: string, result: string, notes: string)
+struct EngineBehavior(source: string)
+struct PersistState(components: string)
+struct EngineHealth(sources: i32, models: i32, behaviors: i32, adapterErrors: i32, binaryReads: u64, binaryWrites: u64, cachedQueries: u64)
+struct AdapterFault(message: string)
+EngineTelemetry { EngineHealth: {0,0,0,0,0,0,0} }
+Persistent {}
+BoundCapability {}
+Capabilities {
+    Model { BoundCapability; EngineCapability: {"model", "MudModel root; children with ClayPart id/order, ClayRest and ClayStyle", "live MudBun hierarchy; query reflected types", "Up to 64 nodes per model; explicit parent-local rest transforms. Use PoseOffset for animation."} }
+    Motor { BoundCapability; EngineCapability: {"motion", "Per actor ActorControl, MotorPolicy; independent input/goal/command entities returned by inspect_experience", "ActorMotion actual position, velocity and grounding", "Unity is sole collision solver. Controlled ground/spatial motion; no vehicle dynamics, aerodynamics or pathfinding."} }
+    Pose { BoundCapability; EngineCapability: {"animation", "Behavior-owned PoseOffset command entities linked through (PoseTarget, target)", "PoseObserved actual world/local transforms and applied frame", "Additive after Legs/Leaning/Boing, before MudBun. No collider motion. Remove commands to remove effects."} }
+    Input { BoundCapability; EngineCapability: {"input", "Native on.press/release/click/activate/enter/leave/key_down/key_up; target is resolved by Unity picking", "Async template mut state and ordinary reactive ECS output", "UI consumes pointer input first; only selected actor reads movement devices. Each model can have independent NPC rules."} }
+    Behavior { BoundCapability; EngineCapability: {"logic", "Named managed source modules; runtime templates, inheritance/interfaces, expressions, async/await", "Reflected ECS data and relationships", "No runtime C++ compilation. New native algorithms/plugins need bindings. Template prop changes restart async blocks."} }
+    Persistence { BoundCapability; EngineCapability: {"storage", "save_experience/load_experience; source edits via edit_source and undo_source", "Versioned local experience document", "Saves managed source, model configurations, motor position, input state and selected Persistent/ PersistState components including template mut. Pending awaits restart; no mid-instruction VM snapshot."} }
+}

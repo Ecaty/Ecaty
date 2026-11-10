@@ -15,7 +15,8 @@ $bundled=Join-Path $installation.installationPath 'Common7/IDE/CommonExtensions/
 $cmake=if(Test-Path -LiteralPath $bundled){$bundled}else{(Get-Command cmake -ErrorAction Stop).Source}
 $buildDirectory=Join-Path $PSScriptRoot 'build-vs'
 $arguments=@('-S',$PSScriptRoot,'-B',$buildDirectory,'-G',$generator,'-A','x64',"-DCMAKE_GENERATOR_INSTANCE=$($installation.installationPath)")
-if ($PluginDirectory) { $arguments += "-DUNITY_PLUGIN_DIR=$([IO.Path]::GetFullPath($PluginDirectory))" }
+if (!$PluginDirectory) { $PluginDirectory=Join-Path $PSScriptRoot "../Assets/Plugins/Ecaty/x86_64" }
+$arguments += "-DUNITY_PLUGIN_DIR=$([IO.Path]::GetFullPath($PluginDirectory))"
 & $cmake @arguments
 if ($LASTEXITCODE -ne 0) { throw 'Native solution generation failed. Check the CMake error above.' }
 if ($Build) {

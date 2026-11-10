@@ -1,0 +1,30 @@
+{
+  "driver": "player",
+  "speed": 2,
+  "acceleration": 8,
+  "hips": "hips",
+  "legs": [
+    [
+      "left_hip",
+      "left_knee",
+      "left_foot"
+    ],
+    [
+      "right_hip",
+      "right_knee",
+      "right_foot"
+    ]
+  ],
+  "lean": "torso",
+  "boing": [
+    "ear_base"
+  ],
+  "spawn": [
+    -2,
+    0,
+    0
+  ],
+  "facingYaw": 180,
+  "motion": "ground",
+  "gravityScale": 1
+}

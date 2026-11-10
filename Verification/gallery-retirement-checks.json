@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "retired": [
+    "Assets/_Features/Gallery/Runtime/WorldGalleryInteraction.cs",
+    "Assets/_Features/Gallery/Runtime/WorldGalleryLifecycle.cs",
+    "Assets/_Features/Gallery/Runtime/GalleryWorkbenchPresentation.cs",
+    "Assets/_Features/Gallery/Editor/WorldGalleryVerification.cs",
+    "Assets/_Features/Gallery/Resources/Gallery/Shaders/GallerySurface.shader",
+    "Verification/world_gallery_camera_check.cs",
+    "Verification/world_gallery_controls_check.cs",
+    "Verification/world_gallery_entry_check.cs",
+    "Verification/world_gallery_presentation_check.cs",
+    "Verification/CrystalGalleryChecks.cs",
+    "Verification/crystal_gallery_schema_check.cs"
+  ],
+  "moved": [
+    "Assets/_Features/Gallery/Runtime/GalleryPreviewEntry.cs",
+    "Assets/_Features/Gallery/Resources/Gallery/Examples/GalleryCatalog.flecs"
+  ]
+}

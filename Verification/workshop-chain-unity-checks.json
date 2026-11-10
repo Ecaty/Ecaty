@@ -1,0 +1,6 @@
+{
+  "passed": false,
+  "testedUtc": "2026-11-09T17:25:45.0110448Z",
+  "checks": [],
+  "error": "System.InvalidOperationException: The world chooser opened after a world had already started.\r\n  at Ecaty.Editor.WorkshopChainVerification.Require (System.Boolean condition, System.String message) [0x00009] in A:\\Projects\\Ecaty\\Assets\\_Features\\Creation\\Editor\\WorkshopChainVerification.cs:57 \r\n  at Ecaty.Editor.WorkshopChainVerification.CheckDock (Ecaty.RuntimeExperience experience, Newtonsoft.Json.Linq.JArray checks) [0x003cd] in A:\\Projects\\Ecaty\\Assets\\_Features\\Creation\\Editor\\WorkshopChainVerification.cs:255 \r\n  at Ecaty.Editor.WorkshopChainVerification.Verify () [0x00327] in A:\\Projects\\Ecaty\\Assets\\_Features\\Creation\\Editor\\WorkshopChainVerification.cs:453 "
+}

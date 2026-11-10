@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "checked_at": "2026-11-05T21:37:50.723304+00:00",
+  "flecs": "4.2.0+6879066",
+  "checks": [
+    "Async click loops keep independent mut state and update ordinary reflected components",
+    "Template interfaces compose at runtime; prop changes preserve unaffected child identity",
+    "Default template Parent children remain accessible through ChildOf target lookup used by the snapshot bridge",
+    "Scene-to-source edit preserves author comments and detects unchanged source",
+    "Deleting one template instance leaves another instance event loop functional"
+  ],
+  "limits": [
+    "Isolated Windows x64 native worlds only; not a Unity input integration test",
+    "No AI inference, performance benchmark, mobile/IL2CPP or full-session persistence test"
+  ],
+  "initial_module_availability": {
+    "flecs.script.on.click": true,
+    "flecs.script.shell": true,
+    "flecs.script.math": true
+  }
+}

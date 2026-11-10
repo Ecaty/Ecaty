@@ -182,3 +182,13 @@ InitTestScene*.unity*
 /Packages/com.distantlands.zephyr.meta
 /Packages/com.arongranberg.aline/
 /Packages/com.arongranberg.aline.meta
+/Packages/com.projectdawn.cozy-builder.meta
+/Packages/xyz.staggart-creations.splinemesher-pro.meta
+/Assets/AmplifyShaderEditor/
+/Assets/AmplifyShaderEditor.meta
+
+# Local automated test captures and reports
+/Tests/Results/
+
+/Assets/Plugins/Sirenix/
+/Assets/Plugins/Sirenix.meta

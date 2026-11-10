@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "checks": [
+    "Runtime Script XML creates a native behavior tree; ECS writes and simulation-time waiting execute without C++ regeneration; completed tasks stay completed",
+    "Invalid tree definitions are reported as ECS result data",
+    "Flecs dependency results propagate dirty generations and gate consumers until prerequisites are ready",
+    "Closed filled-area recipes produce polygon footprints as well as open road strokes",
+    "Disabled prerequisites gate dependents; reflected spline changes generate native ECS footprints without Unity",
+    "Native Clipper produces bounded multi-ring footprints and rejects nonfinite input",
+    "Bundled SoundFont and procedural-noise voices render finite PCM; sample-sorted note scheduling permits immediate notes after future note-off commands",
+    "Independent emitters share bank lifetime safely; removing one does not invalidate another"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "fimpossibleBinding": true,
+  "graphics": "Direct3D12",
+  "checks": [
+    "single Flecs and Unity brush tree with live MudBun vertices",
+    "pivot moves visible child brushes and changes generated geometry",
+    "material edits preserve active pose",
+    "invalid sizes name all affected axes, invalid cycle rejected, reparent preserves Unity brush",
+    "fresh session empty, explicit current and legacy import works",
+    "parent-local pivots and flat dye with matching surface bounds",
+    "Gemini JPEG request through synthetic transport"
+  ]
+}

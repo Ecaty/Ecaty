@@ -1,0 +1,55 @@
+{
+  "status": "completed",
+  "duration": 0.46,
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "Ecaty.Tests.NativeGalleryTests.NativeClockDrivesTurns",
+      "Status": "Passed",
+      "Duration": 0.0436147,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "Ecaty.Tests.NativeGalleryTests.NativeEntryGateRequiresBothArmingAndDistance",
+      "Status": "Passed",
+      "Duration": 0.024625,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "Ecaty.Tests.NativeGalleryTests.NativePauseRetainsPhase",
+      "Status": "Passed",
+      "Duration": 0.0165428,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "Ecaty.Tests.NativeGalleryTests.NavigationRoundTripsThroughNativeReflection",
+      "Status": "Passed",
+      "Duration": 0.0194053,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "Ecaty.Tests.NativeGalleryTests.NewReturnEpochReconstructsItsOwnProgress",
+      "Status": "Passed",
+      "Duration": 0.0157255,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "Ecaty.Tests.NativeGalleryTests.ReturnClockAndDesignerInputsRemainReactiveWhilePreviewsPause",
+      "Status": "Passed",
+      "Duration": 0.0219702,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "transport": "synthetic services; real loopback HTTP, Flecs and Unity objects",
+  "unity": "6000.6.7f1",
+  "checks": [
+    "OpenRouter real loopback callback rejects wrong state; PKCE exchange validates key before saving",
+    "OpenRouter chat -> native query -> Script -> Unity color/scale -> Presented -> final chat",
+    "OpenRouter restore/disconnect; 401/429, truncated/non-JSON replies, unknown tools and bad arguments handled; no retry or paid fallback",
+    "OpenRouter refuses paid model IDs",
+    "browser connection cancellation closes listener and does not save credentials",
+    "Gemini key validated using model metadata; native function calls/IDs and opaque signatures replayed; real world round trip",
+    "Gemini restore/disconnect, account/quota errors and incomplete replies; no hidden thought text or signature in chat/trace",
+    "account chooser, masked key form, connect/disconnect, retained independent accounts and cleared cross-provider conversation",
+    "provider credentials, Google key pattern, opaque signatures and thought text excluded from trace"
+  ],
+  "checkedAt": "2026-11-05T21:48:44.2096430+00:00"
+}

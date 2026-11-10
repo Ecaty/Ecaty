@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "flecs": "4.1.6",
+  "flecs": "4.2.0+6879066",
   "checks": [
     "ABI layout, reflected components, managed scene, prefab instantiation",
     "presentation acknowledgement is reflected without changing authoritative color",

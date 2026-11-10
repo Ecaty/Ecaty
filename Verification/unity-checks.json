@@ -1,7 +1,7 @@
 {
     "passed": true,
     "unity": "6000.6.7f1",
-    "flecs": "4.1.6",
+    "flecs": "4.2.0+6879066",
     "checks": [
         "managed Script loaded; prefab excluded; three views created; no greeting text",
         "native system advances rotation; ChildOf hierarchy mapped",

@@ -1,0 +1,50 @@
+using flecs.script.math
+struct GalleryTreeConfig(diameter: f32, worldGap: f32, layerGap: f32, width: f32, opacity: f32, sphereOpacity: f32, rim: f32, frost: f32, rearFade: f32, speed: f32, response: f32, style: i32, feather: f32)
+struct GalleryTreeActivity(rate: f32, draft: bool, sequence: i32, elapsed: f32, started: f32)
+struct GalleryTreeMotion(time: f32)
+struct GalleryLayerIntent(angle: f32, speed: f32, started: f32, glowPhase: f32, glowRate: f32)
+struct GalleryLayerState(turn: f32)
+struct GalleryPlacement(layer: i32, slot: i32)
+struct GalleryDrag(source: string, target: string, active: bool)
+struct GalleryVisibility(covered: f32, opacity: f32, pickable: bool)
+struct GalleryPortal(world: string)
+struct GalleryTreeNavigation(approach: bool, returning: bool, exitArmed: bool, exitIdle: bool, exitAt: f32, boundary: f32, target: string, exitPull: f32, entryDistance: f32, portalReturn: bool, portalAt: f32)
+struct GalleryReturnStyle(seconds: f32, revealSeconds: f32, glassSeconds: f32)
+struct GalleryReturnIntent(active: bool, started: f32, world: string, x: f32, y: f32, z: f32, radius: f32)
+struct GalleryReturnState(epoch: f32, progress: f32, reveal: f32)
+struct GalleryCameraAnchor(active: bool, x: f32, y: f32, z: f32, zoom: f32, minimum: f32, centerY: f32)
+struct GalleryCameraMeasure(zoom: f32)
+struct GalleryRecenterState(weight: f32)
+struct GalleryGlassIntent(started: f32, entering: bool)
+struct GalleryGlassState(epoch: f32, progress: f32)
+struct GallerySavedWorld(source: string, objects: string, selected: string, revision: i32)
+GalleryContentOf {}
+GalleryOnLayer {}
+GalleryTreeSettings {
+    GalleryTreeConfig: {1.65, 0.77, 2.9, 1, 0.5, 0.2, 0.72, 1, 0.98, 0.017, 7, 4, 0.35}
+    GalleryTreeActivity: {1, false, 0, 0, 0}
+    GalleryView: {0, -3.7, 0, 35, 44, 1, 6}
+    GalleryFocus: {"", "", 0, 0, false, false}
+    GalleryTreeNavigation: {false, false, false, false, 0, 30, "", 0, 0, false, 0}
+    GalleryPortal: {""}
+    GalleryReturnStyle: {1.9, 1.55, 0.7}
+    GalleryCameraAnchor: {false, 0, -3.7, 0, 1, 0.9, -3.7}
+    GalleryCameraMeasure: {1}
+    GalleryGlassIntent: {-100, true}
+    GalleryReturnIntent: {false, 0, "", 0, 0, 0, 1}
+    GalleryDrag: {"", "", false}
+}
+GalleryTreeLayer1 { GalleryLayerIntent: {0, 0, 0, 0, 1} }
+GalleryTreeLayer2 { GalleryLayerIntent: {0, 0, 0, 0, 1} }
+GalleryTreeLayer3 { GalleryLayerIntent: {0, 0, 0, 0, 1} }
+GalleryTreeLayer4 { GalleryLayerIntent: {0, 0, 0, 0, 1} }
+GalleryTreeLayer5 { GalleryLayerIntent: {0, 0, 0, 0, 1} }
+GalleryTreeLayer6 { GalleryLayerIntent: {0, 0, 0, 0, 1} }
+
+GalleryTreeReturn { GalleryView: {0, -3.7, 0, 35, 44, 1, 6} }
+
+GalleryEntryPortal { GalleryView: {0, 0, 0, 35, 44, 1, 6} }
+GalleryPortalWorld { GalleryView: {0, 0.5, 0, 0, 23, 5, 6} }
+GalleryExitStart { GalleryView: {0, 0.5, 0, 0, 23, 5, 6} }
+
+GalleryExitGallery { GalleryView: {0, 0, 0, 0, 90, 1, 6} }

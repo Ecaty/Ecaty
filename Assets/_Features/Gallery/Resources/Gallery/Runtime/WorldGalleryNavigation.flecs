@@ -1,0 +1,4 @@
+// Inputs belong to World; this separate managed rule observes external inputs.
+GalleryEntryGate {
+    GalleryEntryRequest: {GallerySettings[GalleryApproach].armed && (GallerySettings[GalleryApproach].measured <= GallerySettings[GalleryApproach].threshold)}
+}

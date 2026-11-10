@@ -1,5 +1,6 @@
 """Real native ABI + REST tests. Standard-library only. Run after Native/Build.ps1."""
 import ctypes as c
+import os
 import json
 import pathlib
 import socket
@@ -11,7 +12,7 @@ import http.client
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-lib = c.CDLL(str(ROOT / "Assets/Plugins/Ecaty/x86_64/flecs_unity.dll"))
+lib = c.CDLL(os.environ.get("ECATY_NATIVE_LIBRARY", str(ROOT / "Assets/Plugins/Ecaty/x86_64/flecs_unity.dll")))
 P = c.c_void_p
 
 class View(c.Structure):
@@ -94,7 +95,7 @@ try:
     assert size() == c.sizeof(View)
     w = create(0)
     assert w, error(None)
-    demo = (ROOT / "Assets/Ecaty/Resources/EcatyWorld.flecs").read_bytes()
+    demo = (ROOT / "Assets/_Tests/Fixtures/Resources/Tests/Fixtures/VerificationWorld.flecs").read_bytes()
     assert managed(w, b"HelloWorld", demo) == 0, error(w)
     a = views(w)
     assert len(a) == 3, len(a)
@@ -114,7 +115,7 @@ try:
     cube_after = next(v for v in views(w) if v.entity == cube.entity)
     assert cube_after.ry > cube.ry + 1
     checks.append("native systems progress and ChildOf hierarchy")
-    assert managed(w, b"Utf8Scope", b'LabelProbe { Position: {0,2,0} Label: {text: "Probe"} }') == 0
+    assert managed(w, b"Utf8Scope", b'LabelProbe { Position: {0,2,0}; Label: {text: "Probe"} }') == 0
     greeting = next(v for v in views(w) if v.has_label)
     assert text_value(label(w, greeting.entity)) == "Probe"
     run(w, 'LabelProbe { Label: {text: "CrÃ¨me ðŸ¦€"} }')
@@ -146,10 +147,10 @@ SecondText : TextStyle { Position: {8,0,0} }
         destroy(other)
     assert tick(w, 0.25) == 0
     checks.append("simultaneous C++ worlds progress independently and survive peer teardown")
-    run(w, "scene.Cube { Position: {3, 1, 0} Color: {1, 0, 0, 1} }")
+    run(w, "scene { Cube { Position: {3, 1, 0}; Color: {1, 0, 0, 1} } }")
     cube_after = next(v for v in views(w) if v.entity == cube.entity)
     assert cube_after.px == 3 and cube_after.py == 1 and cube_after.g == 0
-    run(w, "struct Temperature {\n value = f32\n}\nscene.Cube { Temperature: {42} }\n")
+    run(w, "struct Temperature(value: f32)\nscene { Cube { Temperature: {42} } }\n")
     assert "Temperature" in json.dumps(value(entity(w, b"scene.Cube")))
     assert "Cube" in json.dumps(value(query(w, b"Position, Primitive")))
     run(w, "using flecs.script.math\nMathCheck { Position: {sqrt(9), 0, 0} }")
@@ -159,7 +160,7 @@ SecondText : TextStyle { Position: {8,0,0} }
     assert managed(w,b"MathScope",b"")==0
     # MathCheck is intentionally a persistent extra transform for the remaining checks.
     checks.append("runtime Script edits, runtime types, query/entity JSON")
-    assert managed(w,b"Transient",b"Temporary { Position: {0,0,0} Primitive: {0} }")==0
+    assert managed(w,b"Transient",b"Temporary { Position: {0,0,0}; Primitive: {0} }")==0
     assert len(views(w)) == 5
     assert managed(w,b"Transient",b"")==0
     assert len(views(w)) == 4
@@ -176,9 +177,9 @@ SecondText : TextStyle { Position: {8,0,0} }
     request(w,port,"script/HelloWorld", "OPTIONS")
     request(w,port,"query?expr="+urllib.parse.quote("Position, Primitive"))
     request(w,port,"entity/RemoteScene", "PUT")
-    request(w,port,"script/RemoteScene", "PUT", "RemoteCube { Position: {4,0,0} Primitive: {0} Color: {0,1,0,1} }")
+    request(w,port,"script/RemoteScene", "PUT", "RemoteCube { Position: {4,0,0}; Primitive: {0}; Color: {0,1,0,1} }")
     assert any(v.px == 4 and v.g == 1 for v in views(w))
-    request(w,port,"script/RemoteScene", "PUT", "RemoteCube { Position: {-4,0,0} Primitive: {1} }")
+    request(w,port,"script/RemoteScene", "PUT", "RemoteCube { Position: {-4,0,0}; Primitive: {1} }")
     assert any(v.px == -4 and v.primitive == 1 for v in views(w))
     request(w,port,"script/RemoteScene", "PUT", "")
     assert len(views(w)) == 3

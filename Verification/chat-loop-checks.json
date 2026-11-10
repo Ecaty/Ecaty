@@ -3,11 +3,13 @@
   "transport": "synthetic OAuth/Responses; real native Flecs and Unity objects",
   "checks": [
     "Windows DPAPI encrypt/decrypt round trip, no account credentials used",
-    "loopback callback, dynamic client registration, state/PKCE and signed RS256 identity validation",
+    "legacy unverified workspace client ignored; fresh dynamic registration, loopback, PKCE and signed identity",
     "mismatched identity audience and nonce rejected",
     "background agent work marshalled to the Unity/world-owning thread",
     "chat -> real query -> generated Script -> Unity transform/material -> Flecs Presented -> chat",
     "developer trace grouped by request with collapsed tool results, inputs and copy controls",
+    "paperclip and remove states, cancelled picker and draft preservation; photo input encoded; final-only reply read; empty and unapplied replies preserve attachment; completed edit clears it",
+    "finished tool recovered from stream with sparse terminal output, applied once, and withheld after interrupted stream",
     "rotating refresh saved; early EOF and usage error after deltas rejected; local disconnect",
     "auth exchanges excluded from traces; bearer/JWT redaction verified"
   ]

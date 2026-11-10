@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a708af6294c833d4eadf23b6a2532f88, type: 3}
+  m_Name: Adapters
+  m_EditorClassIdentifier: Runtime.Capabilities::Ecaty.Flecs.Capabilities.CapabilityAssets
+  Entries:
+  - Key: default
+    Asset: {fileID: 2100000, guid: 522176da3c8e32f429eac54b0aece5ad, type: 2}
+  - Key: particles
+    Asset: {fileID: 8926484042661614526, guid: e89c4691f3413f044ac69cac03dedf3f, type: 3}
+  - Key: burst
+    Asset: {fileID: 1827154720934784706, guid: 9980236ddc41d1f4f8ab16d21f1bc260, type: 3}
+  - Key: building
+    Asset: {fileID: 8972719545986208416, guid: c165f9331a8efc44cb15a48611d38f79, type: 3}
+  - Key: tree
+    Asset: {fileID: 11400000, guid: 24aa9a662a32e419192927c539948259, type: 2}
+  - Key: chime
+    Asset: {fileID: 8300000, guid: 92bd293a3dbddcc4c8145cd4c4d24ddb, type: 3}

@@ -1,0 +1,330 @@
+{
+  "version": 4,
+  "parts": [
+    {
+      "id": "hips",
+      "parent": null,
+      "shape": "pivot",
+      "localPosition": [
+        0,
+        0.65,
+        0
+      ]
+    },
+    {
+      "id": "torso",
+      "parent": "hips",
+      "shape": "pivot",
+      "localPosition": [
+        0,
+        0.15,
+        0
+      ]
+    },
+    {
+      "id": "body",
+      "parent": "torso",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        0,
+        0
+      ],
+      "localRotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        1.1,
+        0.7,
+        0.8
+      ],
+      "color": [
+        0.2,
+        0.65,
+        0.8
+      ]
+    },
+    {
+      "id": "head",
+      "parent": "torso",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        0.35,
+        -0.15
+      ],
+      "localRotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        0.65,
+        0.55,
+        0.6
+      ],
+      "color": [
+        0.35,
+        0.8,
+        0.85
+      ]
+    },
+    {
+      "id": "ear_base",
+      "parent": "torso",
+      "shape": "pivot",
+      "localPosition": [
+        0,
+        0.55,
+        0
+      ]
+    },
+    {
+      "id": "ear_tip",
+      "parent": "ear_base",
+      "shape": "pivot",
+      "localPosition": [
+        0,
+        0.4,
+        0
+      ]
+    },
+    {
+      "id": "ear_brush",
+      "parent": "ear_tip",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        0,
+        0
+      ],
+      "localRotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        0.2,
+        0.55,
+        0.2
+      ],
+      "color": [
+        0.85,
+        0.5,
+        0.3
+      ]
+    },
+    {
+      "id": "left_hip",
+      "parent": "hips",
+      "shape": "pivot",
+      "localPosition": [
+        -0.4,
+        -0.12,
+        0
+      ]
+    },
+    {
+      "id": "left_thigh",
+      "parent": "left_hip",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        -0.13,
+        0.06
+      ],
+      "localRotation": [
+        20,
+        0,
+        0
+      ],
+      "size": [
+        0.22,
+        0.4,
+        0.24
+      ],
+      "color": [
+        0.3,
+        0.7,
+        0.8
+      ]
+    },
+    {
+      "id": "left_knee",
+      "parent": "left_hip",
+      "shape": "pivot",
+      "localPosition": [
+        0,
+        -0.27,
+        0.14
+      ]
+    },
+    {
+      "id": "left_shin",
+      "parent": "left_knee",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        -0.13,
+        -0.05
+      ],
+      "localRotation": [
+        -20,
+        0,
+        0
+      ],
+      "size": [
+        0.18,
+        0.4,
+        0.22
+      ],
+      "color": [
+        0.3,
+        0.7,
+        0.8
+      ]
+    },
+    {
+      "id": "left_foot",
+      "parent": "left_knee",
+      "shape": "pivot",
+      "localPosition": [
+        0,
+        -0.27,
+        -0.14
+      ]
+    },
+    {
+      "id": "left_paw",
+      "parent": "left_foot",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        -0.02,
+        -0.08
+      ],
+      "localRotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        0.3,
+        0.2,
+        0.45
+      ],
+      "color": [
+        0.2,
+        0.4,
+        0.5
+      ]
+    },
+    {
+      "id": "right_hip",
+      "parent": "hips",
+      "shape": "pivot",
+      "localPosition": [
+        0.4,
+        -0.12,
+        0
+      ]
+    },
+    {
+      "id": "right_thigh",
+      "parent": "right_hip",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        -0.13,
+        0.06
+      ],
+      "localRotation": [
+        20,
+        0,
+        0
+      ],
+      "size": [
+        0.22,
+        0.4,
+        0.24
+      ],
+      "color": [
+        0.3,
+        0.7,
+        0.8
+      ]
+    },
+    {
+      "id": "right_knee",
+      "parent": "right_hip",
+      "shape": "pivot",
+      "localPosition": [
+        0,
+        -0.27,
+        0.14
+      ]
+    },
+    {
+      "id": "right_shin",
+      "parent": "right_knee",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        -0.13,
+        -0.05
+      ],
+      "localRotation": [
+        -20,
+        0,
+        0
+      ],
+      "size": [
+        0.18,
+        0.4,
+        0.22
+      ],
+      "color": [
+        0.3,
+        0.7,
+        0.8
+      ]
+    },
+    {
+      "id": "right_foot",
+      "parent": "right_knee",
+      "shape": "pivot",
+      "localPosition": [
+        0,
+        -0.27,
+        -0.14
+      ]
+    },
+    {
+      "id": "right_paw",
+      "parent": "right_foot",
+      "shape": "ellipsoid",
+      "localPosition": [
+        0,
+        -0.02,
+        -0.08
+      ],
+      "localRotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        0.3,
+        0.2,
+        0.45
+      ],
+      "color": [
+        0.2,
+        0.4,
+        0.5
+      ]
+    }
+  ]
+}

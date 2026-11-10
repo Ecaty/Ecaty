@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "testedUtc": "2026-11-05T22:06:11.1600628Z",
+  "target": "StandaloneWindows64",
+  "development": true,
+  "result": "Succeeded",
+  "errors": 0,
+  "warnings": 37,
+  "seconds": 19.208420399999998,
+  "bytes": 194237094
+}

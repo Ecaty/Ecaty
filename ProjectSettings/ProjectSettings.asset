@@ -150,7 +150,8 @@ PlayerSettings:
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
   bundleVersion: 0.1.0
-  preloadedAssets: []
+  preloadedAssets:
+  - {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   metroInputSource: 0
   wsaTransparentSwapchain: 0
   xboxOneDisableKinectGpuReservation: 1
@@ -834,7 +835,8 @@ PlayerSettings:
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
   webProgressiveAssetLoading: 0
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Standalone: CREST_OCEAN;ECATY_CAP_ALINE;ECATY_CAP_BROCCOLI;ECATY_CAP_COZY;ECATY_CAP_CREST;ECATY_CAP_FEEL;ECATY_CAP_FLEXALON;ECATY_CAP_SPLINES;ECATY_CAP_UNISTORM;MOREMOUNTAINS_NICEVIBRATIONS_INSTALLED;MUDBUN;MUDBUN_BURST;MUDBUN_URP;UNISTORM_PRESENT;EYES_LOOKANIMATOR_IMPORTED;FIMPOSSIBLE_JOBSANDBURST_READY;ZEPHYR;AMPLIFY_SHADER_EDITOR;ODIN_INSPECTOR;ODIN_INSPECTOR_3;ODIN_INSPECTOR_3_1;ODIN_INSPECTOR_3_2;ODIN_INSPECTOR_3_3;ODIN_VALIDATOR;ODIN_VALIDATOR_3_1;ODIN_VALIDATOR_3_2;ODIN_VALIDATOR_3_3
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:

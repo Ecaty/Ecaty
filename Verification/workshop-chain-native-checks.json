@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "checks": [
+    "Wrong target is ignored. An out-of-range bell still makes a sound command without luring the bunny.",
+    "Live placement edit and tap drive a live goal. Measured movement releases the plate, raises the gate, and redirects the duck.",
+    "Runtime BehaviorTree.CPP XML reads the gate-open tag and changes a different entity; the tree fails when the gate closes.",
+    "Reinstalled runtime links accept a different source entity and no longer accept the previous one."
+  ],
+  "limits": [
+    "Native ABI fixture with injected ActorMotion; Unity presentation and motor require the Editor scenario."
+  ]
+}

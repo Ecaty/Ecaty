@@ -1,0 +1,10 @@
+{
+  "maximumEntryViewportError": 2.91363849E-05,
+  "passed": true,
+  "checks": [
+    "Inverted rim rotation, middle drag anywhere, bounded two-axis right tilt and no right-button zoom",
+    "Click/pull drawer, unchanged camera, full-size front-only previews, expanding geometry/carousel, independent adaptive tabletop",
+    "Rotated/tilted miniature orientation, scale and orthographic framing match at entry; projection persists; left drag does not orbit"
+  ],
+  "timestampUtc": "2026-11-08T16:09:19.9203958Z"
+}

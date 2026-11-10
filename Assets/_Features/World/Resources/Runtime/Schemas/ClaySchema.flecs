@@ -1,0 +1,4 @@
+struct ClayRest(px: f32, py: f32, pz: f32, rx: f32, ry: f32, rz: f32, sx: f32, sy: f32, sz: f32)
+struct ClayStyle(kind: i32, r: f32, g: f32, b: f32, metallic: f32, smoothness: f32, glow: f32, dye: bool, blend: f32)
+struct ClayPart(id: string, order: i32)
+MudModel {}

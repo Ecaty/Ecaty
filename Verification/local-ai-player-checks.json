@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "checkedAt": "2026-11-06T20:53:26.4727120+00:00",
+  "platform": "WindowsPlayer",
+  "seconds": 9.5380323,
+  "model": "ecaty-local",
+  "replyReceived": true,
+  "checks": [
+    "Windows player starts local model",
+    "real engine tool loop updates ground rendering and native readback",
+    "no cloud service used"
+  ]
+}

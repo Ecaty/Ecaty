@@ -1,0 +1,16 @@
+{
+    "passed": true,
+    "flecs": "4.2.0+6879066",
+    "error": "",
+    "checks": [
+        "apply_behavior tool -> native reactive Script -> actual Unity transform -> Presented readback",
+        "observe_over_time samples actual changing presentation across advancing native frames",
+        "Different Script algorithm hot-reloads while preserving the entity and Unity view",
+        "UTF-8 behavior source restores into a new native session without regeneration"
+    ],
+    "limits": [
+        "Isolated real Unity objects; no live AI service call",
+        "No phone or IL2CPP verification",
+        "Behavior source reload only; full session saving is not implemented"
+    ]
+}

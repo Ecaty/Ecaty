@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "zoomBefore": 3.64999962,
+  "zoomAfter": 3.2372613,
+  "anchorPixelError": 0.000164342186,
+  "maximumAnchorPixelErrorDuringMotion": 0.000335693359,
+  "easedWithoutInstantJumpOrOvershoot": true,
+  "selectionRetained": true
+}
