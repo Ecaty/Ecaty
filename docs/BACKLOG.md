@@ -18,3 +18,12 @@ Retained ideas, not immediate implementation:
 - Future filmmaking/timelines, sharing, glTF export, cloud previews and 3D printing; no delivery/platform rights implied.
 - AI/advanced authoring composes supported definitions and rules; casual players compose recognizable capabilities. Games and interactive experiences in scope, with versioned patches and future permission-aware multiplayer.
 - Known separate vendor issue: unused Cavity Lit/URP shader incompatibility (no vendor patch applied).
+
+## Decisions
+
+- 2026-11-11: Product docs (PRODUCT-DIRECTION, RUNTIME-PLUGINS, UNITY-CAPABILITY-ROADMAP): trim to current content; archive the rest in docs/history/, do not delete.
+- 2026-11-11: Retire the old AgentBehavior compatibility path and the -workshopLegacy start option.
+- 2026-11-11: Rename existing identifiers (Ecaty.* namespaces, com.ecaty.* packages, ECATY_CAP_* defines, menu paths) later, once the product name is settled; add no new ones.
+- 2026-11-11: Next cheap mockup after creation tools: decide later.
+- 2026-11-11: Overnight agent work allowed (keep-awake approved).
+- 2026-11-11: Test phone: open (user asked for options cheaper than Pixel 9a); iOS/ARKit target not yet decided.
