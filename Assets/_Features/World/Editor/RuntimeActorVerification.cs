@@ -129,7 +129,10 @@ namespace Ecaty.Editor
                     await Frames(1);
                 Require(launcher != null && launcher.resolvedStyle.width >= 80 &&
                     System.Linq.Enumerable.Any(launcher.resolvedStyle.backdropFilter),
-                    "The glass settings launcher style did not resolve.");
+                    "The glass settings launcher style did not resolve: found=" + (launcher != null) +
+                    " width=" + launcher?.resolvedStyle.width + " backdropFilters=" +
+                    (launcher == null ? 0 : System.Linq.Enumerable.Count(launcher.resolvedStyle.backdropFilter)) +
+                    " classes=" + (launcher == null ? "" : string.Join(" ", launcher.GetClasses())));
                 Require(ui.Q<Button>("chatLauncher") == null && ui.Q<TextField>("messageInput") == null,
                     "A standalone chat is still exposed.");
                 chat.Controller.ShowAccounts();
