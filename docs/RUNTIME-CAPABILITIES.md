@@ -1,18 +1,17 @@
 # Runtime capabilities
 
-**Short workflow:** input or AI -> source-backed Flecs Script -> ECS configuration/commands -> disposable adapters -> native algorithms or Unity/plugins -> measured ECS results. No AI is needed per frame. Reopen an experience by rebuilding from saved sources and selected state.
+**Flow:** input or AI -> source-backed Flecs Script -> capability configuration on a binding entity -> disposable Unity/plugin adapter -> measured ECS results. No AI runs per frame. Saved worlds rebuild from sources, configurations and selected state.
 
 ## Try it
 
-1. Open Ecaty with Unity 6000.6.7f1. Let imports finish.
-2. Run **Runtime > Runtime engine > Prepare capability assets** once (also after importing a missing plugin).
-3. Run **Runtime > Runtime engine > Start capability workshop**. Normal Play startup opens the gallery; this menu selects the separate capability fixture.
-4. In Flecs Explorer query `CapBinding`, `CapState`, `CapType`, `CapAsset` or `NativeTreeNode`. Change a binding configuration during Play. `CapState` reports applied generation or failure.
-5. **Verify capabilities** runs the automated workshop/reconstruction check. Other existing runtime-engine menus test generated MudBun actors.
+1. Open the project with Unity 6000.6.7f1 and let imports finish.
+2. **Runtime > Runtime engine > Prepare capability assets** once (again after importing a plugin).
+3. **Runtime > Runtime engine > Start capability workshop**, then query `CapBinding`, `CapState`, `CapType`, `CapAsset` or `NativeTreeNode` in Flecs Explorer. Edit a configuration in Play; `CapState` reports the applied generation or the failure.
+4. **Verify capabilities** runs the workshop/reconstruction check. `Tests/Run-All.cmd` runs the generic contract and lifecycle tests.
 
-## Common contract
+## Contract
 
-Each capability has **its own entity** with `CapBinding { target, enabled, revision }` and one configuration component. Several capability entities can share a target. `(CapDependsOn, prerequisiteBinding)` gates application and regenerates consumers when prerequisite results change. Use dependency relations explicitly; there is no automatic understanding of every spatial relationship.
+Each capability has **its own entity** with `CapBinding { target, enabled, revision }` and one configuration component. Several bindings can share a target. `(CapDependsOn, prerequisite)` gates application and regenerates consumers when the prerequisite's result changes.
 
 ```flecs
 RoadObject { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1} }
@@ -22,53 +21,75 @@ RoadShape {
 }
 ```
 
-The registered adapter creates its owned instance, reapplies changed configuration and removes it when disabled, removed or retargeted. Failure is `CapState.phase = -1`; waiting/disabled is 0, applied is 1. Revision can force reapplication. `CapDirty` is acknowledged after successful application. Generic binding reconciliation is limited to 256 instances and runs at 20 Hz; physics and animation have their own frame stages. This is a first synchronous generation scheduler, not a general background job/transaction system.
+`CapState.phase`: 1 applied, 0 waiting/disabled, -1 failed. A revision change forces reapplication. Reconciliation runs at 20 Hz for up to 256 bindings; physics and animation tick in their own frame stages.
 
-**Ownership:** a root uses authored placement, the existing CharacterController motor, a dynamic body, or a layout owner. Competing owners are rejected. Physics/animation produce observations instead of two solvers fighting over a transform. Material bindings lease appearance separately. Runtime rig constraints must target chains not already owned by a different IK solver.
+**Failure recovery:** a failed configuration reports -1 and, if an earlier configuration succeeded, a fresh instance is rebuilt from that last valid configuration. A failed configuration is retried when it changes or a prerequisite's result changes, not every frame. A tick exception disposes the instance until the next edit or dependency change. Consumers keep their last valid output while a prerequisite regenerates or fails.
+
+**Ownership:** one transform owner per root (authored placement, CharacterController motor, dynamic body or layout). Competing owners are rejected. Material bindings lease appearance separately. Runtime IK must not target a chain owned by another solver.
+
+## Adding a capability (two places)
+
+One file holds the configuration and the adapter:
+
+```csharp
+[Capability("CapLight", "lighting", 40)]                 // component, category, order
+public sealed class LightConfig                            // public fields = Flecs members, in order
+{
+    public int kind;
+    public float intensity = 1, range = 10, colorR = 1, colorG = 1, colorB = 1;   // initializers = defaults
+}
+public sealed class LightCapability : CapabilityInstance<LightConfig>
+{
+    public LightCapability(CapabilityContext c) : base(c) { ... }
+    protected override void Apply(LightConfig c) { ... }
+}
+```
+
+- Field types: `float` f32, `int` i32, `bool`, `ulong` u64, `string`; `[EntityField] string` is an entity (resolve with `Context.ResolveEntity` / `Context.Resolve`), `[AssetKey] string` is a key in the capability asset catalog. Non-finite floats are rejected before `Apply`.
+- `CapabilityCatalog` discovers configurations and adapters; `CapabilityRuntime.RegisterDiscovered()` registers them and the schema module is generated from them. Shared contracts (CapBinding, CapState, results, NativeTreeNode) stay in `Resources/CapabilitySchema.flecs`.
+- **Optional plugins:** put the configuration outside the plugin `#if` and add `Gate = "SYMBOL", Probe = "path/that/exists/when/installed"`; put the adapter inside `#if SYMBOL`. `CapabilityPluginDiscovery` sets the symbol from the probe. The schema exists whether or not the plugin is installed, so saves stay loadable.
+- **Saves:** member names, types and order are a saved contract. A restored session keeps its saved schema source; configurations it lacks are added as `CapabilitySchemaAdditions.<Component>`. Append new members; do not rename or reorder.
+- Keep product rules out of adapters. Behavior and recipes belong in runtime source-backed ECS definitions. `Assets/_Adapters/link.xml` preserves reflected adapters in stripped players.
 
 ## Implemented surfaces
 
 | Area | Configuration -> execution |
 |---|---|
-| Existing generated models | MudModel/ClayPart/rest/style -> live MudBun hierarchy; existing actor/pose/FImpossible/Boing adapters |
-| Physics/manipulation | CapBody, CapForce, CapDrag, CapHandle -> sole PhysX body or existing motor; CapReadback returns measured pose, velocity and contacts |
-| Shapes/world | CapSpline -> Spline Mesher curve or closed-area fill; CapBuilding -> registered Cozy kit; CapVegetation -> registered Broccoli pipeline |
-| Ground/dependencies | CapTerrain -> bounded heightfield mesh/collider rebuilt from base plus one spline modifier; CapDependsOn -> downstream rebuild; native NativeFootprint contains Clipper open/closed stroke or filled-area rings |
-| Navigation | CapNavSurface -> Unity runtime NavMesh; CapNavigation -> CapPath direction and optionally an existing motor's MoveIntent (it does not move a body itself) |
-| Appearance/effects | CapMaterial, CapParticles, CapLight; CapVfx -> precompiled registered VFX Graph asset with optional exposed Rate and event |
-| World appearance | CapPostProcessing -> runtime URP Volume for grading, exposure, white balance, bloom, vignette and tonemapping. Look presets use source-backed Flecs Script and save/rebuild. |
-| Animation/camera | CapRig -> runtime TwoBoneIK chain/goal; CapCamera -> Cinemachine follow camera; CapTimeline -> runtime Playables/Timeline audio track |
-| Audio | CapAudio/CapAudioNote -> native SoundFont or simple sine/noise voices, streamed to Unity AudioSource/filter/spatializer; CapAudioMeter reports callback output |
-| Feedback/music | CapFeedback -> registered Feel feedback palette; CapSequence -> runtime Feel quantized sound sequencer using catalog clips |
-| Spatial layouts | CapLayout -> Flexalon circle layout with child pose ownership. The seed controls also use a camera-facing Flexalon circle as presentation |
-| Water | CapWater -> simple level/density plane; CapBuoyancy -> forces on a bound PhysX body |
-| Weather/ocean | CapWeather -> UniStorm system; CapOcean -> registered configured Crest prefab. Initial bindings exist; these require separate rendered configuration/verification |
-| Native behavior | NativeTree -> BehaviorTree.CPP XML instantiated/replaced during play, with builtin control flow and FlecsSet/FlecsQuery/SimWait nodes |
+| Generated models | MudModel/ClayPart/rest/style -> MudBun hierarchy; actor/pose/FImpossible/Boing adapters |
+| Physics | CapBody, CapForce, CapDrag, CapHandle -> sole PhysX body or existing motor; CapReadback pose/velocity/contacts |
+| Shapes/world | CapSpline (Spline Mesher curve or fill), CapBuilding (Cozy kit), CapVegetation (Broccoli pipeline) |
+| Ground | CapTerrain heightfield mesh/collider from base plus one spline modifier; NativeFootprint from Clipper |
+| Navigation | CapNavSurface runtime NavMesh; CapNavigation -> CapPath and optional motor MoveIntent |
+| Appearance | CapMaterial, CapParticles, CapLight, CapVfx (registered VFX Graph), CapPostProcessing (URP Volume) |
+| Animation/camera | CapRig TwoBoneIK, CapCamera Cinemachine follow, CapTimeline audio track |
+| Audio | CapAudio/CapAudioNote native SoundFont or sine/noise voices; CapAudioMeter; CapFeedback/CapSequence via Feel |
+| Layout, water | CapLayout Flexalon circle; CapWater level/density; CapBuoyancy forces |
+| Weather/ocean | CapWeather UniStorm; CapOcean registered Crest prefab (one global renderer each; rendering not fully verified) |
+| Native behavior | NativeTree BehaviorTree.CPP v4 XML with FlecsSet/FlecsQuery/SimWait leaves; NativeTreeResult status |
 
-These expose selected runtime operations, not every plugin Inspector feature. New underlying algorithms still require development. Flecs Script remains the primary reactive/event behavior layer; a behavior tree is an optional task orchestration component in that same ECS world, not a replacement ECS.
+These expose selected runtime operations, not every plugin Inspector field. New algorithms still need compiled code. Flecs Script stays the primary reactive layer; a behavior tree is optional task orchestration in the same world. NativeTree XML is bounded to 256 KiB with filesystem includes disabled; literal `{` and `$` in Script strings need escaping.
 
-## Native-only behavior and sound
+## Persistence
 
-`NativeTree.xml` contains a BehaviorTree.CPP v4 `<root BTCPP_format="4">` document. `FlecsSet(entity, component, value)` writes reflected JSON, `FlecsQuery(expression)` tests a world query, `SimWait(seconds)` waits simulation time. Sequence/parallel/fallback/retry/decorator composition is supplied by the library. Query `NativeTreeNode` for our leaf-node ports. XML definitions are self-contained and bounded to 256 KiB; filesystem includes are disabled. Trees halt on removal/disable/replacement; completed non-looping trees remain finished. Change revision to restart. Results are ordinary reflected `NativeTreeResult` data (status 0 idle, 1 running, 2 success, 3 failure, -1 engine error). Literal `{` and `$` inside Flecs Script strings require escaping. Do not treat runtime XML as new compiled C++.
+`CapabilityGraph.Capture(session, runtime, scope, sourcePrefix)` serializes every CapBinding/NativeTree entity under a scope: registered configurations, `CapDependsOn` targets, selected adapter state (e.g. body pose/velocity) and managed sources owned by a prefix. `Restore` validates first, installs owned sources, recreates entities that no source defines (prerequisites first, in one generated module), writes configurations and queues adapter state for the first successful apply. Dropped prerequisites/cycles are reported, not thrown.
 
-TinySoundFont and GeneralUser GS are bundled with provenance/license. Native renderers share immutable bank samples and own independent bounded voice/command state. The audio callback never queries/mutates live Flecs. Unity handles playback/spatialization/filtering; Feel uses registered clips. Synthesis is instruments and simple procedural primitives, not arbitrary realistic sound generation.
+- **Experience save** (RuntimeExperience): all sources as before plus `capabilityGraph`; older saves without it load unchanged.
+- **Gallery saved world:** `GallerySavedWorld.graph` holds the graph for `<id>Content` and owned sources `GalleryWorld_<id>.*`. Activation rebuilds it, unloading removes it. Bindings must live under the world's private root to belong to that world.
+- Reload builds fresh plugin instances. Contacts, plugin internals, playing audio and pending tree/Script waits are not checkpointed; tasks restart. Asset keys must resolve to the same installed/bundled assets.
 
-## Persistence and portability
+## Verification
 
-Experience capture retains managed sources, live capability configurations, NativeTree definitions and selected adapter state (initially body pose/velocity). Reload builds a fresh native world and fresh plugin instances. Physics contacts, arbitrary plugin internals, playing audio and pending tree/Script waits are not exact checkpoints; tasks restart. Asset keys must resolve to the same installed/bundled assets.
+- EditMode `CapabilityContractTests`: generated schema equals the previously shipped schema for all 24 configurations; every configuration round-trips through Flecs; defaults/finite checks; scoped graph capture -> restore in a fresh native world (entities, dependency pairs, configurations); invalid documents rejected.
+- PlayMode `CapabilityLifecycleTests`: every compiled adapter with default configuration applies or reports failure, and a second create/apply/remove cycle leaves no new objects.
+- Workshop/player checks: `CapabilityVerification` menu and `CapabilitySmoke` (real physics, IK, navigation, meshes, audio callbacks, save/reload).
 
-Windows x64 Editor and development-player capability/reconstruction checks pass. The existing two-model MudBun/FImpossible/Boing and 80-frame UI/native player regressions pass too. The latest build has zero errors and 35 warnings. Windows x64 is the current target. Android/iOS/XR need native builds, asset-path/audio changes where needed and device testing. No mobile/WebGL claim is made. UniStorm/Crest currently enforce one global renderer. VFX assets/shaders are compiled at build time; this does not compile new shader graphs on a phone.
+Windows x64 Editor/development player is the current target; Android/iOS/XR need native builds and device testing. UniStorm/Crest enforce one global renderer. VFX shaders compile at build time.
 
-## Code map and extension
+## Code map
 
-- Native/Core/src/RuntimeCapabilities.cpp: dependency coordination, trees, footprints, synthesizer and geometry ABI.
-- Packages/com.runtime.capabilities/Runtime/Capabilities: reusable lifecycle/schema, native wrappers and Unity adapters.
-- Assets/_Adapters/Runtime/Vendor: independently gated optional plugin adapters. Their source compiles in Assembly-CSharp because several licensed plugins use that assembly. Copy only required adapters plus registry into a future product; optional symbols are discovered by CapabilityPluginDiscovery.
-- Assets/_Adapters/Editor/CapabilitySetup.cs: original starter assets/catalog; it preserves existing registered keys.
-- Verification/capability_native_smoke.py and CapabilityVerification menu: native and real Unity checks.
+- `Native/Core/src/RuntimeCapabilities.cpp`: dependency readiness/dirty propagation, trees, footprints, synthesizer, geometry ABI.
+- `Packages/com.runtime.capabilities/Runtime/Capabilities`: runtime lifecycle (CapabilityRuntime), typed contracts (CapabilityCatalog), persistence (CapabilityGraph), built-in adapters.
+- `Assets/_Adapters/Runtime/Vendor`: gated optional plugin adapters (Assembly-CSharp because licensed plugins live there). `Assets/_Adapters/Editor`: plugin discovery, asset setup, workshop verification. `Assets/_Adapters/Tests`: generic tests.
+- The host supplies audio bank bytes via `CapabilityRuntime.AudioBankProvider`; the asset catalog is referenced by RuntimeComposition (`Assets/_Adapters/Adapters.asset`).
 
-To extend: define a small reflected configuration/command/result contract; implement one ICapabilityAdapter and disposable CapabilityInstance; register it with metadata; declare dependencies and pose/appearance ownership; add selected state capture only if necessary. Do not put product rules inside adapters. Behavior and recipes belong in runtime source-backed ECS definitions.
-
-MicroSplat and TVE are excluded. No Jolt, separate Detour, FastNoise, STK or meshoptimizer was added. MudBun baking, road texture/vegetation exclusion masks, general multi-modifier terrain, full spatial UX and multiplayer remain separate work.
-
-The host supplies audio-bank bytes through CapabilityRuntime.AudioBankProvider. Runtime.Capabilities depends on the bridge, not on application code/assets. Capability verification selects its own startup flag and must not enable WorkshopChainVerification (which launches a different self-test). Capability assets are referenced by RuntimeComposition (Assets/_Adapters/Adapters.asset).
+MicroSplat and TVE are excluded. No Jolt, Detour, FastNoise, STK or meshoptimizer. MudBun baking, road texture/vegetation masks, multi-modifier terrain and multiplayer remain separate work.
