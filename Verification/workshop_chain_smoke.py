@@ -6,7 +6,7 @@ import sys
 
 ROOT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 FIXTURES = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "Assets/_Features/Creation/Resources/Workshop/Examples/AssemblyChain"
-lib = c.CDLL(str(ROOT / "Assets/Plugins/Ecaty/x86_64/flecs_unity.dll"))
+lib = c.CDLL(str(ROOT / "Assets/Plugins/Flecs/x86_64/flecs_unity.dll"))
 P, S, I, U, F = c.c_void_p, c.c_char_p, c.c_int, c.c_uint64, c.c_float
 
 

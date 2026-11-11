@@ -10,7 +10,7 @@ import time
 import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
-DLL = Path(os.environ.get('ECATY_NATIVE_LIBRARY', ROOT/'Assets/Plugins/Ecaty/x86_64/flecs_unity.dll'))
+DLL = Path(os.environ.get('ECATY_NATIVE_LIBRARY', ROOT/'Assets/Plugins/Flecs/x86_64/flecs_unity.dll'))
 lib = c.CDLL(str(DLL))
 P = c.c_void_p
 def bind(name, result, *args):

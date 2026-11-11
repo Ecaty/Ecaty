@@ -12,7 +12,7 @@ import http.client
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-lib = c.CDLL(os.environ.get("ECATY_NATIVE_LIBRARY", str(ROOT / "Assets/Plugins/Ecaty/x86_64/flecs_unity.dll")))
+lib = c.CDLL(os.environ.get("ECATY_NATIVE_LIBRARY", str(ROOT / "Assets/Plugins/Flecs/x86_64/flecs_unity.dll")))
 P = c.c_void_p
 
 class View(c.Structure):

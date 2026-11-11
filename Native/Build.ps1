@@ -1,7 +1,7 @@
 param([ValidateSet('Auto','MSVC','GCC')][string]$Compiler='Auto')
 $ErrorActionPreference='Stop'
 $nativeRoot=$PSScriptRoot
-$output=Join-Path $nativeRoot '../Assets/Plugins/Ecaty/x86_64'
+$output=Join-Path $nativeRoot '../Assets/Plugins/Flecs/x86_64'
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 if (!(Test-Path -LiteralPath (Join-Path $nativeRoot 'Core/vendor/flecs.c'))) {
     throw 'Missing Core submodule. Run git submodule update --init --recursive.'

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 sys.stdout.reconfigure(encoding='utf-8')
 root=Path(__file__).resolve().parents[1]
-lib=c.CDLL(str(root/'Assets/Plugins/Ecaty/x86_64/flecs_unity.dll'))
+lib=c.CDLL(str(root/'Assets/Plugins/Flecs/x86_64/flecs_unity.dll'))
 P=c.c_void_p
 U=c.c_uint64
 def bind(name,result,*args):

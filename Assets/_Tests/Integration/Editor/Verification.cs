@@ -107,7 +107,7 @@ namespace Ecaty.Editor
         }
         private static void ConfigurePlugin()
         {
-            var plugin = AssetImporter.GetAtPath("Assets/Plugins/Ecaty/x86_64/flecs_unity.dll") as PluginImporter;
+            var plugin = AssetImporter.GetAtPath("Assets/Plugins/Flecs/x86_64/flecs_unity.dll") as PluginImporter;
             if (!plugin)
                 throw new Exception("Native DLL not imported");
             plugin.SetCompatibleWithAnyPlatform(false);

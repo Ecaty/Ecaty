@@ -9,7 +9,7 @@
     { "name": "Photo object", "kind": "editor", "start": "Ecaty.Editor.PhotoObjectVerification.Run();return true;", "report": "Verification/photo-object-checks.json", "timeout": 120 },
     { "name": "Chat loop (no providers)", "kind": "editor", "start": "Ecaty.Editor.ChatLoopVerification.Start();return true;", "report": "Verification/chat-loop-checks.json", "timeout": 180 },
     { "name": "Native smoke", "kind": "python", "script": "Verification/native_smoke.py", "args": [], "report": "Verification/native-checks.json", "timeout": 120 },
-    { "name": "Capability native smoke", "kind": "python", "script": "Verification/capability_native_smoke.py", "args": ["Assets/Plugins/Ecaty/x86_64/flecs_unity.dll"], "report": "Verification/capability-native-checks.json", "timeout": 120 },
+    { "name": "Capability native smoke", "kind": "python", "script": "Verification/capability_native_smoke.py", "args": ["Assets/Plugins/Flecs/x86_64/flecs_unity.dll"], "report": "Verification/capability-native-checks.json", "timeout": 120 },
     { "name": "Runtime engine native smoke", "kind": "python", "script": "Verification/runtime_engine_smoke.py", "args": [], "report": "Verification/runtime-engine-native-checks.json", "timeout": 120 },
     { "name": "Runtime behavior native smoke", "kind": "python", "script": "Verification/runtime_behavior_smoke.py", "args": [], "report": "Verification/runtime-behavior-native-checks.json", "timeout": 120 },
     { "name": "Workshop chain native smoke", "kind": "python", "script": "Verification/workshop_chain_smoke.py", "args": [], "report": "", "timeout": 120 }

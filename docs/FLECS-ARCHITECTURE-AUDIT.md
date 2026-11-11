@@ -112,7 +112,7 @@ Upstream features confirmed in the docs:
 In the Tower Defense demo (https://github.com/SanderMertens/tower_defense), **all per-frame gameplay is compiled C++ systems** in `src/main.cpp` (30 KB): MoveEnemy, FindTarget (using a SpatialQuery), AimTarget, FireAtTarget, ProgressParticle and others, with `SpawnEnemy` on `.interval(0.15)`. **Flecs Script (about 8.6 KB in 15 files in `etc/assets`) defines only prefabs/assets/materials**, for example `turret.flecs` with `prefab Turret`, `slot Head` and `auto_override`. Rendering is a Flecs module (`flecs_systems_sokol`) that queries component data in-process. Gameplay instantiates with `is_a<prefabs::Bullet>()`. REST is turned on with `ecs.app().enable_rest().enable_stats()`. This matches the split recommended below.
 
 ### Measurements on this machine [M]
-Setup: copy of `Assets/Plugins/Ecaty/x86_64/flecs_unity.dll`, isolated world with REST off, called from Python ctypes. The script is in the scratchpad (`bench_flecs.py`). Bare call overhead was **0.35 µs**. Unity P/Invoke is cheaper, but Newtonsoft parsing plus GC allocation will be comparable or worse than Python's `json.loads` [I].
+Setup: copy of `Assets/Plugins/Flecs/x86_64/flecs_unity.dll`, isolated world with REST off, called from Python ctypes. The script is in the scratchpad (`bench_flecs.py`). Bare call overhead was **0.35 µs**. Unity P/Invoke is cheaper, but Newtonsoft parsing plus GC allocation will be comparable or worse than Python's `json.loads` [I].
 
 | Operation | Cost |
 |---|---|
