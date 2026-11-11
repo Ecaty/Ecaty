@@ -16,7 +16,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 - Top invitation enters an empty creation context; first deliberate placement creates a disposable world. Inactive saved worlds stay hidden; archive UI deferred.
 - Tune `Assets/_Features/Gallery/Gallery.asset` (spacing, ring width/style/opacity/material, sphere/rim opacity, rear fade, clearance, idle speed, glass crossing, return/reveal timing, loaded-world strength, approach cutoff, RingRotationSmoothTime) and `Theme/Theme.asset` (LoadedWorld colour; Editor-only, exported to `Theme/ThemeConfig.flecs` like the gallery config). Edits update native GalleryTreeConfig and the runtime theme live in Play. Odin icon tabs are optional.
 - Local layered arrangement: `GalleryPrototype/tree-arrangement.json` under Application.persistentDataPath (older `arrangement.json` is read-only import). Never commit either.
-- Seed creation enters the saved primitive world path ([GALLERY-WORLDS](GALLERY-WORLDS.md)). Legacy `-workshopLegacy` loads `WorkshopLobby.flecs`.
+- Seed creation enters the saved primitive world path ([GALLERY-WORLDS](GALLERY-WORLDS.md)).
 
 ## Code map
 
@@ -39,7 +39,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 | Rendering/presentation adapters | `Packages/com.ecaty.flecs-unity/Runtime/FlecsWorld.cs` |
 | Shared startup | `Packages/com.ecaty.flecs-unity/Runtime/FlecsBootstrap.cs` |
 | AI chat/providers/diagnostics | `Packages/com.ecaty.ai-agent` (Runtime/Diagnostics, Runtime/UI) |
-| Docs | [PROJECT-STRUCTURE](PROJECT-STRUCTURE.md), [RESOURCES](RESOURCES.md), [AI-INTEGRATION](AI-INTEGRATION.md), [RUNTIME-ENGINE](RUNTIME-ENGINE.md), [RUNTIME-BEHAVIORS](RUNTIME-BEHAVIORS.md), [RUNTIME-CAPABILITIES](RUNTIME-CAPABILITIES.md), [RUNTIME-PLUGINS](RUNTIME-PLUGINS.md), [BROWSER-TRACE](BROWSER-TRACE.md), [TESTING](TESTING.md) |
+| Docs | [PROJECT-STRUCTURE](PROJECT-STRUCTURE.md), [RESOURCES](RESOURCES.md), [AI-INTEGRATION](AI-INTEGRATION.md), [RUNTIME-ENGINE](RUNTIME-ENGINE.md), [RUNTIME-CAPABILITIES](RUNTIME-CAPABILITIES.md), [RUNTIME-PLUGINS](RUNTIME-PLUGINS.md), [BROWSER-TRACE](BROWSER-TRACE.md), [TESTING](TESTING.md) |
 
 ## Visual Studio
 
@@ -59,8 +59,8 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 - Read `Tests/Results/latest.txt` after any run: each run writes a compact summary there. Agents should read it instead of large JSON/logs/HTML; open detail only for a failure.
 - Runners (`Tests/*.cmd`, target this project's Editor via `Tests/UnityCli.ps1`): `Run-All.cmd` (resources, Validator, native, EditMode, PlayMode, gallery, Windows player-script compile + editor-source exclusion), `Run-Gallery.cmd`, `Run-EditMode.cmd`, `Run-PlayMode.cmd`, `Run-Native.cmd`, `Run-Resources.cmd`, `Run-Validator.cmd`, `Run-PlayerScripts.cmd`; `Open-Latest-Gallery.cmd`/`Open-Latest-Results.cmd` open reports for humans. See [TESTING](TESTING.md) and [Tests/README](../Tests/README.md).
 - Gallery: Runtime > Tests > Gallery scenarios. Add scenarios to the compiled suite rather than one-off scripts; assert on real native Flecs data and Unity outputs; tests must certify current behavior and refresh/recompile saved source first. Preserve unsaved scenes; restore test overrides; scenarios use disposable fixtures and the runner restores save bytes. Artifacts (PNG/JSON/HTML) are ignored by Git and are not aesthetic approval.
-- Python/native: `python Verification/native_smoke.py` (ABI, Script, queries, REST), `python Verification/runtime_engine_smoke.py`, `python Verification/runtime_behavior_smoke.py`, `python Verification/capability_native_smoke.py`, `python Verification/player_rest_smoke.py` (one instance only, port 27750).
-- Editor entries (Runtime menu or `Ecaty.Editor.*.Start()`): `RuntimeSpatialVerification`, `RuntimeActorVerification`, `RuntimeBehaviorVerification`, `LiveProviderVerification` (opt-in, after owner authorization), `MultiProviderVerification`, `ChatLoopVerification`, `Verification.RunAll`, `Verification.BuildPlayer` (builds `Build/Ecaty.exe`), `Ecaty.Agents.Editor.AgentPackageVerification.RunAll()`. Reports go to `Verification/*.json`.
+- Python/native: `python Verification/native_smoke.py` (ABI, Script, queries, REST), `python Verification/runtime_engine_smoke.py`, `python Verification/runtime_behavior_smoke.py` (native managed-module smoke), `python Verification/capability_native_smoke.py`, `python Verification/player_rest_smoke.py` (one instance only, port 27750).
+- Editor entries (Runtime menu or `Ecaty.Editor.*.Start()`): `RuntimeSpatialVerification`, `RuntimeActorVerification`, `LiveProviderVerification` (opt-in, after owner authorization), `MultiProviderVerification`, `ChatLoopVerification`, `Verification.RunAll`, `Verification.BuildPlayer` (builds `Build/Ecaty.exe`), `Ecaty.Agents.Editor.AgentPackageVerification.RunAll()`. Reports go to `Verification/*.json`.
 - Player flags: `Build/Ecaty.exe -batchmode -nographics -flecsSmoke -flecsSmokeResult <abs json> -logFile <abs log>` (80 frames); `-runtimeEngineSmoke -runtimeEngineSmokeResult <abs json>` (graphical, no `-nographics`: MudBun needs compute shaders); `-capabilitySmokeResult <abs json>`.
 - Run only relevant checks; report what ran and limits. Object-state checks are not visual review. Keep native HTTP operations on the world-owning thread.
 

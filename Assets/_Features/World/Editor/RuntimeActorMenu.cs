@@ -26,7 +26,7 @@ namespace Ecaty.Editor
             engine.Configure("{\"driver\":\"script\",\"motion\":\"spatial\",\"gravityScale\":0}");
             var session = engine.GetComponent<Ecaty.Flecs.FlecsWorld>().Session;
             session.SetManagedScript("DemoSpatialSettings", "struct HoverParameters(height: f32, sway: f32)\nMotionTuning { HoverParameters: {1.8,0.25} }");
-            session.SetManagedScript(EcatyAgentTools.BehaviorEntity, Resources.Load<TextAsset>("Runtime/Behaviors/RuntimeSpatialBehavior").text);
+            session.SetManagedScript("DemoSpatialBehavior", Resources.Load<TextAsset>("Runtime/Behaviors/RuntimeSpatialBehavior").text);
         }
         [MenuItem("Runtime/Runtime engine/Land spatial demo")]
         private static void Land()
@@ -34,7 +34,7 @@ namespace Ecaty.Editor
             var engine = Object.FindAnyObjectByType<DioramaRuntime>();
             if (!engine || !engine.Motor)
                 return;
-            engine.GetComponent<Ecaty.Flecs.FlecsWorld>().Session.SetManagedScript(EcatyAgentTools.BehaviorEntity, "// Stopped");
+            engine.GetComponent<Ecaty.Flecs.FlecsWorld>().Session.SetManagedScript("DemoSpatialBehavior", "// Stopped");
             engine.Configure("{\"driver\":\"idle\",\"motion\":\"ground\",\"gravityScale\":1}");
         }
         [MenuItem("Runtime/Runtime engine/Take player control")]

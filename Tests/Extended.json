@@ -4,7 +4,6 @@
     { "name": "Bridge integration", "kind": "editor", "start": "Ecaty.Editor.Verification.RunAll();return true;", "report": "Verification/unity-checks.json", "timeout": 120 },
     { "name": "Workshop chain", "kind": "editor", "start": "Ecaty.Editor.WorkshopChainVerification.StartVerification();return true;", "report": "Verification/workshop-chain-unity-checks.json", "timeout": 240 },
     { "name": "Runtime actor", "kind": "editor", "start": "Ecaty.Editor.RuntimeActorVerification.Start();return true;", "report": "Verification/runtime-actor-checks.json", "timeout": 240 },
-    { "name": "Runtime behavior", "kind": "editor", "start": "Ecaty.Editor.RuntimeBehaviorVerification.Start();return true;", "report": "Verification/runtime-behavior-unity-checks.json", "timeout": 180 },
     { "name": "Runtime experience", "kind": "editor", "start": "Ecaty.Editor.RuntimeExperienceVerification.Start();return true;", "report": "Verification/runtime-experience-checks.json", "timeout": 240 },
     { "name": "Runtime spatial", "kind": "editor", "start": "Ecaty.Editor.RuntimeSpatialVerification.Start();return true;", "report": "Verification/runtime-spatial-checks.json", "timeout": 240 },
     { "name": "Photo object", "kind": "editor", "start": "Ecaty.Editor.PhotoObjectVerification.Run();return true;", "report": "Verification/photo-object-checks.json", "timeout": 120 },

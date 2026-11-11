@@ -11,8 +11,6 @@ namespace Ecaty
 {
     public static class EcatyAgentTools
     {
-        public const string BehaviorEntity = "AgentBehavior";
-
         public static IReadOnlyList<IAgentTool> Create(FlecsWorld world, AgentMainThread main, ClayCreation clay = null, DioramaRuntime engine = null)
         {
             var experience = world.GetComponent<RuntimeExperience>();
@@ -23,10 +21,6 @@ namespace Ecaty
                     a => world.Session.EntityJson((string)a["path"])),
                 new Tool("apply_script", "Apply one-time upstream Flecs Script edits. Example: scene { Cube { Color: {0, 0, 1, 1}; Scale: {2, 2, 2} } }. Use nested entity scopes, not dotted entity declarations. Separate statements by semicolons or newlines. Define runtime types as struct Temperature(value: f32). Use apply_behavior for ongoing motion or reactive rules. Errors are not transactional; inspect after failure.", "code", main,
                     a => { if (experience) experience.ApplyEdit((string)a["code"]); else world.Session.RunScript((string)a["code"]); world.SyncViews(); return Observe(world, engine); }),
-                new Tool("inspect_behavior", "Read the current AgentBehavior managed Script source before editing ongoing behavior. Preserve unrelated rules when replacing the module.", null, main,
-                    a => new JObject { ["entity"] = BehaviorEntity, ["code"] = world.Session.ManagedScriptSource(BehaviorEntity) ?? "" }.ToString(Formatting.None)),
-                new Tool("apply_behavior", "Create or replace the COMPLETE AgentBehavior module using native reactive Flecs Script. Inputs update the dependent expressions automatically. Example: using flecs.script.math\nconst t = Clock[Clock].time\nscene { Sphere { Scale: {1 + 0.2 * sin(t * 4), 1, 1} } }\nInspect the existing module first and preserve unrelated behavior. Source can define new components, templates, expressions and conditions. Use nested scopes and semicolons/newlines. Clock, Presented, ActorMotion and PoseObserved are measured engine inputs; do not animate them. For model part animation create a behavior-owned command entity containing PoseOffset{x,y,z,rx,ry,rz} and (PoseTarget, fullPartEntityPath). Keep commands out of the existing model entity so replacing the module removes old effects. Do not animate ClayRest. Send a comment-only source to stop all rules; existing objects keep their last values. The immediate result does not prove motion: use observe_over_time before claiming success. Parse errors keep the old module; evaluation errors are not transactional.", "code", main,
-                    a => { world.Session.SetManagedScript(BehaviorEntity, (string)a["code"]); world.SyncViews(); return Observe(world, engine); }),
                 new Tool("observe_world", "Refresh actual presentation readback. Presented contains measured transforms/color and an applied frame counter. Photo actors are in runtime_actor with measured ActorMotion/PoseObserved. This is actual transform data, not screen perception.", null, main,
                     a => { world.SyncViews(); return Observe(world, engine); }),
                 new ObserveOverTime(world, main)

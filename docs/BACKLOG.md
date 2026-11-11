@@ -22,7 +22,7 @@ Retained ideas, not immediate implementation:
 ## Decisions
 
 - 2026-11-11: Product docs (PRODUCT-DIRECTION, RUNTIME-PLUGINS, UNITY-CAPABILITY-ROADMAP): trim to current content; archive the rest in docs/history/, do not delete.
-- 2026-11-11: Retire the old AgentBehavior compatibility path and the -workshopLegacy start option.
+- 2026-11-11: Retire the old AgentBehavior compatibility path and the -workshopLegacy start option. Done on chore/docs-trim-legacy-retire (tools, menu, verifier, RUNTIME-BEHAVIORS archived); awaiting Unity compile check.
 - 2026-11-11: Rename existing identifiers (Ecaty.* namespaces, com.ecaty.* packages, ECATY_CAP_* defines, menu paths) later, once the product name is settled; add no new ones.
 - 2026-11-11: Next cheap mockup after creation tools: decide later.
 - 2026-11-11: Overnight agent work allowed (keep-awake approved).

@@ -1,6 +1,6 @@
 # Proposal: docs index, minimal read set, trims (plan item I7)
 
-Status: **draft, not applied.** Product docs change only after the user approves. Sizes are current (KB).
+Status: **trims in section 3 applied 2026-11-11** (PRODUCT-DIRECTION, RUNTIME-PLUGINS, UNITY-CAPABILITY-ROADMAP archived under docs/history/; RUNTIME-BEHAVIORS retired and archived). **Sections 1-2 (docs index, smaller mandatory read) still need approval.** Sizes below are from before the trim. Sizes are current (KB).
 
 ## 1. Docs index (new `docs/README.md`, ~2 KB, links only)
 

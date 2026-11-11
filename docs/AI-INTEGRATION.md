@@ -87,6 +87,6 @@ The independent browser logger is now implemented. See [BROWSER-TRACE](BROWSER-T
 
 ## Reactive behavior tools (2026-11-03)
 
-The host now also supplies `inspect_behavior`, `apply_behavior` and `observe_over_time`. `apply_script` remains a one-time edit; `apply_behavior` installs/replaces the complete native managed AgentBehavior module. Flecs reevaluates dependencies when Clock or external components change. The agent reads existing source before replacing it, preserves unrelated rules and samples advancing native/Presented state before claiming animation. No provider-specific execution mechanism or Lua is involved. [Runtime syntax, workflow and limits](RUNTIME-BEHAVIORS.md).
+The host also supplies `observe_over_time`, `inspect_definition` and `apply_runtime_behavior`. `apply_script` remains a one-time edit; `apply_runtime_behavior` installs/replaces one independent native managed module (`RuntimeBehaviors.<id>`). Flecs reevaluates dependencies when Clock or external components change. The agent reads existing source before replacing it, preserves unrelated rules and samples advancing native/Presented state before claiming animation. No provider-specific execution mechanism or Lua is involved. [Runtime engine](RUNTIME-ENGINE.md).
 
 The native/Unity/Windows checks use supplied source and real local objects. No new inference call was made for this milestone, so generated behavior quality with a live model remains to be tested by the user.

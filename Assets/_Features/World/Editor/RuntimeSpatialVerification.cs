@@ -115,6 +115,7 @@ namespace Ecaty.Editor
                             Physics.IgnoreCollision(engine.Motor, collider);
                 }
                 var tools = EcatyAgentTools.Create(world, new AgentMainThread(), clay, engine);
+                async Task Behavior(string source) { world.Session.SetManagedScript("VerificationBehavior", source); world.SyncViews(); await Task.Yield(); }
                 Task<string> Call(string name, string field = null, string text = null) => tools.First(t => t.Name == name).ExecuteAsync(
                     field == null ? "{}" : new JObject { [field] = text }.ToString(), default);
                 var capabilities = JObject.Parse(await Call("inspect_capabilities"));
@@ -132,7 +133,7 @@ namespace Ecaty.Editor
                 await Call("configure_actor", "config", "{\"driver\":\"script\",\"motion\":\"spatial\",\"gravityScale\":0}");
                 IsolateMotor();
                 var code = Resources.Load<TextAsset>("Runtime/Behaviors/RuntimeSpatialBehavior").text;
-                await Call("apply_behavior", "code", code);
+                await Behavior(code);
                 for (int i = 0; i < 200; i++)
                 {
                     engine.StepMotor(1f / 60);
@@ -149,11 +150,11 @@ namespace Ecaty.Editor
                 Require((bool)earObserved["offsetApplied"] && (float)earObserved["lx"] > restEar.x + .65f, "Live pose command did not reach the visible brush.");
                 // Freeze motor stepping and compare geometry with/without only the pose layer.
                 // Bounds can be world-oriented: comparing one axis while the body turns is invalid.
-                await Call("apply_behavior", "code", code.Substring(0, code.IndexOf("\nEarWiggle {", StringComparison.Ordinal)));
+                await Behavior(code.Substring(0, code.IndexOf("\nEarWiggle {", StringComparison.Ordinal)));
                 await Frames(16);
                 var plainBounds = await snapshot.Take();
                 Require(!world.Session.Query("PoseOffset, (PoseTarget, *)").Contains("EarWiggle"), "Replaced behavior retained its old pose command entity.");
-                await Call("apply_behavior", "code", code);
+                await Behavior(code);
                 await Frames(16);
                 var deformedBounds = await snapshot.Take();
                 report["meshBounds"] = new JObject { ["rest"] = restBounds.size.ToString("R"), ["unposed"] = plainBounds.size.ToString("R"), ["posed"] = deformedBounds.size.ToString("R") };
@@ -170,7 +171,7 @@ namespace Ecaty.Editor
                 ceiling.AddComponent<BoxCollider>().size = new Vector3(8, .2f, 8);
                 Physics.SyncTransforms();
                 await Call("apply_script", "code", "MotionTuning { HoverParameters: {3.6,0.25} }");
-                await Call("apply_behavior", "code", code.Replace("settings.sway * sin(t)", "-0.35").Replace("25 * sin(t * 3)", "45 * sin(t * 5)"));
+                await Behavior(code.Replace("settings.sway * sin(t)", "-0.35").Replace("25 * sin(t * 3)", "45 * sin(t * 5)"));
                 float beforeX = engine.Motor.transform.position.x;
                 for (int i = 0; i < 140; i++)
                 {
@@ -192,7 +193,7 @@ namespace Ecaty.Editor
                 }
                 Require(engine.Motor.transform.position.y > 3.35f, "The same active rule did not resume ascent after removing the ceiling.");
 
-                await Call("apply_behavior", "code", "// Removed the motion and pose rules");
+                await Behavior("// Removed the motion and pose rules");
                 await Call("configure_actor", "config", "{\"driver\":\"idle\",\"motion\":\"ground\",\"gravityScale\":1}");
                 IsolateMotor();
                 for (int i = 0; i < 150; i++)

@@ -17,7 +17,7 @@ Browser logger: **Runtime > Agent Trace (Browser)**, or account > **Trace** in a
 
 **Runtime proof:** Play -> **Runtime > Runtime engine > Start spatial demo**; change the target altitude in Flecs and use **Land spatial demo** to land. [Measured runtime workflow](docs/RUNTIME-ENGINE.md).
 
-**Runtime behavior:** [reactive Script](docs/RUNTIME-BEHAVIORS.md) and [runtime engine](docs/RUNTIME-ENGINE.md). Cube/sphere samples are explicit regression fixtures, not normal startup.
+**Runtime behavior:** [reactive Script and runtime engine](docs/RUNTIME-ENGINE.md). Cube/sphere samples are explicit regression fixtures, not normal startup.
 
 **Capability workshop:** Runtime > Runtime engine > Prepare capability assets, then Start capability workshop. [Short workflow](docs/QUICKSTART.md), [implemented adapters and limits](docs/RUNTIME-CAPABILITIES.md). Native behavior, sound and geometry plus Unity/plugin instances compose through reflected ECS bindings; no inference is needed per frame.
 
