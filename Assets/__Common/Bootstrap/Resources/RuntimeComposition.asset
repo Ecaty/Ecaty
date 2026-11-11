@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: RuntimeComposition
   m_EditorClassIdentifier: Assembly-CSharp::Ecaty.RuntimeComposition
   GalleryConfig: {fileID: -8253061345870894857, guid: e8c86c56fd5220a48bfb1d13dde3854b, type: 3}
-  Theme: {fileID: 11400000, guid: ea35aaaf244af924bbc488e943f99c63, type: 2}
+  ThemeConfig: {fileID: -8253061345870894857, guid: 00e50a5627038209a88930a0ee6bb053, type: 3}
   AgentUi: {fileID: 11400000, guid: db7d5b0265a7cb14990c4519f07e175e, type: 2}
   World: {fileID: 11400000, guid: c1c2160109355c042b21df4ee7aa50ed, type: 2}
   Capabilities: {fileID: 11400000, guid: e42983bafb560d84dbc0a4fa63484357, type: 2}

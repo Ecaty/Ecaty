@@ -28,7 +28,7 @@ namespace Ecaty.Editor
         [MenuItem("Runtime/Gallery/Theme colours")]
         public static void Theme()
         {
-            Selection.activeObject = RuntimeComposition.Current.Theme;
+            Selection.activeObject = ThemeScript.EditorAsset;
             EditorGUIUtility.PingObject(Selection.activeObject);
         }
     }

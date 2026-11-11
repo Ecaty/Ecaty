@@ -7,9 +7,9 @@
   },
   {
     "key": "Shared/Config/Theme",
-    "path": "Assets/__Common/Theme/Theme.asset",
-    "guid": "ea35aaaf244af924bbc488e943f99c63",
-    "composition": "Theme"
+    "path": "Assets/__Common/Theme/ThemeConfig.flecs",
+    "guid": "00e50a5627038209a88930a0ee6bb053",
+    "composition": "ThemeConfig"
   },
   {
     "key": "Shared/Rendering/PresentationMaterial",

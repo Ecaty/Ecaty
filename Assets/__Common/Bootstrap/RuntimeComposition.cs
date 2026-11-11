@@ -11,7 +11,8 @@ namespace Ecaty
     {
         [Tooltip("Generated from Gallery.asset (Editor-only authoring). Players load gallery values from this Flecs Script.")]
         public TextAsset GalleryConfig;
-        public EcatyTheme Theme;
+        [Tooltip("Generated from Theme.asset (Editor-only authoring). Players load theme values from this Flecs Script.")]
+        public TextAsset ThemeConfig;
         public AgentUiAssets AgentUi;
         public RuntimeDioramaAssets World;
         public CapabilityAssets Capabilities;
@@ -32,7 +33,7 @@ namespace Ecaty
         public UnityEngine.Object ResolveReference(string field) => field switch
         {
             "GalleryConfig" => GalleryConfig,
-            "Theme" => Theme,
+            "ThemeConfig" => ThemeConfig,
             "AgentUi" => AgentUi,
             "AgentPanel" => AgentUi ? AgentUi.Panel : null,
             "World" => World,
