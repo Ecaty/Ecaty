@@ -49,6 +49,7 @@ namespace Ecaty
         private float downAt;
         private bool emptyPress, wasDown, linking, trayOpening;
         private static readonly string[] OutputTypes = { "MoveGoal", "Position", "Scale", "Color" };
+        private static readonly string[] OutputQueries = Array.ConvertAll(OutputTypes, type => "[in] " + type + ", [in] WorkshopOutput");
         private string selected;
         private int pointerClaimFrame = -1;
         public bool OwnsPointer => tray || ghost || linking || pointerClaimFrame == Time.frameCount;
@@ -209,11 +210,12 @@ namespace Ecaty
             var activeSession = world.Session;
             if (activeSession.Lookup("WorkshopOutput") == 0)
                 return;
-            foreach (string type in OutputTypes)
+            for (int t = 0; t < OutputTypes.Length; t++)
             {
+                string type = OutputTypes[t];
                 if (activeSession.Lookup(type) == 0)
                     continue;
-                string changed = activeSession.QueryChanges("[in] " + type + ", [in] WorkshopOutput");
+                string changed = activeSession.QueryChanges(OutputQueries[t]);
                 if (string.IsNullOrEmpty(changed))
                     continue;
                 foreach (var row in (JArray)JObject.Parse(changed)["results"])
