@@ -221,13 +221,10 @@ namespace Ecaty.Editor
                 checks.Add("real Input System WASD/gamepad events leave the minimized chat unfocused");
                 engine.ReadDevices = false;
                 world.Session.RunScript("Input { PlayerMotion: {1,0} }");
-                // The motor is stepped by a fixed 1/60 per frame below, while LegsAnimator advances by Time.deltaTime.
-                // Pin game time to the same step so the gait does not depend on how fast the Editor renders frames.
-                Time.captureDeltaTime = 1f / 60;
                 var start = engine.Motor.transform.position;
                 int leftOnly = 0, rightOnly = 0, stanceSamples = 0;
                 float contactError = 0;
-                // Timing and per-leg diagnostics: the gait result has depended on Editor frame time.
+                // Timing, per-leg and motor diagnostics: a blocked motor shows up as a stalled gait.
                 var legs = engine.Legs;
                 var gaitStart = new JObject
                 {
@@ -436,7 +433,6 @@ namespace Ecaty.Editor
             catch (Exception error) { report["error"] = error.ToString(); Debug.LogException(error); }
             finally
             {
-                Time.captureDeltaTime = 0;
                 if (pad != null)
                     InputSystem.RemoveDevice(pad);
                 if (keyboard != null)
