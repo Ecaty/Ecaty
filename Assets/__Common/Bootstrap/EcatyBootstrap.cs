@@ -81,8 +81,7 @@ namespace Ecaty
                 capabilities.AudioBankProvider = () => System.IO.File.ReadAllBytes(System.IO.Path.Combine(Application.streamingAssetsPath, "Ecaty/Audio/GeneralUser-GS.sf2"));
                 capabilities.Assets = RuntimeComposition.Current.Capabilities;
                 capabilities.Initialize(world);
-                UnityCapabilities.Register(capabilities);
-                VendorCapabilities.Register(capabilities);
+                capabilities.RegisterDiscovered();
                 capabilities.TargetResolver = id =>
                 {
                     foreach (var model in experience.Models.Values)

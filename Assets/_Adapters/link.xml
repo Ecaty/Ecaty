@@ -1,0 +1,7 @@
+<linker>
+  <!-- Typed capability configurations and adapters are discovered by reflection. -->
+  <assembly fullname="Runtime.Capabilities" preserve="all" />
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="Ecaty.Flecs.PluginAdapters.*" preserve="all" />
+  </assembly>
+</linker>

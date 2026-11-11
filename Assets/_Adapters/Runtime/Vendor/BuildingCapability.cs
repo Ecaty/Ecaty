@@ -1,23 +1,32 @@
+using Ecaty.Flecs.Capabilities;
 #if ECATY_CAP_COZY
 using System;
-using Ecaty.Flecs.Capabilities;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using ProjectDawn.CozyBuilder;
+#endif
 namespace Ecaty.Flecs.PluginAdapters
 {
-    public sealed class BuildingCapability : CapabilityInstance
+    // Always compiled: the schema and saved configurations stay valid without the plugin.
+    [Capability("CapBuilding", "buildings", 10, Gate = "ECATY_CAP_COZY", Probe = "Packages/com.projectdawn.cozy-builder/package.json")]
+    public sealed class BuildingConfig
+    {
+        [AssetKey] public string prefab = "";
+        public string points = "";
+    }
+#if ECATY_CAP_COZY
+    public sealed class BuildingCapability : CapabilityInstance<BuildingConfig>
     {
         GameObject building; string prefabKey; CozyRenderer renderer; System.Collections.Generic.List<Material> materials = new();
         public BuildingCapability(CapabilityContext c) : base(c) { }
-        public override void Apply(JObject j)
+        protected override void Apply(BuildingConfig j)
         {
-            if (building && prefabKey != j.S("prefab"))
+            if (building && prefabKey != j.prefab)
                 Dispose();
             if (!building)
             {
-                prefabKey = j.S("prefab");
-                var kit = Context.Asset<GameObject>(j.S("prefab"));
+                prefabKey = j.prefab;
+                var kit = Context.Asset<GameObject>(j.prefab);
                 if (!kit)
                     throw new ArgumentException("Register a Cozy construction-kit prefab.");
                 building = UnityEngine.Object.Instantiate(kit, Host.transform);
@@ -32,12 +41,12 @@ namespace Ecaty.Flecs.PluginAdapters
                     draw.OverrideMaterial = clone;
                 }
             }
-            if (!string.IsNullOrEmpty(j.S("points")))
+            if (!string.IsNullOrEmpty(j.points))
             {
                 var spline = building.GetComponentInChildren<CozySpline>();
                 if (!spline)
                     throw new ArgumentException("Kit has no editable CozySpline.");
-                var points = Fields.Points(j.S("points"), 2);
+                var points = Fields.Points(j.points, 2);
                 foreach (var p in spline.Points)
                 if (p)
                     UnityEngine.Object.Destroy(p.gameObject);
@@ -66,6 +75,5 @@ namespace Ecaty.Flecs.PluginAdapters
             materials.Clear();
         }
     }
-
-}
 #endif
+}

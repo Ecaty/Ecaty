@@ -1,12 +1,20 @@
+using Ecaty.Flecs.Capabilities;
 #if ECATY_CAP_FLEXALON
 using System;
-using Ecaty.Flecs.Capabilities;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Flexalon;
+#endif
 namespace Ecaty.Flecs.PluginAdapters
 {
-    public sealed class LayoutCapability : CapabilityInstance
+    // Always compiled: the schema and saved configurations stay valid without the plugin.
+    [Capability("CapLayout", "spatial layouts", 45, Gate = "ECATY_CAP_FLEXALON", Probe = "Assets/Flexalon/Runtime/Layouts/FlexalonCircleLayout.cs")]
+    public sealed class LayoutConfig
+    {
+        public float radius = 1, spacing = 45;
+    }
+#if ECATY_CAP_FLEXALON
+    public sealed class LayoutCapability : CapabilityInstance<LayoutConfig>
     {
         FlexalonCircleLayout layout; bool owned; readonly System.Collections.Generic.Dictionary<ulong, FlexalonObject> children = new(); readonly System.Collections.Generic.List<FlexalonObject> created = new();
         public LayoutCapability(CapabilityContext c) : base(c) { layout = Target.GetComponent<FlexalonCircleLayout>(); if (layout) throw new InvalidOperationException("Target already has a layout owner."); layout = Target.gameObject.AddComponent<FlexalonCircleLayout>(); owned = true; }
@@ -53,10 +61,10 @@ namespace Ecaty.Flecs.PluginAdapters
                 skip.SkipLayout = true;
             }
         }
-        public override void Apply(JObject j)
+        protected override void Apply(LayoutConfig j)
         {
-            layout.Radius = Mathf.Max(.01f, j.F("radius", 1));
-            layout.SpacingDegrees = Mathf.Clamp(j.F("spacing", 45), 0, 360);
+            layout.Radius = Mathf.Max(.01f, j.radius);
+            layout.SpacingDegrees = Mathf.Clamp(j.spacing, 0, 360);
             BindChildren();
         }
         public override void Tick(float delta) => BindChildren();
@@ -71,6 +79,5 @@ namespace Ecaty.Flecs.PluginAdapters
                 UnityEngine.Object.Destroy(layout);
         }
     }
-
-}
 #endif
+}
