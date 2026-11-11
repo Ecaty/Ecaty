@@ -23,10 +23,19 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
+      - name: Keep line endings (vendored Flecs is hash-checked)
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
         with:
           submodules: recursive
           lfs: false
+      - name: Cache the sound bank (LFS)
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: lfs-soundbank-${{ hashFiles('.gitattributes') }}
+      - name: Fetch only the LFS sound bank the audio smoke needs
+        run: git lfs pull --include "Assets/StreamingAssets/Ecaty/Audio/GeneralUser-GS.sf2"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
