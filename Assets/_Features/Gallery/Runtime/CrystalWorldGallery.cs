@@ -154,7 +154,7 @@ namespace Ecaty
                 {
                     cached.Set(JObject.Parse(Encoding.UTF8.GetString(jsonBuffer, 0, length)));
                     if (cached.Bytes.Length < length)
-                        cached.Bytes = new byte[Math.Max(length, 64)];
+                        cached.Bytes = new byte[System.Math.Max(length, 64)];
                     Buffer.BlockCopy(jsonBuffer, 0, cached.Bytes, 0, length);
                     cached.Length = length;
                 }
