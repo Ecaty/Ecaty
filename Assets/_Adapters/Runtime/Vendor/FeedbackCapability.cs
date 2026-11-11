@@ -1,24 +1,33 @@
+using Ecaty.Flecs.Capabilities;
 #if ECATY_CAP_FEEL
 using System;
-using Ecaty.Flecs.Capabilities;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using MoreMountains.Feedbacks;
+#endif
 namespace Ecaty.Flecs.PluginAdapters
 {
-    public sealed class FeedbackCapability : CapabilityInstance
+    // Always compiled: the schema and saved configurations stay valid without the plugin.
+    [Capability("CapFeedback", "feedback", 45, Gate = "ECATY_CAP_FEEL", Probe = "Assets/Feel/MMFeedbacks/MMFeedbacks/Sequencing/Scripts/MMSoundSequencer.cs")]
+    public sealed class FeedbackConfig
+    {
+        [AssetKey] public string prefab = "";
+        public int trigger;
+    }
+#if ECATY_CAP_FEEL
+    public sealed class FeedbackCapability : CapabilityInstance<FeedbackConfig>
     {
         GameObject instance; string prefabKey; MMF_Player player; int trigger = int.MinValue;
         public FeedbackCapability(CapabilityContext c) : base(c) { }
-        public override void Apply(JObject j)
+        protected override void Apply(FeedbackConfig j)
         {
-            if (player && prefabKey != j.S("prefab"))
+            if (player && prefabKey != j.prefab)
                 Dispose();
             if (!player)
             {
-                prefabKey = j.S("prefab");
+                prefabKey = j.prefab;
                 trigger = int.MinValue;
-                var prefab = Context.Asset<GameObject>(j.S("prefab"));
+                var prefab = Context.Asset<GameObject>(j.prefab);
                 if (!prefab)
                     throw new ArgumentException("Register a Feel feedback palette prefab.");
                 instance = UnityEngine.Object.Instantiate(prefab, Host.transform);
@@ -27,9 +36,9 @@ namespace Ecaty.Flecs.PluginAdapters
                     throw new ArgumentException("Feedback palette has no MMF_Player.");
                 player.Initialization();
             }
-            if (trigger != j.I("trigger"))
+            if (trigger != j.trigger)
             {
-                trigger = j.I("trigger");
+                trigger = j.trigger;
                 player.PlayFeedbacks(Target.position);
             }
         }
@@ -46,6 +55,5 @@ namespace Ecaty.Flecs.PluginAdapters
             player = null;
         }
     }
-
-}
 #endif
+}

@@ -1593,7 +1593,9 @@
       "from": "Assets/Ecaty/Runtime/Adapters/VendorCapabilities.cs",
       "to": "Assets/_Adapters/Runtime/Vendor/VendorCapabilities.cs",
       "guid": "6ef874930fb4dde408c8c7966e0529a9",
-      "sha256": "d3e3a5e9e501c205cff8c8b27f01055ac0aed7b0b6318c522df9f6f3835be7c7"
+      "sha256": "d3e3a5e9e501c205cff8c8b27f01055ac0aed7b0b6318c522df9f6f3835be7c7",
+      "retired": true,
+      "reason": "Superseded by typed [Capability] configurations: registration and schema are generated."
     },
     {
       "from": "Assets/Ecaty/Runtime/Adapters/WeatherCapability.cs",
@@ -1767,7 +1769,9 @@
       "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/Resources/CapabilityPostProcessingSchema.flecs",
       "to": "Packages/com.runtime.capabilities/Runtime/Capabilities/Resources/CapabilityPostProcessingSchema.flecs",
       "guid": "3690c3f68f4ba634b888757a0adc1589",
-      "sha256": "71ce07bde5cae49a490f58b5cb54e820df13b6a9842a917b886994f85f9ced81"
+      "sha256": "71ce07bde5cae49a490f58b5cb54e820df13b6a9842a917b886994f85f9ced81",
+      "retired": true,
+      "reason": "Superseded by typed [Capability] configurations: registration and schema are generated."
     },
     {
       "from": "Packages/com.ecaty.flecs-unity/Runtime/Capabilities/Resources/CapabilitySchema.flecs",

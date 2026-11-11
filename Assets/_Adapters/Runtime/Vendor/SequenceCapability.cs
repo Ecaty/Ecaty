@@ -1,18 +1,28 @@
+using Ecaty.Flecs.Capabilities;
 #if ECATY_CAP_FEEL
 using System;
-using Ecaty.Flecs.Capabilities;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using MoreMountains.Feedbacks;
+#endif
 namespace Ecaty.Flecs.PluginAdapters
 {
-    public sealed class SequenceCapability : CapabilityInstance
+    // Always compiled: the schema and saved configurations stay valid without the plugin.
+    [Capability("CapSequence", "feedback sequencing", 45, Gate = "ECATY_CAP_FEEL", Probe = "Assets/Feel/MMFeedbacks/MMFeedbacks/Sequencing/Scripts/MMSoundSequencer.cs")]
+    public sealed class SequenceConfig
+    {
+        public string pattern = "";
+        public float bpm = 120;
+        public bool playing;
+    }
+#if ECATY_CAP_FEEL
+    public sealed class SequenceCapability : CapabilityInstance<SequenceConfig>
     {
         MMSoundSequencer sequencer; MMSequence sequence;
         public SequenceCapability(CapabilityContext c) : base(c) { }
-        public override void Apply(JObject j)
+        protected override void Apply(SequenceConfig j)
         {
-            var tracks = JArray.Parse(j.S("pattern"));
+            var tracks = JArray.Parse(j.pattern);
             if (tracks.Count < 1 || tracks.Count > 16)
                 throw new ArgumentException("Sequence needs 1..16 tracks.");
             if (sequencer)
@@ -30,7 +40,7 @@ namespace Ecaty.Flecs.PluginAdapters
             sequence.SequenceTracks = new();
             sequence.QuantizedSequence = new();
             sequence.Quantized = true;
-            sequence.TargetBPM = Mathf.Clamp(j.I("bpm", 120), 10, 400);
+            sequence.TargetBPM = Mathf.Clamp((int)j.bpm, 10, 400);
             sequencer.Sounds = new();
             sequencer.TrackEvents = new();
             sequencer.Sequence = sequence;
@@ -60,7 +70,7 @@ namespace Ecaty.Flecs.PluginAdapters
             sequence.Length = length * 60f / sequencer.BPM;
             sequencer.SequencerLength = length;
             sequencer.SetupSounds();
-            if (j.B("playing"))
+            if (j.playing)
                 sequencer.PlaySequence();
         }
         public override void Dispose()
@@ -71,6 +81,5 @@ namespace Ecaty.Flecs.PluginAdapters
                 UnityEngine.Object.Destroy(sequence);
         }
     }
-
-}
 #endif
+}

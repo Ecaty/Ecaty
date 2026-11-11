@@ -479,6 +479,8 @@ namespace Ecaty
             {
                 ["version"] = 1,
                 ["capabilities"] = capabilityRuntime?.CaptureState(),
+                // Bindings, dependency relations and trees, including entities created without a saved source.
+                ["capabilityGraph"] = capabilityRuntime != null ? Ecaty.Flecs.Capabilities.CapabilityGraph.Capture(world.Session, null, null) : null,
                 ["sources"] = sources,
                 ["actors"] = actors,
                 ["states"] = states,
@@ -557,6 +559,10 @@ namespace Ecaty
                 throw new ArgumentException("Invalid experience document.");
             if (sources.Select(s => (string)s["path"]).Distinct().Count() != sources.Count)
                 throw new ArgumentException("Duplicate source module.");
+            var graph = data["capabilityGraph"] as JObject;
+            string invalidGraph = Ecaty.Flecs.Capabilities.CapabilityGraph.Validate(graph, null);
+            if (invalidGraph != null)
+                throw new ArgumentException(invalidGraph);
             // Resolve dependencies and state types in an isolated world before replacing the session.
             var orderedSources = ValidateSources(sources, states);
             loading = true;
@@ -580,6 +586,16 @@ namespace Ecaty
                 foreach (var entry in orderedSources)
                     world.Session.SetManagedScript((string)entry["path"], (string)entry["code"]);
                 InstallFoundation();
+                var capabilities = GetComponent<Ecaty.Flecs.Capabilities.CapabilityRuntime>();
+                capabilities?.QueueRestore(data["capabilities"] as JObject);
+                if (graph != null)
+                {
+                    int module = 0;
+                    while (world.Session.ManagedScriptSource("CapabilityGraphRestore" + module) != null)
+                        module++;
+                    foreach (string issue in Ecaty.Flecs.Capabilities.CapabilityGraph.Restore(world.Session, capabilities, graph, null, "CapabilityGraphRestore" + module))
+                        Debug.LogWarning(issue);
+                }
                 // Apply authored geometry before binding controllers; restore behavioral state last.
                 foreach (var state in states)
                 foreach (var component in ((JObject)state["components"]).Properties())
@@ -599,7 +615,6 @@ namespace Ecaty
                 foreach (var component in ((JObject)state["components"]).Properties())
                     if (world.Session.Lookup((string)state["entity"]) != 0)
                         world.Session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
-                GetComponent<Ecaty.Flecs.Capabilities.CapabilityRuntime>()?.QueueRestore(data["capabilities"] as JObject);
                 SelectControl((string)data["controlled"]);
                 Error = null;
             }

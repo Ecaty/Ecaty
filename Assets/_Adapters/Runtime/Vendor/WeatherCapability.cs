@@ -1,18 +1,27 @@
+using Ecaty.Flecs.Capabilities;
 #if ECATY_CAP_UNISTORM
 using System;
-using Ecaty.Flecs.Capabilities;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UniStorm;
+#endif
 namespace Ecaty.Flecs.PluginAdapters
 {
-    public sealed class WeatherCapability : CapabilityInstance
+    // Always compiled: the schema and saved configurations stay valid without the plugin.
+    [Capability("CapWeather", "weather", 45, Gate = "ECATY_CAP_UNISTORM", Probe = "Assets/UniStorm Weather System/Scripts/System/UniStormSystem.cs")]
+    public sealed class WeatherConfig
     {
-        UniStormSystem system; UniStormManager manager; JObject config;
+        public int hour = 12, minute, cloud;
+        [AssetKey] public string weather = "";
+    }
+#if ECATY_CAP_UNISTORM
+    public sealed class WeatherCapability : CapabilityInstance<WeatherConfig>
+    {
+        UniStormSystem system; UniStormManager manager; WeatherConfig config;
         public WeatherCapability(CapabilityContext c) : base(c) { }
-        public override void Apply(JObject j)
+        protected override void Apply(WeatherConfig j)
         {
-            config = (JObject)j.DeepClone();
+            config = j;
             if (!system)
             {
                 if (UniStormSystem.Instance)
@@ -34,14 +43,13 @@ namespace Ecaty.Flecs.PluginAdapters
         {
             if (config == null || !system.UniStormInitialized)
                 return;
-            manager.SetTime(Mathf.Clamp(config.I("hour", 12), 0, 23), Mathf.Clamp(config.I("minute"), 0, 59));
-            manager.UpdateCloudType(config.I("cloud") == 1 ? UniStormSystem.CloudTypeEnum._2D : UniStormSystem.CloudTypeEnum.Volumetric);
-            var weather = Context.Asset<WeatherType>(config.S("weather"));
+            manager.SetTime(Mathf.Clamp(config.hour, 0, 23), Mathf.Clamp(config.minute, 0, 59));
+            manager.UpdateCloudType(config.cloud == 1 ? UniStormSystem.CloudTypeEnum._2D : UniStormSystem.CloudTypeEnum.Volumetric);
+            var weather = Context.Asset<WeatherType>(config.weather);
             if (weather)
                 manager.ChangeWeatherWithTransition(weather);
             config = null;
         }
     }
-
-}
 #endif
+}

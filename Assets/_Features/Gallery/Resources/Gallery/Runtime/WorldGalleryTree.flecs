@@ -14,7 +14,7 @@ struct GalleryCameraMeasure(zoom: f32)
 struct GalleryRecenterState(weight: f32)
 struct GalleryGlassIntent(started: f32, entering: bool)
 struct GalleryGlassState(epoch: f32, progress: f32)
-struct GallerySavedWorld(source: string, objects: string, selected: string, revision: i32)
+struct GallerySavedWorld(source: string, objects: string, selected: string, revision: i32, graph: string)
 GalleryContentOf {}
 GalleryOnLayer {}
 GalleryTreeSettings {
