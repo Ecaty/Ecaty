@@ -237,6 +237,10 @@ SecondText : TextStyle { Position: {8,0,0} }
     assert query_read(w, handle, None, ents, None, vals, 4, 8) == 2
     diag = json.loads(c.string_at(diagnostics(w)).decode())
     assert diag["queryBuilds"] == builds, diag
+    assert query_changed(w, handle) == 0
+    assert managed(w, b"Unrelated", b"Other { Position: {9,0,0} }") == 0
+    assert query_changed(w, handle) == 1, "a source change must report each query as changed once (full refresh)"
+    assert query_read(w, handle, None, ents, None, vals, 4, 8) == 2 and query_changed(w, handle) == 0
     run(w, "Hot { Heat: {5} }")
     assert query_changed(w, handle) == 1
     assert managed(w, b"Types", b"struct Heat(value: f32, extra: f32)\nHot { Heat: {7, 1} }") == 0
