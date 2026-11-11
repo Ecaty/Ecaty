@@ -201,6 +201,83 @@ namespace Ecaty.Editor
                 Check(g.Experiences.Features(secondReal).Any(o => (string)o["name"] == reuse), "Another world reuses the saved object definition");
                 Check(g.EnterWorld(created), "Saved first world can reopen after unloading");
                 Check(JToken.DeepEquals(nativeObject, Read(contentPath, "Position")), "Unloaded world reconstructs its latest authored placement");
+                // Capability graph persistence: world-owned bindings with a dependency survive unload, re-entry and a disk reload.
+                {
+                    string glow = created + "Content.Glow";
+                    string glow2 = created + "Content.Glow2";
+                    string owned = "GalleryWorld_" + created + ".Lights";
+                    var warnings = new List<string>();
+                    Application.LogCallback capture = (message, stack, type) =>
+                    {
+                        if (type != LogType.Log && message.Contains(created))
+                            warnings.Add(message);
+                    };
+                    Application.logMessageReceived += capture;
+                    try
+                    {
+                        async Task<bool> Applied()
+                        {
+                            for (int wait = 0; wait < 40; wait++)
+                            {
+                                var a = world.Session.Lookup(glow) != 0 ? Read(glow, "CapState") : null;
+                                var b = world.Session.Lookup(glow2) != 0 ? Read(glow2, "CapState") : null;
+                                if ((int?)a?["phase"] == 1 && (int?)b?["phase"] == 1)
+                                    return true;
+                                await Task.Delay(100);
+                            }
+                            return false;
+                        }
+                        string DependsOn() => (string)JObject.Parse(world.Session.EntityJson(glow2))["pairs"]?["CapDependsOn"];
+                        int Lights() => world.FindView(world.Session.Lookup(contentPath))?.GetComponentsInChildren<Light>(true).Length ?? 0;
+                        async Task<bool> Resident(string id)
+                        {
+                            if (g.Experiences.ResidentId != id || world.Session.Lookup(id + "Content") == 0)
+                                g.EnterWorld(id);
+                            await Task.Delay(150);
+                            return g.Experiences.ResidentId == id && world.Session.Lookup(contentPath) != 0;
+                        }
+                        world.Session.SetManagedScript(owned, created + "Content {\n" +
+                            "    Glow { CapBinding: {target: " + contentPath + ", enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 2, range: 5, colorR: 1, colorG: 0.6, colorB: 0.2} }\n" +
+                            "    Glow2 { CapBinding: {target: " + contentPath + ", enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 3, colorR: 1, colorG: 1, colorB: 1}; (CapDependsOn, " + glow + ") }\n}\n");
+                        Check(await Applied() && Lights() >= 2, "World-owned capability bindings apply real Unity lights");
+                        var light = Read(glow, "CapLight");
+                        var light2 = Read(glow2, "CapLight");
+                        Check(DependsOn() == glow, "World-owned binding declares its dependency");
+                        // Leaving for another world captures the graph and unloads it with the private scope.
+                        Check(g.EnterWorld(secondReal), "Another world opens while capability bindings are resident");
+                        var graphText = (string)Read(created, "GallerySavedWorld")["graph"];
+                        var graph = string.IsNullOrEmpty(graphText) ? null : JObject.Parse(graphText);
+                        Check(graph != null && graph["entities"].Count() == 2 && graph["entities"].Any(e => (string)e["path"] == glow2 && e["dependsOn"].Any(t => (string)t == glow)) && graph["sources"].Any(s => (string)s["path"] == owned),
+                            "Saved world records its bindings, dependency relation and owned source");
+                        Check(world.Session.Lookup(glow) == 0 && world.Session.ManagedScriptSource(owned) == null, "Unloading removes world-owned bindings and sources");
+                        // Re-entering reconstructs the same configuration, relation and applied state.
+                        Check(await Resident(created) && await Applied(), "Re-entered world reapplies its capability bindings");
+                        Check(JToken.DeepEquals(light, Read(glow, "CapLight")) && JToken.DeepEquals(light2, Read(glow2, "CapLight")) && DependsOn() == glow && Lights() >= 2,
+                            "Re-entered bindings keep configuration, dependency and real output");
+                        // Disk round trip: the saved arrangement file reconstructs the graph after the world is unloaded.
+                        g.SaveArrangement();
+                        string onDisk = File.ReadAllText(CrystalWorldGallery.SavePath);
+                        g.EnterWorld(secondReal);
+                        g.RestoreArrangement(onDisk);
+                        await Task.Delay(150);
+                        Check(await Resident(created) && await Applied() && JToken.DeepEquals(light, Read(glow, "CapLight")) && DependsOn() == glow,
+                            "Saved arrangement file reconstructs capability bindings and dependency");
+                        // A record written before graphs existed (no graph member) still loads and enters.
+                        var legacy = JObject.Parse(g.CaptureArrangement());
+                        foreach (var row in legacy["worlds"])
+                            ((JObject)row["record"]).Remove("graph");
+                        g.EnterWorld(secondReal);
+                        g.RestoreArrangement(legacy.ToString());
+                        await Task.Delay(150);
+                        Check((string)Read(created, "GallerySavedWorld")["graph"] == "" && await Resident(created) && world.Session.Lookup(glow) == 0,
+                            "Legacy saved world without a capability graph loads and enters");
+                        Check(warnings.Count == 0, "Capability graph restore reports no problems: " + string.Join(" | ", warnings));
+                    }
+                    finally
+                    {
+                        Application.logMessageReceived -= capture;
+                    }
+                }
                 g.ReturnToGallery();
                 g.RestoreArrangement(snapshot);
                 await Task.Delay(150);
