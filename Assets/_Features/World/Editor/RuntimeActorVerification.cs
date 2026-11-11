@@ -230,7 +230,14 @@ namespace Ecaty.Editor
                 Require(facing > .9f, "The sample front does not face its movement.");
                 report["sampleFrontDotMovement"] = facing;
                 checks.Add("runtime facing correction, opposite-leg steps and measured planted-foot ground contact");
-                Require(engine.Motor.transform.position.x > start.x + 1, "Player input did not move the actual motor.");
+                // Earlier device phases may already have walked the actor to the ground edge; reaching the edge also proves motion.
+                var motorPosition = engine.Motor.transform.position;
+                float edge = float.NegativeInfinity;
+                foreach (var box in Object.FindObjectsByType<BoxCollider>(FindObjectsSortMode.None))
+                    if (box.bounds.Contains(new Vector3(motorPosition.x, box.bounds.center.y, motorPosition.z)) || box.bounds.min.z <= motorPosition.z && motorPosition.z <= box.bounds.max.z)
+                        edge = Mathf.Max(edge, box.bounds.max.x - engine.Motor.radius);
+                Require(motorPosition.x > start.x + 1 || motorPosition.x >= edge - .1f,
+                    $"Player input did not move the actual motor: startX={start.x:F2} endX={motorPosition.x:F2} groundEdgeX={edge:F2}.");
                 Require(Mathf.Abs(engine.Motor.transform.position.y) < .1f, "The actor fell through the diorama.");
                 checks.Add("Input System gamepad selects control; runtime Flecs input moves the same grounded motor");
 
