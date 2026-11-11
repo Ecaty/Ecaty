@@ -163,6 +163,7 @@ namespace Ecaty.Editor
                 var configure = System.Linq.Enumerable.First(tools, t => t.Name == "configure_actor");
                 await apply.ExecuteAsync(new JObject { ["recipe"] = Resources.Load<TextAsset>("Runtime/Examples/RuntimeCreature").text }.ToString(), default);
                 await configure.ExecuteAsync(new JObject { ["config"] = Resources.Load<TextAsset>("Runtime/Examples/RuntimeCreatureControl").text }.ToString(), default);
+                float configuredAt = Time.realtimeSinceStartup, configuredGameTime = Time.time;
                 await Frames(8);
                 Require(engine.Motor && engine.Legs && engine.Legs.LegsInitialized && engine.Secondary,
                     "The runtime motor or procedural plugins failed to initialize.");
@@ -202,6 +203,20 @@ namespace Ecaty.Editor
                 var start = engine.Motor.transform.position;
                 int leftOnly = 0, rightOnly = 0, stanceSamples = 0;
                 float contactError = 0;
+                // Timing and per-leg diagnostics: the gait result has depended on Editor frame time.
+                var legs = engine.Legs;
+                var gaitStart = new JObject
+                {
+                    ["realSecondsSinceConfigure"] = Time.realtimeSinceStartup - configuredAt,
+                    ["gameSecondsSinceConfigure"] = Time.time - configuredGameTime,
+                    ["mainBlend"] = legs._MainBlend,
+                    ["groundedBlend"] = legs.IsGroundedBlend,
+                    ["groundedTime"] = legs.GroundedTime,
+                    ["movingTime"] = legs.MovingTime
+                };
+                int bothSwing = 0, leftSwingFrames = 0, rightSwingFrames = 0, leftAttached = 0, rightAttached = 0;
+                int leftRay = 0, rightRay = 0, sampled = 0;
+                float realFrames = 0, gameFrames = 0, minRight = 1, maxRight = 0;
                 for (int i = 0; i < 140; i++)
                 {
                     engine.StepMotor(1f / 60);
@@ -214,6 +229,18 @@ namespace Ecaty.Editor
                         leftOnly++;
                     if (rightSwing && !leftSwing)
                         rightOnly++;
+                    sampled++;
+                    realFrames += Time.unscaledDeltaTime;
+                    gameFrames += Time.deltaTime;
+                    bothSwing += leftSwing && rightSwing ? 1 : 0;
+                    leftSwingFrames += leftSwing ? 1 : 0;
+                    rightSwingFrames += rightSwing ? 1 : 0;
+                    leftAttached += legs.Legs[0].G_Attached ? 1 : 0;
+                    rightAttached += legs.Legs[1].G_Attached ? 1 : 0;
+                    leftRay += legs.Legs[0].RaycastHitted ? 1 : 0;
+                    rightRay += legs.Legs[1].RaycastHitted ? 1 : 0;
+                    minRight = Mathf.Min(minRight, gaitProbe.RightPhase);
+                    maxRight = Mathf.Max(maxRight, gaitProbe.RightPhase);
                     if (gaitProbe.LeftPlanted || gaitProbe.RightPlanted)
                     {
                         stanceSamples++;
@@ -225,7 +252,20 @@ namespace Ecaty.Editor
                     ["leftOnlyFrames"] = leftOnly,
                     ["rightOnlyFrames"] = rightOnly,
                     ["stanceSamples"] = stanceSamples,
-                    ["meanGroundContactError"] = contactError / Mathf.Max(1, stanceSamples)
+                    ["meanGroundContactError"] = contactError / Mathf.Max(1, stanceSamples),
+                    ["start"] = gaitStart,
+                    ["samples"] = sampled,
+                    ["meanRealFrameMs"] = 1000 * realFrames / Mathf.Max(1, sampled),
+                    ["meanGameFrameMs"] = 1000 * gameFrames / Mathf.Max(1, sampled),
+                    ["bothSwingFrames"] = bothSwing,
+                    ["leftSwingFrames"] = leftSwingFrames,
+                    ["rightSwingFrames"] = rightSwingFrames,
+                    ["leftAttachedFrames"] = leftAttached,
+                    ["rightAttachedFrames"] = rightAttached,
+                    ["leftRayHitFrames"] = leftRay,
+                    ["rightRayHitFrames"] = rightRay,
+                    ["rightPhaseRange"] = new JArray(minRight, maxRight),
+                    ["legSides"] = new JArray(legs.Legs[0].Side.ToString(), legs.Legs[1].Side.ToString())
                 };
                 Require(leftOnly > 2 && rightOnly > 2, "Feet did not take independent alternating steps.");
                 Require(stanceSamples > 10 && contactError / stanceSamples < .08f, "Planted feet did not track the ground.");
