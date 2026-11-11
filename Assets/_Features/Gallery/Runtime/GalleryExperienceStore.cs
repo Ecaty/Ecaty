@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Ecaty.Flecs;
+using Ecaty.Flecs.Capabilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -30,6 +31,16 @@ namespace Ecaty
                 world.Session.SetManagedScript(Shared, "prefab GallerySharedShape { Primitive: {1}; Scale: {1,1,1}; Color: {0.8,0.88,0.79,1} }");
         }
         public bool Has(string id) => !string.IsNullOrEmpty((string)ReadRecord(id)?["source"]);
+        // Capability bindings live under the private root; world-owned behavior sources use this module prefix.
+        static string Scope(string id) => id + "Content";
+        static string Owned(string id) => "GalleryWorld_" + id + ".";
+        static string GraphModule(string id) => "GalleryGraph_" + id;
+        CapabilityRuntime Capabilities => world.GetComponent<CapabilityRuntime>();
+        static JObject Graph(JToken record)
+        {
+            string text = (string)record?["graph"];
+            return string.IsNullOrEmpty(text) ? null : JObject.Parse(text);
+        }
         JObject ReadRecord(string id)
         {
             if (string.IsNullOrEmpty(id) || world.Session.Lookup(id) == 0)
@@ -60,13 +71,18 @@ namespace Ecaty
             }
             return s.Append("}\n").ToString();
         }
-        void SetRecord(string id, JArray objects, string selected)
+        void SetRecord(string id, JArray objects, string selected, JObject graph = null, bool replaceGraph = false)
         {
-            Validate(id, objects);
-            world.Session.SetComponentJson(id, "GallerySavedWorld", new JObject { ["source"] = Source(id, objects), ["objects"] = objects.ToString(Formatting.None), ["selected"] = selected ?? "", ["revision"] = ((int?)ReadRecord(id)?["revision"] ?? 0) + 1 }.ToString(Formatting.None));
+            Validate(id, objects, graph);
+            var previous = ReadRecord(id);
+            string graphText = replaceGraph ? graph?.ToString(Formatting.None) ?? "" : (string)previous?["graph"] ?? "";
+            world.Session.SetComponentJson(id, "GallerySavedWorld", new JObject { ["source"] = Source(id, objects), ["objects"] = objects.ToString(Formatting.None), ["selected"] = selected ?? "", ["revision"] = ((int?)previous?["revision"] ?? 0) + 1, ["graph"] = graphText }.ToString(Formatting.None));
         }
-        static void Validate(string id, JArray objects)
+        static void Validate(string id, JArray objects, JObject graph = null)
         {
+            string invalidGraph = CapabilityGraph.Validate(graph, Scope(id), Owned(id));
+            if (invalidGraph != null)
+                throw new ArgumentException(invalidGraph);
             if (!System.Text.RegularExpressions.Regex.IsMatch(id ?? "", "^GalleryCreation[1-9][0-9]{0,8}$") || objects.Count > 64)
                 throw new ArgumentException("Invalid saved world");
             var names = new HashSet<string>();
@@ -108,6 +124,9 @@ namespace Ecaty
                     throw new InvalidOperationException("Saved world produced no root view");
                 if (!world.AcquirePose(rootId, this))
                     throw new InvalidOperationException("Saved world origin already owned");
+                // Capability bindings, dependency relations, trees and owned behavior sources follow the objects they target.
+                foreach (string issue in CapabilityGraph.Restore(world.Session, Capabilities, Graph(record), Scope(id), GraphModule(id), Owned(id)))
+                    Debug.LogWarning(id + ": " + issue);
             }
             root.position = origin;
             root.rotation = Quaternion.identity;
@@ -151,7 +170,9 @@ namespace Ecaty
                     if (components[type] != null && (type != "Spin" || visible))
                         shape[type] = components[type].DeepClone();
             }
-            SetRecord(resident, objects, (string)ReadRecord(resident)["selected"]);
+            var graph = CapabilityGraph.Capture(world.Session, Capabilities, Scope(resident), Owned(resident));
+            bool empty = !graph["entities"].HasValues && !graph["sources"].HasValues;
+            SetRecord(resident, objects, (string)ReadRecord(resident)["selected"], empty ? null : graph, true);
         }
         public JArray Capture()
         {
@@ -170,16 +191,16 @@ namespace Ecaty
             if (records.Count > 80 || records.Select(r => (string)r["id"]).Distinct().Count() != records.Count)
                 throw new ArgumentException("Invalid saved world catalog");
             foreach (var row in records)
-                Validate((string)row["id"], JArray.Parse((string)row["record"]["objects"]));
+                Validate((string)row["id"], JArray.Parse((string)row["record"]["objects"]), Graph(row["record"]));
             Unload();
             foreach (var row in JObject.Parse(world.Session.Query("GallerySavedWorld"))["results"])
-                world.Session.SetComponentJson((string)row["name"], "GallerySavedWorld", new JObject { ["source"] = "", ["objects"] = "[]", ["selected"] = "", ["revision"] = 0 }.ToString());
+                world.Session.SetComponentJson((string)row["name"], "GallerySavedWorld", new JObject { ["source"] = "", ["objects"] = "[]", ["selected"] = "", ["revision"] = 0, ["graph"] = "" }.ToString());
             foreach (var row in records)
             {
                 string id = (string)row["id"];
                 if (world.Session.Lookup(id) == 0)
                     throw new ArgumentException("Saved-world catalog entry missing");
-                SetRecord(id, JArray.Parse((string)row["record"]["objects"]), (string)row["record"]["selected"]);
+                SetRecord(id, JArray.Parse((string)row["record"]["objects"]), (string)row["record"]["selected"], Graph(row["record"]), true);
             }
         }
         public void Select(string name)
@@ -243,6 +264,11 @@ namespace Ecaty
                 return;
             CaptureResident();
             world.ReleasePose(rootId, this);
+            foreach (string path in world.Session.ManagedPaths.Where(p => p == GraphModule(resident) || p.StartsWith(Owned(resident), StringComparison.Ordinal)).ToArray())
+            {
+                world.Session.SetManagedScript(path, "");
+                world.Session.DeleteEntity(path);
+            }
             world.Session.SetManagedScript("GalleryContent_" + resident, "");
             world.Session.DeleteEntity("GalleryContent_" + resident);
             world.Session.DeleteEntity(resident + "Content");
