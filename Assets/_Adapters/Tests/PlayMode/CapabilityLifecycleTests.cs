@@ -13,13 +13,21 @@ namespace Ecaty.Tests
     // is disabled. Configurations that need registered assets or targets may fail; failure must clean up as well.
     public sealed class CapabilityLifecycleTests
     {
-        // Components under the isolated world plus runtime-created assets (meshes, materials, profiles, clips).
-        // Scene objects owned by the separately running application are not counted.
-        static int RuntimeObjects(FlecsWorld world)
+        // Objects present now that were absent from the earlier snapshot. Scene objects owned by the separately
+        // running application (outside the isolated world) are not counted.
+        static List<string> Added(HashSet<Object> before, FlecsWorld world)
         {
-            int components = world.GetComponentsInChildren<Component>(true).Length;
-            int assets = Resources.FindObjectsOfTypeAll<Object>().Count(o => o && o.GetInstanceID() < 0 && o is not GameObject && o is not Component);
-            return components + assets;
+            var added = new List<string>();
+            foreach (var o in Resources.FindObjectsOfTypeAll<Object>())
+            {
+                if (!o || before.Contains(o))
+                    continue;
+                var go = o as GameObject ?? (o as Component)?.gameObject;
+                if (go && !go.transform.IsChildOf(world.transform))
+                    continue;
+                added.Add(o.GetType().Name + " " + o.name);
+            }
+            return added;
         }
         static IEnumerator Frames(int count)
         {
@@ -46,7 +54,7 @@ namespace Ecaty.Tests
                     var config = System.Activator.CreateInstance(descriptor.Config);
                     foreach (var field in CapabilityConfig.Members(descriptor.Config).Where(f => descriptor.EntityFields.Contains(f.Name)))
                         field.SetValue(config, "LifecycleTarget");
-                    int baseline = 0;
+                    HashSet<Object> warmed = null;
                     // The first cycle warms shared caches (plugin singletons, shader variants); the second must return to it.
                     for (int cycle = 0; cycle < 2; cycle++)
                     {
@@ -61,11 +69,10 @@ namespace Ecaty.Tests
                         runtime.Reconcile();
                         yield return Frames(3);
                         Assert.That(runtime.BindingCount, Is.EqualTo(0), adapter.Component + " binding survived removal");
-                        int count = RuntimeObjects(world);
                         if (cycle == 0)
-                            baseline = count;
-                        else if (count > baseline)
-                            leaks.Add(adapter.Component + ": +" + (count - baseline));
+                            warmed = new HashSet<Object>(Resources.FindObjectsOfTypeAll<Object>());
+                        else
+                            leaks.AddRange(Added(warmed, world).Select(o => adapter.Component + ": " + o));
                     }
                 }
                 Assert.That(leaks, Is.Empty, "Runtime objects remained after dispose");
