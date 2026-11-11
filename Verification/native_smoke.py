@@ -295,6 +295,30 @@ Full : Base { Position: {2,0,0}; Rotation: {0,45,0}; Color: {0.5,0.25,0,1}; Prim
     assert any(v.has_label for v in views(w))
     destroy(w); w = None
     checks.append("UnityViews cached query: optional fields, defaults and inherited values")
+
+    # Bisect switches restore the ABI 2 behaviour per feature and give the same results.
+    w = create_ex(0, 0x700)
+    assert json.loads(c.string_at(diagnostics(w)).decode())["compat"] == 0x700
+    assert managed(w, b"Types", b"struct Heat(value: f32)\nHot { Heat: {3} }") == 0
+    for i in range(3):
+        run(w, "Hot { Heat: {4} }")
+    diag = json.loads(c.string_at(diagnostics(w)).decode())
+    assert diag["scriptReuses"] == 0, diag
+    handle = query_create(w, b"Heat")
+    assert query_read(w, handle, None, ents, None, vals, 4, 8) == 1 and vals[0] == 4
+    builds = json.loads(c.string_at(diagnostics(w)).decode())["queryBuilds"]
+    assert managed(w, b"Unrelated", b"Other { Position: {9,0,0} }") == 0
+    assert query_read(w, handle, None, ents, None, vals, 4, 8) == 1
+    assert json.loads(c.string_at(diagnostics(w)).decode())["queryBuilds"] == builds + 1, "flush switch must recompile"
+    assert managed(w, b"ViewProbe", b"""
+prefab Base { Scale: {2,2,2} }
+Plain { Position: {1,0,0} }
+Full : Base { Position: {2,0,0}; Rotation: {0,45,0}; Color: {0.5,0.25,0,1}; Primitive: {1} }
+""") == 0
+    vs = {v.px: v for v in views(w)}
+    assert (vs[1].sx, vs[1].primitive) == (1, -1) and (vs[2].ry, vs[2].sx, vs[2].g, vs[2].primitive) == (45, 2, 0.25, 1)
+    destroy(w); w = None
+    checks.append("bisect switches: per-call parse, query flush on source change, per-entity view read")
     report["passed"]=True
 except BaseException as exc:
     report["error"]=repr(exc)
