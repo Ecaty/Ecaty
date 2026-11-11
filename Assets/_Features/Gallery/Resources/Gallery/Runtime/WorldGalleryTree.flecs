@@ -1,9 +1,6 @@
 using flecs.script.math
+// GalleryTreeActivity, GalleryTreeMotion, GalleryLayerIntent and GalleryLayerState are native components (Native/App).
 struct GalleryTreeConfig(diameter: f32, worldGap: f32, layerGap: f32, width: f32, opacity: f32, sphereOpacity: f32, rim: f32, frost: f32, rearFade: f32, speed: f32, response: f32, style: i32, feather: f32)
-struct GalleryTreeActivity(rate: f32, draft: bool, sequence: i32, elapsed: f32, started: f32)
-struct GalleryTreeMotion(time: f32)
-struct GalleryLayerIntent(angle: f32, speed: f32, started: f32, glowPhase: f32, glowRate: f32)
-struct GalleryLayerState(turn: f32)
 struct GalleryPlacement(layer: i32, slot: i32)
 struct GalleryDrag(source: string, target: string, active: bool)
 struct GalleryVisibility(covered: f32, opacity: f32, pickable: bool)

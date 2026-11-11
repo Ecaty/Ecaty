@@ -1,11 +1,5 @@
 using flecs.script.math
-GalleryTreeSettings { GalleryTreeMotion: {GalleryTreeSettings[GalleryTreeActivity].elapsed + (Clock[Clock].time - GalleryTreeSettings[GalleryTreeActivity].started) * GalleryTreeSettings[GalleryTreeActivity].rate} }
-GalleryTreeLayer1 { GalleryLayerState: {GalleryTreeLayer1[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer1[GalleryLayerIntent].started) * GalleryTreeLayer1[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
-GalleryTreeLayer2 { GalleryLayerState: {GalleryTreeLayer2[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer2[GalleryLayerIntent].started) * GalleryTreeLayer2[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
-GalleryTreeLayer3 { GalleryLayerState: {GalleryTreeLayer3[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer3[GalleryLayerIntent].started) * GalleryTreeLayer3[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
-GalleryTreeLayer4 { GalleryLayerState: {GalleryTreeLayer4[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer4[GalleryLayerIntent].started) * GalleryTreeLayer4[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
-GalleryTreeLayer5 { GalleryLayerState: {GalleryTreeLayer5[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer5[GalleryLayerIntent].started) * GalleryTreeLayer5[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
-GalleryTreeLayer6 { GalleryLayerState: {GalleryTreeLayer6[GalleryLayerIntent].angle + (Clock[Clock].time - GalleryTreeLayer6[GalleryLayerIntent].started) * GalleryTreeLayer6[GalleryLayerIntent].speed * GalleryTreeSettings[GalleryTreeActivity].rate} }
+// Tree clock and ring turns are compiled native systems (Native/App). Event-driven derived state stays here.
 
 GalleryTreeSettings {
     GalleryReturnState: {
