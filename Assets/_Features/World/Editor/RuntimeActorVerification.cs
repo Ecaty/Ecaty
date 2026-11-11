@@ -125,6 +125,8 @@ namespace Ecaty.Editor
                 chatRenderer.RegisterUIReloadCallback(getUI);
                 chatRenderer.UnregisterUIReloadCallback(getUI);
                 var launcher = ui.Q<Button>("workshopSettings");
+                for (int wait = 0; wait < 120 && !(launcher != null && launcher.resolvedStyle.width >= 80); wait++)
+                    await Frames(1);
                 Require(launcher != null && launcher.resolvedStyle.width >= 80 &&
                     System.Linq.Enumerable.Any(launcher.resolvedStyle.backdropFilter),
                     "The glass settings launcher style did not resolve.");

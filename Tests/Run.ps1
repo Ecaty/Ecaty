@@ -93,6 +93,17 @@ try {
         if([DateTime]::UtcNow -gt $deadline){throw 'Unity is still compiling. Wait for imports to finish.'}
         Start-Sleep -Milliseconds 500;Wait-Editor
     } while($true)
+    # New or changed Editor sources (RunnerSupport) must be imported and compiled before the first call into them.
+    Invoke-Editor @('script','eval','UnityEditor.AssetDatabase.Refresh();return true;') | Out-Null
+    Start-Sleep -Milliseconds 750;Wait-Editor
+    $bootDeadline=[DateTime]::UtcNow.AddMinutes(3)
+    do {
+        $bootCompile=Invoke-Editor @('script','recompile_status')
+        if($bootCompile.failed -or $bootCompile.compilationFailed){throw "Compilation failed: $($bootCompile.errors -join '; ')"}
+        if($bootCompile.status -ne 'compiling' -and -not (Invoke-Editor @('editor','status')).compiling){break}
+        if([DateTime]::UtcNow -gt $bootDeadline){throw 'Initial compilation exceeded three minutes.'}
+        Start-Sleep -Milliseconds 500;Wait-Editor
+    } while($true)
     $wasPlaying=$initial.playMode -eq 'playing'
     if($initial.playMode -eq 'paused'){throw 'Resume or stop paused Play mode before running tests.'}
     $tickState=Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.AutoTickState();')
