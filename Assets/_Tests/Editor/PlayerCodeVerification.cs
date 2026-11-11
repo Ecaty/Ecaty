@@ -22,14 +22,23 @@ namespace Ecaty.Editor
                 throw new InvalidOperationException("Editor sources entered player assemblies: " + string.Join(", ", leaked));
             string directory = Path.GetFullPath(outputDirectory);
             Directory.CreateDirectory(directory);
-            var settings = new ScriptCompilationSettings { target = BuildTarget.StandaloneWindows64, group = BuildTargetGroup.Standalone, options = ScriptCompilationOptions.DevelopmentBuild };
-            var compiled = PlayerBuildInterface.CompilePlayerScripts(settings, directory);
-            var names = compiled.assemblies.Select(Path.GetFileName).ToArray();
             string[] required = { "Assembly-CSharp.dll", "Runtime.Capabilities.dll", "Ecaty.Flecs.dll", "Ecaty.Agents.dll" };
-            var missing = required.Where(n => !names.Contains(n)).ToArray();
-            var report = new JObject { ["passed"] = missing.Length == 0, ["target"] = "Windows64", ["assemblyCount"] = names.Length, ["editorSourceLeaks"] = new JArray(leaked), ["missing"] = new JArray(missing), ["directory"] = directory };
+            var targets = new JArray();
+            bool passed = true;
+            foreach (var (target, group, name) in new[] { (BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Windows64"), (BuildTarget.Android, BuildTargetGroup.Android, "Android") })
+            {
+                string targetDirectory = Path.Combine(directory, name);
+                Directory.CreateDirectory(targetDirectory);
+                var settings = new ScriptCompilationSettings { target = target, group = group, options = ScriptCompilationOptions.DevelopmentBuild };
+                var compiled = PlayerBuildInterface.CompilePlayerScripts(settings, targetDirectory);
+                var names = compiled.assemblies.Select(Path.GetFileName).ToArray();
+                var missing = required.Where(n => !names.Contains(n)).ToArray();
+                passed &= missing.Length == 0;
+                targets.Add(new JObject { ["target"] = name, ["assemblyCount"] = names.Length, ["missing"] = new JArray(missing) });
+            }
+            var report = new JObject { ["passed"] = passed, ["targets"] = targets, ["editorSourceLeaks"] = new JArray(leaked), ["directory"] = directory };
             File.WriteAllText("Verification/player-script-checks.json", report.ToString());
-            if (missing.Length > 0)
+            if (!passed)
                 throw new InvalidOperationException(report.ToString());
             return report;
         }
