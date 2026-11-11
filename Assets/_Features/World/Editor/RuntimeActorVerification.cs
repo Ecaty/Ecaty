@@ -217,6 +217,7 @@ namespace Ecaty.Editor
                 int bothSwing = 0, leftSwingFrames = 0, rightSwingFrames = 0, leftAttached = 0, rightAttached = 0;
                 int leftRay = 0, rightRay = 0, sampled = 0;
                 float realFrames = 0, gameFrames = 0, minRight = 1, maxRight = 0;
+                int movingFrames = 0, leftAsksDetach = 0, rightAsksDetach = 0;
                 for (int i = 0; i < 140; i++)
                 {
                     engine.StepMotor(1f / 60);
@@ -240,6 +241,9 @@ namespace Ecaty.Editor
                     leftRay += legs.Legs[0].RaycastHitted ? 1 : 0;
                     rightRay += legs.Legs[1].RaycastHitted ? 1 : 0;
                     minRight = Mathf.Min(minRight, gaitProbe.RightPhase);
+                    movingFrames += legs.IsMoving ? 1 : 0;
+                    leftAsksDetach += legs.Legs[0]._Glue_AskingForDetach ? 1 : 0;
+                    rightAsksDetach += legs.Legs[1]._Glue_AskingForDetach ? 1 : 0;
                     maxRight = Mathf.Max(maxRight, gaitProbe.RightPhase);
                     if (gaitProbe.LeftPlanted || gaitProbe.RightPlanted)
                     {
@@ -265,7 +269,14 @@ namespace Ecaty.Editor
                     ["leftRayHitFrames"] = leftRay,
                     ["rightRayHitFrames"] = rightRay,
                     ["rightPhaseRange"] = new JArray(minRight, maxRight),
-                    ["legSides"] = new JArray(legs.Legs[0].Side.ToString(), legs.Legs[1].Side.ToString())
+                    ["legSides"] = new JArray(legs.Legs[0].Side.ToString(), legs.Legs[1].Side.ToString()),
+                    ["motorStartX"] = start.x,
+                    ["motorEndX"] = engine.Motor.transform.position.x,
+                    ["isMovingFrames"] = movingFrames,
+                    ["askingDetachFrames"] = new JArray(leftAsksDetach, rightAsksDetach),
+                    ["glueMode"] = legs.GlueMode.ToString(),
+                    ["allowDetachBefore"] = new JArray(legs.LegAnimatingSettings.AllowDetachBefore,
+                        legs.Legs[0].LegAnimatingSettings.AllowDetachBefore, legs.Legs[1].LegAnimatingSettings.AllowDetachBefore)
                 };
                 Require(leftOnly > 2 && rightOnly > 2, "Feet did not take independent alternating steps.");
                 Require(stanceSamples > 10 && contactError / stanceSamples < .08f, "Planted feet did not track the ground.");
