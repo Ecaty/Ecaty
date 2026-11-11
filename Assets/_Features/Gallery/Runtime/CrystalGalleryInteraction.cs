@@ -220,11 +220,11 @@ namespace Ecaty
                     {
                         QueueSave();
                         entryArmed = false;
-                        var intent = Read("GalleryTreeLayer" + selectedLayer, "GalleryLayerIntent");
+                        var intent = Read(LayerId(selectedLayer), "GalleryLayerIntent");
                         ringDragTurn += Mathf.DeltaAngle(previousRingAngle, angle) * Mathf.Deg2Rad;
                         intent["angle"] = ringDragTurn;
                         intent["started"] = time;
-                        Write("GalleryTreeLayer" + selectedLayer, "GalleryLayerIntent", intent);
+                        Write(LayerId(selectedLayer), "GalleryLayerIntent", intent);
                     }
                     previousRingAngle = angle;
                     ringAngleValid = true;
@@ -411,7 +411,7 @@ namespace Ecaty
                     WriteEntry(i);
                 }
             }
-            layoutSignature = null;
+            layoutValid = false;
             Arrange();
             SaveArrangement();
         }
@@ -490,7 +490,7 @@ namespace Ecaty
             Arrange(true);
             byId[id].Entry.Anchor.position = invitation.position;
             EnterWorld(id, true);
-            layoutSignature = null;
+            layoutValid = false;
             return id;
         }
         public bool EnterWorld(string id, bool preserveReturn = false)
@@ -586,7 +586,17 @@ namespace Ecaty
             view["z"] = 0;
             WriteView();
         }
-        float GalleryCenterY => 2.1f - (Mathf.Max(0, items.Where(i => i.Entry.Active).Select(i => i.Level).DefaultIfEmpty(0).Max())) * F("layerGap") * .5f;
+        float GalleryCenterY
+        {
+            get
+            {
+                int deepest = 0;
+                foreach (var item in items)
+                    if (item.Entry.Active)
+                        deepest = Mathf.Max(deepest, item.Level);
+                return 2.1f - deepest * F("layerGap") * .5f;
+            }
+        }
         void StepEnteredCamera(Vector2 delta, bool orbit, bool pan, float ticks)
         {
             if (Mathf.Abs(ticks) < .01f && N("exitArmed"))
@@ -697,8 +707,8 @@ namespace Ecaty
         }
         JObject CaptureLayer(int layer)
         {
-            var state = Read("GalleryTreeLayer" + layer, "GalleryLayerState");
-            var intent = Read("GalleryTreeLayer" + layer, "GalleryLayerIntent");
+            var state = Read(LayerId(layer), "GalleryLayerState");
+            var intent = Read(LayerId(layer), "GalleryLayerIntent");
             return new JObject { ["turn"] = (float)state["turn"], ["glowPhase"] = (float)intent["glowPhase"], ["glowRate"] = (float)intent["glowRate"] };
         }
         public string CaptureArrangement()
@@ -783,14 +793,14 @@ namespace Ecaty
             if (data["layers"] is JArray turns)
                 for (int i = 0; i < Mathf.Min(6, turns.Count); i++)
                 {
-                    var intent = Read("GalleryTreeLayer" + (i + 1), "GalleryLayerIntent");
+                    var intent = Read(LayerId(i + 1), "GalleryLayerIntent");
                     intent["angle"] = (float)turns[i]["turn"];
                     intent["started"] = time;
                     if (turns[i]["glowPhase"] != null)
                         intent["glowPhase"] = (float)turns[i]["glowPhase"];
                     if (turns[i]["glowRate"] != null)
                         intent["glowRate"] = (float)turns[i]["glowRate"];
-                    Write("GalleryTreeLayer" + (i + 1), "GalleryLayerIntent", intent);
+                    Write(LayerId(i + 1), "GalleryLayerIntent", intent);
                 }
             if (data["portal"] is JObject portal)
             {
@@ -821,7 +831,7 @@ namespace Ecaty
             ReadState();
             Arrange(true);
             for (int layer = 0; layer < layers.Count; layer++)
-                layers[layer].transform.localRotation = Quaternion.Euler(0, -(float)Read("GalleryTreeLayer" + (layer + 1), "GalleryLayerState")["turn"] * Mathf.Rad2Deg, 0);
+                layers[layer].transform.localRotation = Quaternion.Euler(0, -(float)Read(LayerId(layer + 1), "GalleryLayerState")["turn"] * Mathf.Rad2Deg, 0);
             ApplyCamera(true);
             nextVisibility = 0;
             if (InsideWorld && byId.TryGetValue(CurrentWorldId, out var item))

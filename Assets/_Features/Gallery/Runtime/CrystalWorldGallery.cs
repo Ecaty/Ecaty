@@ -45,7 +45,13 @@ namespace Ecaty
         GalleryTreeArt art; GalleryPreviewStage stage; GalleryLayoutProfile profile;
         Transform layoutRoot, invitation, cameraTarget, cameraRig; Renderer invitationShell; Transform invitationCore;
         CinemachineCamera virtualCamera; CinemachineFollow follow;
-        JObject view, focus, activity, config, navigation; string profileSignature, layoutSignature;
+        JObject view, focus, activity, config, navigation;
+#if UNITY_EDITOR
+        long profileSignature, configSignature;
+#endif
+        bool layoutValid;
+        JObject layoutConfig;
+        readonly List<Item> layoutOrder = new(), arrangeScratch = new();
         bool presentationFrozen;
         int appliedGlowSeed = int.MinValue;
         float time, motionTime, nextRead, currentYaw, currentPitch, currentZoom = 1, entryBlend, travel, travelStart;
@@ -65,10 +71,46 @@ namespace Ecaty
         public Transform DragGhost => ghost;
         public static string SavePath => Path.Combine(Application.persistentDataPath, "GalleryPrototype", "tree-arrangement.json");
         float F(string key) => (float)config[key];
-        readonly Dictionary<(string, string), JObject> frameComponents = new(); readonly Dictionary<string, ulong> entityIds = new(); int readFrame = -1, nativeReads;
+        // One parsed JObject per (entity, component), reused across frames while the native JSON bytes are unchanged and the
+        // caller has not modified it. Reparsing every component every frame was the main idle GC source.
+        sealed class CachedComponent
+        {
+            public JObject Value;
+            public byte[] Bytes = Array.Empty<byte>();
+            public int Length = -1, Frame = -1;
+            public bool Modified = true;
+            readonly System.ComponentModel.PropertyChangedEventHandler changed;
+            readonly System.Collections.Specialized.NotifyCollectionChangedEventHandler added;
+            public CachedComponent()
+            {
+                changed = (_, _) => Modified = true;
+                added = (_, _) => Modified = true;
+            }
+            public void Set(JObject value)
+            {
+                if (Value != null)
+                {
+                    Value.PropertyChanged -= changed;
+                    Value.CollectionChanged -= added;
+                }
+                Value = value;
+                Modified = false;
+                if (value == null)
+                    return;
+                value.PropertyChanged += changed;
+                value.CollectionChanged += added;
+            }
+        }
+        readonly Dictionary<(string, string), CachedComponent> components = new();
+        readonly Dictionary<string, ulong> entityIds = new();
+        byte[] jsonBuffer = new byte[1024];
+        int readFrame = -1, nativeReads;
         public int NativeReadsThisFrame => nativeReads;
         static readonly Unity.Profiling.ProfilerMarker NativeReadMarker = new("Ecaty.Gallery.NativeRead");
         static readonly Unity.Profiling.ProfilerMarker AppearanceMarker = new("Ecaty.Gallery.Appearance");
+        static readonly string[] LayerIds = { "GalleryTreeLayer0", "GalleryTreeLayer1", "GalleryTreeLayer2", "GalleryTreeLayer3",
+            "GalleryTreeLayer4", "GalleryTreeLayer5", "GalleryTreeLayer6" };
+        static string LayerId(int layer) => layer >= 0 && layer < LayerIds.Length ? LayerIds[layer] : "GalleryTreeLayer" + layer;
         ulong Entity(string id, bool refresh = false)
         {
             if (refresh || !entityIds.TryGetValue(id, out var e))
@@ -79,28 +121,85 @@ namespace Ecaty
             }
             return e;
         }
-        // Reads one component (small JSON) instead of the whole entity with type info; ~15x cheaper per call (docs/FLECS-ARCHITECTURE-AUDIT.md).
+        // Reads one component as JSON into a reusable buffer and parses only when the bytes changed (docs/FLECS-ARCHITECTURE-AUDIT.md).
+        // Within a frame the same instance is returned, as before; Write invalidates it so the next read returns native truth.
         JObject Read(string id, string type)
         {
             if (readFrame != Time.frameCount)
             {
                 readFrame = Time.frameCount;
-                frameComponents.Clear();
                 nativeReads = 0;
             }
-            if (!frameComponents.TryGetValue((id, type), out var component))
+            if (!components.TryGetValue((id, type), out var cached))
             {
-                using (NativeReadMarker.Auto())
-                {
-                    string json = world.Session.ComponentJson(Entity(id), type);
-                    if (json == null)
-                        json = world.Session.ComponentJson(Entity(id, true), type);
-                    component = json == null ? null : JObject.Parse(json);
-                }
-                frameComponents[(id, type)] = component;
-                nativeReads++;
+                cached = new CachedComponent();
+                components.Add((id, type), cached);
             }
-            return component;
+            if (cached.Frame == readFrame)
+                return cached.Value;
+            using (NativeReadMarker.Auto())
+            {
+                ulong typeId = world.Session.TypeId(type);
+                int length = typeId == 0 ? -1 : world.Session.ComponentJsonBytes(Entity(id), typeId, ref jsonBuffer);
+                if (length < 0 && typeId != 0)
+                    length = world.Session.ComponentJsonBytes(Entity(id, true), typeId, ref jsonBuffer);
+                nativeReads++;
+                if (length < 0)
+                {
+                    cached.Set(null);
+                    cached.Length = -1;
+                }
+                else if (cached.Modified || cached.Value == null || length != cached.Length
+                    || !new ReadOnlySpan<byte>(jsonBuffer, 0, length).SequenceEqual(new ReadOnlySpan<byte>(cached.Bytes, 0, length)))
+                {
+                    cached.Set(JObject.Parse(Encoding.UTF8.GetString(jsonBuffer, 0, length)));
+                    if (cached.Bytes.Length < length)
+                        cached.Bytes = new byte[Math.Max(length, 64)];
+                    Buffer.BlockCopy(jsonBuffer, 0, cached.Bytes, 0, length);
+                    cached.Length = length;
+                }
+            }
+            cached.Frame = readFrame;
+            return cached.Value;
+        }
+        void Invalidate(string id, string type)
+        {
+            if (components.TryGetValue((id, type), out var cached))
+                cached.Frame = -1;
+        }
+        void InvalidateEntity(string id)
+        {
+            foreach (var pair in components)
+                if (pair.Key.Item1 == id)
+                    pair.Value.Frame = -1;
+        }
+        // Typed single-entity writes for per-frame values (no JSON, no garbage).
+        readonly ulong[] oneEntity = new ulong[1];
+        readonly float[] oneFloat = new float[1];
+        readonly VisibilityData[] oneVisibility = new VisibilityData[1];
+        struct VisibilityData
+        {
+            public float covered, opacity;
+            public byte pickable;
+        }
+        struct EntryData
+        {
+            public int order, width, depth, kind;
+            public byte active;
+        }
+        void WriteFloat(string id, string type, float value)
+        {
+            oneEntity[0] = Entity(id);
+            oneFloat[0] = value;
+            world.Session.WriteBatch(type, oneEntity, oneFloat, 1);
+            Invalidate(id, type);
+        }
+        void WriteVisibility(Item item, float covered, float opacity, bool pickable)
+        {
+            oneEntity[0] = Entity(item.Entry.Id);
+            oneVisibility[0] = new VisibilityData { covered = covered, opacity = opacity, pickable = (byte)(pickable ? 1 : 0) };
+            world.Session.WriteBatch("GalleryVisibility", oneEntity, oneVisibility, 1);
+            Invalidate(item.Entry.Id, "GalleryVisibility");
         }
         // Typed binary read for per-frame scalars (single-f32 or leading-f32 structs); falls back to JSON if absent.
         struct Float2
@@ -129,7 +228,7 @@ namespace Ecaty
         void Write(string id, string type, JObject value)
         {
             world.Session.SetComponentJson(id, type, value.ToString(Newtonsoft.Json.Formatting.None));
-            frameComponents.Remove((id, type)); // next read returns native truth (same rounding as persisted values)
+            Invalidate(id, type); // next read returns native truth (same rounding as persisted values)
         }
         void WriteView() => Write("GalleryTreeSettings", "GalleryView", view);
         void WriteFocus() => Write("GalleryTreeSettings", "GalleryFocus", focus);
@@ -287,16 +386,16 @@ namespace Ecaty
             item.Shell.forceRenderingOff = true;
             items.Add(item);
             byId.Add(id, item);
-            Write(id, "GalleryVisibility", new JObject { ["covered"] = 0, ["opacity"] = 1, ["pickable"] = true });
+            WriteVisibility(item, 0, 1, true);
         }
         // Gallery values come from Flecs Script (GalleryConfig.flecs). In the Editor that script is generated live from Gallery.asset.
-        string configSignature;
         void LoadConfig(bool force = false)
         {
             string source;
 #if UNITY_EDITOR
+            EcatyTheme.RefreshFromEditor(world.Session);
             var asset = GalleryConfigScript.EditorAsset;
-            string signature = asset ? JsonUtility.ToJson(asset) : null;
+            long signature = FieldSignature.Of(asset); // allocation-free; the JSON signature allocated every 0.1 s
             if (!force && signature == configSignature)
                 return;
             configSignature = signature;
@@ -308,10 +407,12 @@ namespace Ecaty
         }
         void ApplyProfile(bool force = false)
         {
-            string signature = JsonUtility.ToJson(profile) + JsonUtility.ToJson(Theme);
+#if UNITY_EDITOR
+            long signature = FieldSignature.Of(profile) * 31 + FieldSignature.Of(Theme);
             if (!force && signature == profileSignature)
                 return;
             profileSignature = signature;
+#endif
             config = new JObject { ["diameter"] = Mathf.Max(.3f, profile.WorldDiameter), ["worldGap"] = Mathf.Max(0, profile.WorldSpacing), ["layerGap"] = Mathf.Max(1, profile.LayerSpacing), ["width"] = Mathf.Max(.03f, profile.EffectiveGuideWidth), ["opacity"] = Mathf.Clamp01(profile.LayerOpacity), ["sphereOpacity"] = Mathf.Clamp01(profile.SphereOpacity), ["rim"] = Mathf.Clamp01(profile.WorldSphereOpacity), ["frost"] = profile.Frosted ? 1 : 0, ["rearFade"] = Mathf.Clamp01(profile.RearWorldFade), ["speed"] = profile.IdleRotationEnabled ? profile.IdleDegreesPerSecond * Mathf.Deg2Rad : 0, ["response"] = Mathf.Max(.1f, profile.LayoutResponse), ["style"] = (int)profile.LayerGuide, ["feather"] = Mathf.Max(.04f, profile.RingClearanceFeather) };
             Write("GalleryTreeSettings", "GalleryTreeConfig", config);
             Write("GalleryTreeSettings", "GalleryReturnStyle", new JObject { ["seconds"] = Mathf.Max(.5f, profile.ReturnSeconds), ["revealSeconds"] = Mathf.Max(.3f, profile.ReturnRevealSeconds), ["glassSeconds"] = Mathf.Max(.2f, profile.GlassPassSeconds) });
@@ -321,8 +422,8 @@ namespace Ecaty
             appliedGlowSeed = profile.RingTravelSeed;
             for (int i = 1; i <= 6; i++)
             {
-                var intent = Read("GalleryTreeLayer" + i, "GalleryLayerIntent");
-                intent["angle"] = (float)Read("GalleryTreeLayer" + i, "GalleryLayerState")["turn"];
+                var intent = Read(LayerId(i), "GalleryLayerIntent");
+                intent["angle"] = (float)Read(LayerId(i), "GalleryLayerState")["turn"];
                 intent["started"] = time;
                 intent["speed"] = F("speed") * (i % 2 == 1 ? 1 : -1) / (1 + i * .2f);
                 if (reseed)
@@ -331,7 +432,7 @@ namespace Ecaty
                     float direction = i == 1 ? firstDirection : i == 2 ? -firstDirection : random.Next(2) == 0 ? -1 : 1;
                     intent["glowRate"] = direction * Mathf.Lerp(.8f, 1.2f, (float)random.NextDouble());
                 }
-                Write("GalleryTreeLayer" + i, "GalleryLayerIntent", intent);
+                Write(LayerId(i), "GalleryLayerIntent", intent);
             }
             if (output)
                 output.backgroundColor = Theme.Background;
@@ -341,7 +442,7 @@ namespace Ecaty
                 experience.Dock.ApplyTheme(Theme.UI);
             if (uiDocument)
                 Theme.UI.Apply(uiDocument.rootVisualElement);
-            layoutSignature = null;
+            layoutValid = false;
         }
         void ReadState()
         {
@@ -349,23 +450,36 @@ namespace Ecaty
             view = Read("GalleryTreeSettings", "GalleryView");
             focus = Read("GalleryTreeSettings", "GalleryFocus");
             activity = Read("GalleryTreeSettings", "GalleryTreeActivity");
-            // One native query returns only the catalog fields, avoiding thirty full entity serializations.
-            JArray catalog;
+            // One typed read of every catalog entry through a stable native query handle (no JSON).
+            int count;
             using (NativeReadMarker.Auto())
             {
-                catalog = (JArray)JObject.Parse(world.Session.Query("GalleryEntry"))["results"];
+                count = world.Session.ReadQuery("GalleryEntry", null, ref entryEntities, ref entryTargets, ref entryValues);
                 nativeReads++;
             }
-            foreach (var row in catalog)
-                if (byId.TryGetValue((string)row["name"], out var item))
+            if (itemsByEntityRevision != world.Session.SourceRevision || itemsByEntityCount != items.Count)
+            {
+                itemsByEntity.Clear();
+                foreach (var item in items)
                 {
-                    var d = row["fields"]?["values"]?[0];
-                    if (d == null)
-                        continue;
-                    item.Entry.Order = (int)d["order"];
-                    item.Entry.Active = (bool)d["active"];
+                    ulong e = Entity(item.Entry.Id, true);
+                    if (e != 0)
+                        itemsByEntity[e] = item;
+                }
+                itemsByEntityRevision = world.Session.SourceRevision;
+                itemsByEntityCount = items.Count;
+            }
+            for (int i = 0; i < count; i++)
+                if (itemsByEntity.TryGetValue(entryEntities[i], out var item))
+                {
+                    item.Entry.Order = entryValues[i].order;
+                    item.Entry.Active = entryValues[i].active != 0;
                 }
         }
+        ulong[] entryEntities = new ulong[64], entryTargets = new ulong[64];
+        EntryData[] entryValues = new EntryData[64];
+        readonly Dictionary<ulong, Item> itemsByEntity = new();
+        int itemsByEntityRevision = -1, itemsByEntityCount = -1;
         void EnsureLayers(int count)
         {
             while (layers.Count < count)
@@ -382,12 +496,20 @@ namespace Ecaty
         }
         public void Arrange(bool immediate = false)
         {
-            var ordered = items.Where(i => i.Entry.Active).OrderBy(i => i.Entry.Order).ThenBy(i => i.Entry.Id).ToArray();
-            int count = ordered.Length, level = 1, cursor = 0;
-            var signature = string.Join("|", ordered.Select(i => i.Entry.Id)) + "/" + config.ToString();
-            if (!immediate && signature == layoutSignature)
+            // Allocation-free change check: same active order and the same (unchanged, cached) config object as last time.
+            var ordered = arrangeScratch;
+            ordered.Clear();
+            foreach (var item in items)
+                if (item.Entry.Active)
+                    ordered.Add(item);
+            ordered.Sort(CompareLayoutOrder);
+            if (!immediate && layoutValid && ReferenceEquals(config, layoutConfig) && SameOrder(ordered, layoutOrder))
                 return;
-            layoutSignature = signature;
+            layoutValid = true;
+            layoutConfig = config;
+            layoutOrder.Clear();
+            layoutOrder.AddRange(ordered);
+            int count = ordered.Count, level = 1, cursor = 0;
             while (cursor < count)
             {
                 int n = Mathf.Min(level * 6, count - cursor);
@@ -443,6 +565,20 @@ namespace Ecaty
             art.EnsureBands(layoutRoot, level - 1, F("diameter") + F("worldGap"), F("layerGap"), 2.1f, F("width"));
             global::Flexalon.Flexalon.GetOrCreate().UpdateDirtyNodes();
         }
+        static readonly Comparison<Item> CompareLayoutOrder = (a, b) =>
+        {
+            int order = a.Entry.Order.CompareTo(b.Entry.Order);
+            return order != 0 ? order : string.Compare(a.Entry.Id, b.Entry.Id, StringComparison.CurrentCulture);
+        };
+        static bool SameOrder(List<Item> a, List<Item> b)
+        {
+            if (a.Count != b.Count)
+                return false;
+            for (int i = 0; i < a.Count; i++)
+                if (a[i] != b[i])
+                    return false;
+            return true;
+        }
         void SetPaused(bool pause)
         {
             // Only a held pose freezes layout interpolation. Focus and ring turns pause idle motion but must let swaps/insertions finish moving.
@@ -455,10 +591,10 @@ namespace Ecaty
             if (justLocked)
                 for (int i = 1; i <= layers.Count; i++)
                 {
-                    var intent = Read("GalleryTreeLayer" + i, "GalleryLayerIntent");
+                    var intent = Read(LayerId(i), "GalleryLayerIntent");
                     intent["angle"] = -layers[i - 1].transform.localEulerAngles.y * Mathf.Deg2Rad;
                     intent["started"] = time;
-                    Write("GalleryTreeLayer" + i, "GalleryLayerIntent", intent);
+                    Write(LayerId(i), "GalleryLayerIntent", intent);
                 }
             activity = Read("GalleryTreeSettings", "GalleryTreeActivity");
             float rate = pause ? 0 : 1;
@@ -466,7 +602,7 @@ namespace Ecaty
                 return;
             for (int i = 1; i <= 6; i++)
             {
-                string id = "GalleryTreeLayer" + i;
+                string id = LayerId(i);
                 var intent = Read(id, "GalleryLayerIntent");
                 intent["angle"] = justLocked && i <= layers.Count ? -layers[i - 1].transform.localEulerAngles.y * Mathf.Deg2Rad : ReadFloat(id, "GalleryLayerState", "turn");
                 intent["started"] = time;
@@ -498,7 +634,7 @@ namespace Ecaty
                 for (int i = 0; i < layers.Count; i++)
                     if (layers[i].gameObject.activeSelf)
                     {
-                        float goal = -ReadFloat("GalleryTreeLayer" + (i + 1), "GalleryLayerState", "turn") * Mathf.Rad2Deg;
+                        float goal = -ReadFloat(LayerId(i + 1), "GalleryLayerState", "turn") * Mathf.Rad2Deg;
                         float blend = 1 - Mathf.Exp(-Time.unscaledDeltaTime / Mathf.Max(.02f, profile.RingRotationSmoothTime));
                         if (!presentationFrozen)
                             layers[i].transform.localRotation = Quaternion.Euler(0, Mathf.LerpAngle(layers[i].transform.localEulerAngles.y, goal, blend), 0);
@@ -577,10 +713,9 @@ namespace Ecaty
                 var anchor = Read("GalleryTreeSettings", "GalleryCameraAnchor");
                 if ((bool)anchor["active"] && !entryArmed)
                 {
-                    Write("GalleryTreeSettings", "GalleryCameraMeasure", new JObject { ["zoom"] = currentZoom });
-                    foreach (var key in frameComponents.Keys.Where(k => k.Item1 == "GalleryTreeSettings").ToArray())
-                        frameComponents.Remove(key);
-                    float t = (float)Read("GalleryTreeSettings", "GalleryRecenterState")["weight"];
+                    WriteFloat("GalleryTreeSettings", "GalleryCameraMeasure", currentZoom);
+                    InvalidateEntity("GalleryTreeSettings"); // reactive rules may have changed other settings this frame
+                    float t = ReadFloat("GalleryTreeSettings", "GalleryRecenterState", "weight");
                     float ease = t * t * t * (t * (t * 6 - 15) + 10);
                     currentCenter = Vector3.Lerp(new Vector3((float)anchor["x"], (float)anchor["y"], (float)anchor["z"]), new Vector3(0, (float)anchor["centerY"], 0), ease);
                     centerVelocity = Vector3.zero;
@@ -662,7 +797,7 @@ namespace Ecaty
                 p.SetFloat("_Feather", F("feather"));
                 p.SetFloat("_Opacity", F("opacity"));
                 p.SetFloat("_RearFade", F("rearFade") * horizon);
-                var glow = Read("GalleryTreeLayer" + (l + 1), "GalleryLayerIntent");
+                var glow = Read(LayerId(l + 1), "GalleryLayerIntent");
                 p.SetFloat("_Phase", motionTime);
                 p.SetFloat("_PhaseOffset", (float)glow["glowPhase"]);
                 p.SetFloat("_TravelDirection", (float)glow["glowRate"]);
@@ -681,7 +816,8 @@ namespace Ecaty
                 band.Renderer.enabled = profile.LayerGuide != GalleryLayoutProfile.GuideStyle.Hidden;
             }
             invitationAlpha = invitationSpring.Step((IsDragging ? profile.UnselectedWorldOpacityDuringSwap : 1) * RevealAt(invitation.position), profile.SwapFadeTime, Time.unscaledDeltaTime);
-            var invite = new MaterialPropertyBlock();
+            var invite = invitationProperties ??= new MaterialPropertyBlock();
+            invite.Clear();
             invite.SetFloat("_Opacity", F("sphereOpacity"));
             invite.SetFloat("_Rim", F("rim"));
             invite.SetFloat("_Frost", F("frost"));
@@ -696,6 +832,7 @@ namespace Ecaty
             invitationCore.localRotation = Quaternion.Euler(0, Mathf.Sin(motionTime * profile.InvitationPulseFrequency * Mathf.PI * 2) * profile.InvitationPulseAmplitude * 35, 0);
 
         }
+        MaterialPropertyBlock invitationProperties;
         void QueueSave()
         {
             navigationDirty = true;

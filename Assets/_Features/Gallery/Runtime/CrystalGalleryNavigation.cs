@@ -5,7 +5,7 @@ namespace Ecaty
 {
     public sealed partial class CrystalWorldGallery
     {
-        public EcatyTheme Theme => RuntimeComposition.Current.Theme ? RuntimeComposition.Current.Theme : EcatyTheme.Default;
+        public EcatyTheme Theme => EcatyTheme.Default;
         bool N(string key) => (bool?)navigation?[key] == true;
         bool entryArmed
         {
@@ -105,11 +105,13 @@ namespace Ecaty
             angle = Mathf.Atan2(offset.z, offset.x) * Mathf.Rad2Deg;
             return true;
         }
+        MaterialPropertyBlock destinationProperties;
         void ApplyDestinationOpacity()
         {
             if (!destination)
                 return;
-            var properties = new MaterialPropertyBlock();
+            var properties = destinationProperties ??= new MaterialPropertyBlock();
+            properties.Clear();
             properties.SetFloat("_WorldOpacity", destinationOpacity);
             properties.SetFloat("_Opacity", F("sphereOpacity"));
             properties.SetFloat("_Rim", F("rim"));
