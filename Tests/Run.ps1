@@ -33,7 +33,8 @@ try {
     function Invoke-Editor([string[]]$CommandArgs) {
         $arguments=@('command','--timeout','300','--project-path',$projectPath,'--caller','plugin','--skill','unity-cli','--format','json')+$CommandArgs
         $raw=Invoke-UnityProcess $cli $arguments
-        if($raw.Code -ne 0 -and $raw.Output -match 'EDITOR_NOT_RUNNING|EDITOR_NOT_READY' -and ($CommandArgs[0..1] -join ' ') -in @('editor status','script recompile_status','test status')){
+        # A domain reload can drop the connection mid-command; wait for the Editor and retry once.
+        if($raw.Code -ne 0 -and ($raw.Output -match 'closed the connection|EDITOR_NOT_RUNNING|EDITOR_NOT_READY')){
             Wait-Editor
             $raw=Invoke-UnityProcess $cli $arguments
         }
