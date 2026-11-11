@@ -78,3 +78,49 @@ Run-PlayerScripts.cmd compiles Windows64 development player scripts in the exist
 The active suite checks true top-down exit/startup, persistent loaded-world marking, inside-world resume, matched projected exit scale, explicit outward zoom with distance-based recentering, ring-plane angular dragging, travelling world accents and near-to-far reveal/input suppression. Native tests cover return/reveal, epoch changes, measured-zoom recentering and glass timing while previews pause. Captures are local Unity rendering evidence. Retired auto-fit/transient-recall and flat-table/archive-carousel behavior are not active product paths.
 
 Current gallery evidence: Tests/Results/2026-11-09_20-08-58_486/index.html (108 checks, 11 PNGs; native 6, PlayMode 1, player assemblies 77). The current reference audit covers 67 runtime/config references, 211 preserved active GUIDs and 7 intentional retirements. Root runner refreshes/recompiles saved sources after preserving initial state; its new preflight also passes under Windows PowerShell 5 in Results/2026-11-09_20-13-42_536. Old flat-table/archive-carousel helpers are removed, not alternate tests to run.
+
+
+## Extended suite and verifier registry
+
+`.\Tests\Run-Extended.cmd` (or `Run.ps1 -Suite Extended`) runs the verifiers that Run-All does not: bridge integration, workshop chain, runtime actor/behavior/experience/spatial, photo object, the provider-free chat loop and the Python native smokes. Everything is listed in `Tests/Extended.json`; to register a verifier (for example the capability verification) add one entry there. Editor entries name a C# statement and the `Verification/*.json` report it rewrites. The runner starts it with Play stopped, waits for a fresh report with `passed=true`, copies it into `Tests/Results/<run>/Extended/` and stops Play afterwards. Python entries pass on exit code 0 (and `passed=true` when a report is named). A failure does not stop the remaining verifiers; `latest.txt` lists each one as a check and names the failures. Run it before native/bridge changes, with the Editor otherwise idle. Provider, network and local-model verifiers are not included. The runner's former inline `script eval` strings now live in `Assets/_Tests/Editor/RunnerSupport.cs`.
+
+**Tools > Dev Console** (`Assets/_Tests/Editor/DevConsoleWindow.cs`) starts Run All / Gallery / Extended as a background process, shows `latest.txt`, opens the latest HTML report and, in Play mode, lists live `CapBinding`/`CapState` rows read through Flecs queries.
+
+## Editor menu and verifier inventory (2026-11-11)
+
+"Suite" is where it runs automatically. Status: current = used by a feature; manual = developer tool or demo; opt-in = needs services, models or accounts.
+
+| Entry | Purpose | Suite | Status |
+|---|---|---|---|
+| Runtime > Tests > Gallery scenarios | Gallery scenarios with artifacts | Gallery | current |
+| Runtime > Tests > Asset validation | Odin Validator + config rules | Validator | current |
+| Runtime > Tests > Resource references, Modular layout | Resource GUID manifest, layout/migration audit (layout runs inside Resources) | Resources | current |
+| Runtime > Tests > Player scripts | Windows player-script compile, editor-source exclusion | PlayerScripts | current |
+| `Verification.RunAll` | Bridge integration: Script, views, presentation readback | Extended | current |
+| `Verification.BuildPlayer` | Builds Build/Ecaty.exe | none | manual |
+| Runtime engine > Verify workshop chain | Workshop chain in Play | Extended | current |
+| Runtime engine > Verify workflow | Runtime actor | Extended | current |
+| Runtime engine > Verify spatial workflow | Spatial demo | Extended | current |
+| Runtime engine > Verify runtime experience | Experience save/resume | Extended | current |
+| Runtime Behavior > Verify integration | Behavior integration (no AI) | Extended | current |
+| `PhotoObjectVerification.Run` | Photo-to-clay object | Extended | current |
+| `ChatLoopVerification.Start` | Chat loop, synthetic transport | Extended | current |
+| Runtime engine > Verify capabilities | Capability workflow | none yet | current; owned by the persistence work, register in `Tests/Extended.json` |
+| Runtime engine > Prepare capability assets, Start capability workshop | Setup and demo | none | manual |
+| Runtime engine > Start workshop chain, Start creature test, Start spatial demo, Land spatial demo, Take player control, Follow target, Stop | Interactive demos in Play | none | manual |
+| Runtime engine > Start runtime playground, Save current experience, Resume saved experience | Manual experience demo | none | manual |
+| Runtime Behavior > Start breathing demo, Stop behavior, Save/Load behavior source | Manual behavior demo | none | manual; RUNTIME-BEHAVIORS.md is titled "legacy" (uncertain) |
+| Runtime > Workshop > Icon Studio, Bake selected model / default MudBun seed / stock icons, Select baked seed prefab, Prepare post-processing | Asset authoring tools | none | current tools |
+| Runtime > Attach / Remove reference photo | Photo workflow helper | none | manual |
+| Runtime > Gallery > Layout and ring controls, Shuffle ring travel, Export config, Theme colours | Gallery authoring | none | current tools |
+| Runtime > Agent Trace, Agent Trace (Browser) | Developer trace views | none | current tools (package) |
+| Runtime > Verification > local AI and speech; local AI protocols and dictation | Local model/speech checks (need models) | none | opt-in |
+| `MultiProviderVerification.Start` | Provider flow with synthetic transport and loopback HTTP | none | candidate for Extended |
+| `BrowserTraceVerification.Start` / `CheckChatUI` | Trace collector; chat UI polish (alters UI, needs Play) | none | `Start` is a candidate for Extended |
+| `LiveProviderVerification.Start`, `LocalShutdownVerification.Start` | Live accounts / local inference | none | opt-in |
+| `AgentPackageVerification.RunAll` | Package contract checks (also run by local-agent verification) | none | candidate for Extended |
+| `ChatLoopSetup.Prepare` | Chat loop scene setup | none | setup |
+| Flecs > Open Explorer | Opens Flecs Explorer | none | current tool |
+| Tools > Dev Console | Runner buttons, latest summary, capability rows | none | current tool |
+
+**Retired in this pass: none.** Every entry above is referenced by a current feature or document, and none was both unused and clearly superseded. Uncertain items, not deleted: the Runtime Behavior demo/menus (RUNTIME-BEHAVIORS.md calls the workflow legacy; decide with the I7 doc proposal), `Verification.BuildPlayer` (no suite builds players), and the candidates marked above. Capability entries belong to the persistence session; local-AI and Agent Trace entries to the ai-agent package.
