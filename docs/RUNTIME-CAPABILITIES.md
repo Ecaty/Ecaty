@@ -27,9 +27,10 @@ RoadShape {
 
 **Ownership:** one transform owner per root (authored placement, CharacterController motor, dynamic body or layout). Competing owners are rejected. Material bindings lease appearance separately. Runtime IK must not target a chain owned by another solver.
 
-## Adding a capability (two places)
+## Adding a capability (two files)
 
-One file holds the configuration and the adapter:
+1. One adapter file holds the configuration class and the adapter (below).
+2. Refresh the committed `CapabilityConfigSchema.flecs` export (automatic after compile in Unity); nothing else is registered by hand.
 
 ```csharp
 [Capability("CapLight", "lighting", 40)]                 // component, category, order
