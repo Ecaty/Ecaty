@@ -40,6 +40,16 @@ write_presented = bind("fu_write_presented", c.c_int32, P, c.POINTER(View), c.c_
 abi = bind("fu_abi_version", c.c_int32)
 size = bind("fu_view_size", c.c_int32)
 version = bind("fu_version", c.c_char_p)
+create_ex = bind("fu_create_ex", P, c.c_uint16, c.c_uint32)
+rest_status = bind("fu_rest_status", c.c_int32, P)
+query_create = bind("fu_query_create", c.c_int32, P, c.c_char_p)
+query_destroy = bind("fu_query_destroy", None, P, c.c_int32)
+query_changed = bind("fu_query_changed", c.c_int32, P, c.c_int32)
+query_read = bind("fu_query_read_data", c.c_int32, P, c.c_int32, c.c_char_p, c.POINTER(c.c_uint64), c.POINTER(c.c_uint64), c.c_void_p, c.c_int32, c.c_int32)
+json_into = bind("fu_component_json_into", c.c_int32, P, c.c_uint64, c.c_uint64, c.c_char_p, c.c_int32)
+label_into = bind("fu_label_into", c.c_int32, P, c.c_uint64, c.c_char_p, c.c_int32)
+lookup = bind("fu_lookup", c.c_uint64, P, c.c_char_p)
+diagnostics = bind("fu_bridge_diagnostics", P, P)
 checks = []
 
 def value(ptr):
@@ -91,7 +101,7 @@ def request(w, port, path, method="GET", body=None):
 report = {"passed": False, "flecs": version().decode(), "checks": checks}
 w = None
 try:
-    assert abi() == 2
+    assert abi() == 3
     assert size() == c.sizeof(View)
     w = create(0)
     assert w, error(None)
@@ -190,6 +200,90 @@ SecondText : TextStyle { Position: {8,0,0} }
         w=create(port); assert w, error(None)
         tick(w,0.02); destroy(w); w=None
     checks.append("repeated world lifetime and REST port reuse")
+
+    # ABI 3: busy REST port is non-fatal; read-only REST refuses writes.
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]
+    w = create_ex(port, 1)
+    assert w and rest_status(w) == 1, error(None)
+    busy = create(port)
+    assert busy, "A busy REST port must not fail world creation"
+    try:
+        assert rest_status(busy) == -1 and b"port" in error(busy)
+        assert tick(busy, 0.02) == 0
+    finally:
+        destroy(busy)
+    request(w, port, "entity/flecs/core/World")
+    try:
+        request(w, port, "entity/ReadOnlyProbe", "PUT")
+        raise AssertionError("read-only REST accepted a write")
+    except AssertionError as exc:
+        assert "403" in repr(exc), exc
+    destroy(w); w = None
+    checks.append("REST port conflict is non-fatal; read-only REST refuses writes")
+
+    # Stable query handles survive unrelated managed-script reloads and rebuild when a referenced type is redefined.
+    w = create(0)
+    assert managed(w, b"Types", b"struct Heat(value: f32)\nHot { Heat: {3} }\nWarm { Heat: {1} }") == 0
+    handle = query_create(w, b"Heat")
+    assert handle > 0, error(w)
+    assert query_changed(w, handle) == 1
+    ents = (c.c_uint64 * 8)(); vals = (c.c_float * 8)()
+    assert query_read(w, handle, None, ents, None, vals, 4, 8) == 2 and sorted(vals[:2]) == [1, 3]
+    assert query_changed(w, handle) == 0, "reading the query consumes its change state"
+    builds = json.loads(c.string_at(diagnostics(w)).decode())["queryBuilds"]
+    for i in range(5):
+        assert managed(w, b"Unrelated", f"Other{i} {{ Position: {{{i},0,0}} }}".encode()) == 0
+    assert query_read(w, handle, None, ents, None, vals, 4, 8) == 2
+    diag = json.loads(c.string_at(diagnostics(w)).decode())
+    assert diag["queryBuilds"] == builds, diag
+    run(w, "Hot { Heat: {5} }")
+    assert query_changed(w, handle) == 1
+    assert managed(w, b"Types", b"struct Heat(value: f32, extra: f32)\nHot { Heat: {7, 1} }") == 0
+    assert query_read(w, handle, None, ents, None, vals, 4, 8) == -1, "redefined type must not match the old layout"
+    pair = (c.c_float * 16)()
+    assert query_read(w, handle, None, ents, None, pair, 8, 8) == 1 and pair[0] == 7
+    assert json.loads(c.string_at(diagnostics(w)).decode())["queryRebuilds"] >= 1
+    query_destroy(w, handle)
+    assert query_read(w, handle, None, ents, None, pair, 8, 8) == -1
+    checks.append("stable query handles: no rebuild on unrelated reloads, rebuild on type redefinition, change detection")
+
+    # Parse-once: repeated commands reuse the parse; a source change invalidates it.
+    for i in range(3):
+        run(w, "Hot { Heat: {9, 2} }")
+    diag = json.loads(c.string_at(diagnostics(w)).decode())
+    assert diag["scriptReuses"] >= 2, diag
+    assert script(w, b"Hot { Missing: {1} }") != 0 and script(w, b"Hot { Missing: {1} }") != 0
+    checks.append("repeated fu_run_script reuses its parsed script")
+
+    # Buffer copies: no owned string crosses the ABI.
+    hot = lookup(w, b"Hot"); heat = lookup(w, b"Heat")
+    buf = c.create_string_buffer(4)
+    n = json_into(w, hot, heat, buf, 4)
+    assert n > 4
+    buf = c.create_string_buffer(n)
+    assert json_into(w, hot, heat, buf, n) == n and json.loads(buf.raw[:n].decode())["value"] == 9
+    assert json_into(w, hot, lookup(w, b"Position"), buf, n) == -1
+    assert managed(w, b"Labels", 'Tag { Position: {0,0,0}; Label: {text: "Crème"} }'.encode()) == 0
+    tag = lookup(w, b"Tag"); lb = c.create_string_buffer(32)
+    n = label_into(w, tag, lb, 32)
+    assert lb.raw[:n].decode() == "Crème"
+    assert label_into(w, hot, lb, 32) == -1
+    checks.append("component JSON and labels copy into caller buffers")
+
+    # Cached-query view snapshot: optional fields, defaults and prefab-inherited values.
+    assert managed(w, b"ViewProbe", b"""
+prefab Base { Scale: {2,2,2} }
+Plain { Position: {1,0,0} }
+Full : Base { Position: {2,0,0}; Rotation: {0,45,0}; Color: {0.5,0.25,0,1}; Primitive: {1} }
+""") == 0
+    vs = {v.px: v for v in views(w)}
+    plain, full = vs[1], vs[2]
+    assert (plain.sx, plain.r, plain.primitive, plain.has_label) == (1, 1, -1, 0)
+    assert (full.ry, full.sx, full.g, full.primitive) == (45, 2, 0.25, 1)
+    assert any(v.has_label for v in views(w))
+    destroy(w); w = None
+    checks.append("UnityViews cached query: optional fields, defaults and inherited values")
     report["passed"]=True
 except BaseException as exc:
     report["error"]=repr(exc)
