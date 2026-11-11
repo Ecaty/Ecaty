@@ -74,13 +74,13 @@ namespace Ecaty.Editor
             var b = center - Vector3.up * half;
             foreach (var hit in Physics.CapsuleCastAll(a, b, motor.radius * .95f, Vector3.right, 1.5f, ~0, QueryTriggerInteraction.Ignore))
                 if (hit.collider.transform != t)
-                    result.Add(Path(hit.collider.transform) + " @" + hit.distance.ToString("F2") + " layer " + hit.collider.gameObject.layer);
+                    result.Add(HierarchyPath(hit.collider.transform) + " @" + hit.distance.ToString("F2") + " layer " + hit.collider.gameObject.layer);
             foreach (var overlap in Physics.OverlapCapsule(a, b, motor.radius, ~0, QueryTriggerInteraction.Ignore))
                 if (overlap.transform != t)
-                    result.Add("overlap " + Path(overlap.transform) + " layer " + overlap.gameObject.layer);
+                    result.Add("overlap " + HierarchyPath(overlap.transform) + " layer " + overlap.gameObject.layer);
             return result;
         }
-        private static string Path(Transform t)
+        private static string HierarchyPath(Transform t)
         {
             string path = t.name;
             for (var parent = t.parent; parent; parent = parent.parent)
