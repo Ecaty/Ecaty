@@ -74,6 +74,7 @@ namespace Ecaty.Editor
             try
             {
                 Application.runInBackground = true;
+                using var inputFocus = InputFocusScope.Begin();
                 await Frames(3);
                 var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
                 root = world.gameObject;

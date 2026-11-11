@@ -140,6 +140,7 @@ namespace Ecaty.Editor
             try
             {
                 Application.runInBackground = true;
+                using var inputFocus = InputFocusScope.Begin();
                 await Frames(3);
                 var chat = Object.FindAnyObjectByType<AgentChatPanel>();
                 Require(chat && !chat.Expanded && !chat.IsEditingText, "Startup chat stole gameplay focus.");
