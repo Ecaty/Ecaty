@@ -45,9 +45,9 @@ namespace Ecaty
             overlay.localScale = new Vector3(height * camera.aspect, height, 1);
             material.SetFloat("_GlassProgress", glassProgress);
             material.SetFloat("_GlassStrength", profile.GlassPassStrength);
-            material.SetColor("_GlassTint", (RuntimeComposition.Current.Theme ? RuntimeComposition.Current.Theme : EcatyTheme.Default).Glass.linear);
+            material.SetColor("_GlassTint", EcatyTheme.Default.Glass.linear);
             material.SetFloat("_Strength", Value * profile.ExitVignette);
-            material.SetColor("_Tint", (RuntimeComposition.Current.Theme ? RuntimeComposition.Current.Theme : EcatyTheme.Default).Background.linear);
+            material.SetColor("_Tint", EcatyTheme.Default.Background.linear);
         }
         public void Dispose()
         {

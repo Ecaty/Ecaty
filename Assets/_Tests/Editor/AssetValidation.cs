@@ -18,7 +18,7 @@ namespace Ecaty.Editor
         {
 #if ODIN_VALIDATOR
             var references = JArray.Parse(File.ReadAllText("Tests/Fixtures/resource-load-manifest.json"));
-            var paths = references.Where(r => r["composition"] != null || (string)r["key"] == "Workshop/UI/WorkshopDock").Select(r => (string)r["path"]).Append(AssetDatabase.GetAssetPath(RuntimeComposition.Current)).Append(GalleryConfigScript.AssetPath).Distinct().OrderBy(p => p).ToArray();
+            var paths = references.Where(r => r["composition"] != null || (string)r["key"] == "Workshop/UI/WorkshopDock").Select(r => (string)r["path"]).Append(AssetDatabase.GetAssetPath(RuntimeComposition.Current)).Append(GalleryConfigScript.AssetPath).Append(ThemeScript.AssetPath).Distinct().OrderBy(p => p).ToArray();
             var rows = new JArray();
             int validations = 0;
             foreach (string path in paths)

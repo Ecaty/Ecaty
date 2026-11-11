@@ -57,7 +57,7 @@ namespace Ecaty
                     item.Pickable = false;
                     item.Hit.enabled = false;
                     item.PublishedOpacity = 0;
-                    Write(item.Entry.Id, "GalleryVisibility", new JObject { ["covered"] = item.Coverage, ["opacity"] = 0, ["pickable"] = false });
+                    WriteVisibility(item, item.Coverage, 0, false);
                 }
             }
             invitationSpring.Reset(0);

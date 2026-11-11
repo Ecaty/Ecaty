@@ -37,6 +37,7 @@ namespace Ecaty
 #endif
             string source = smoke ? "Tests/Fixtures/VerificationWorld" : worldFixture ? "Runtime/Examples/World" : gallery ? "Gallery/Examples/GalleryCatalog" : "Workshop/Runtime/WorkshopLobby";
             var world = FlecsBootstrap.Create(Resources.Load<TextAsset>(source), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"));
+            EcatyTheme.LoadRuntime(world.Session);
             var cameraObject = new GameObject("World Camera");
             Object.DontDestroyOnLoad(cameraObject);
             var camera = cameraObject.AddComponent<Camera>();

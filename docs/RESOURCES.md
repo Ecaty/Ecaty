@@ -7,7 +7,7 @@ Configs are siblings of source under their owner, not nested inside Resources:
 | Gallery | Assets/_Features/Gallery/Gallery.asset |
 | World | Assets/_Features/World/World.asset; Environment/Environment.asset |
 | Project adapters | Assets/_Adapters/Adapters.asset |
-| Theme | Assets/__Common/Theme/Theme.asset |
+| ThemeConfig | Assets/__Common/Theme/ThemeConfig.flecs (generated from the Editor-only Theme.asset) |
 | Agent host | Assets/__Common/Agent/Agent.asset; Presentation/PanelSettings.asset |
 | Project Settings | Assets/_Settings/Project/Rendering/ |
 

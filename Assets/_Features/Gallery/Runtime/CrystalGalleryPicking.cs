@@ -1,5 +1,4 @@
 #if ECATY_CAP_FLEXALON
-using Newtonsoft.Json.Linq;
 using UnityEngine;
 namespace Ecaty
 {
@@ -64,7 +63,7 @@ namespace Ecaty
                 if (changed)
                 {
                     item.PublishedOpacity = visibility * reveal;
-                    Write(item.Entry.Id, "GalleryVisibility", new JObject { ["covered"] = coverage, ["opacity"] = item.PublishedOpacity, ["pickable"] = pickable });
+                    WriteVisibility(item, coverage, item.PublishedOpacity, pickable);
                 }
             }
         }

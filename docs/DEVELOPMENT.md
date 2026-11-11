@@ -14,7 +14,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 - RMB full orbit (bounded elevation); MMB turn selected tier; wheel approach/zoom; LMB hold a ghost and drop on a world to swap. Escape cancels/returns and closes Settings first.
 - Top invitation enters an empty creation context; first deliberate placement creates a disposable world. Inactive saved worlds stay hidden; archive UI deferred.
-- Tune `Assets/_Features/Gallery/Gallery.asset` (spacing, ring width/style/opacity/material, sphere/rim opacity, rear fade, clearance, idle speed, glass crossing, return/reveal timing, loaded-world strength, approach cutoff, RingRotationSmoothTime) and `Theme/Theme.asset` (LoadedWorld colour). Edits update native GalleryTreeConfig. Odin icon tabs are optional.
+- Tune `Assets/_Features/Gallery/Gallery.asset` (spacing, ring width/style/opacity/material, sphere/rim opacity, rear fade, clearance, idle speed, glass crossing, return/reveal timing, loaded-world strength, approach cutoff, RingRotationSmoothTime) and `Theme/Theme.asset` (LoadedWorld colour; Editor-only, exported to `Theme/ThemeConfig.flecs` like the gallery config). Edits update native GalleryTreeConfig and the runtime theme live in Play. Odin icon tabs are optional.
 - Local layered arrangement: `GalleryPrototype/tree-arrangement.json` under Application.persistentDataPath (older `arrangement.json` is read-only import). Never commit either.
 - Seed creation enters the saved primitive world path ([GALLERY-WORLDS](GALLERY-WORLDS.md)). Legacy `-workshopLegacy` loads `WorkshopLobby.flecs`.
 

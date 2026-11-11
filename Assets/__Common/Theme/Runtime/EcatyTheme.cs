@@ -46,21 +46,68 @@ namespace Ecaty
         [TabGroup("Theme", "Interface", SdfIconType.Sliders, TabLayouting = TabLayouting.Shrink)]
 #endif
         public AgentUiPalette UI = new();
-        static EcatyTheme fallback;
+        static EcatyTheme fallback, runtime;
+#if UNITY_EDITOR
+        static long signature;
+#endif
+
+        /// <summary>The theme loaded from ThemeConfig.flecs through Flecs when available, otherwise the code defaults.</summary>
         public static EcatyTheme Default
         {
             get
             {
-                var asset = RuntimeComposition.Current.Theme;
-                if (asset)
-                    return asset;
+                if (runtime)
+                    return runtime;
                 if (!fallback)
-                {
-                    fallback = CreateInstance<EcatyTheme>();
-                    fallback.hideFlags = HideFlags.HideAndDontSave;
-                }
+                    fallback = Create();
                 return fallback;
             }
         }
+
+        static EcatyTheme Create()
+        {
+            var theme = CreateInstance<EcatyTheme>();
+            theme.hideFlags = HideFlags.HideAndDontSave;
+            return theme;
+        }
+
+        /// <summary>Loads ThemeConfig.flecs (generated live from Theme.asset in the Editor) into the runtime theme.</summary>
+        public static void LoadRuntime(Flecs.FlecsSession session)
+        {
+            string source = null;
+#if UNITY_EDITOR
+            var asset = ThemeScript.EditorAsset;
+            if (asset)
+            {
+                signature = FieldSignature.Of(asset);
+                source = ThemeScript.Generate(asset);
+            }
+#endif
+            source ??= RuntimeComposition.Current.ThemeConfig
+                ? RuntimeComposition.Current.ThemeConfig.text
+                : throw new System.InvalidOperationException("Theme config script missing.");
+            if (!runtime)
+                runtime = Create();
+            ThemeScript.Load(session, source, runtime);
+        }
+
+#if UNITY_EDITOR
+        /// <summary>Reloads the runtime theme when Theme.asset changed. Returns true when it reloaded.</summary>
+        public static bool RefreshFromEditor(Flecs.FlecsSession session)
+        {
+            var asset = ThemeScript.EditorAsset;
+            if (!asset || (runtime && FieldSignature.Of(asset) == signature))
+                return false;
+            LoadRuntime(session);
+            return true;
+        }
+
+        void OnValidate()
+        {
+            // Keep the shipped Flecs Script (ThemeConfig.flecs) in step with this authoring asset.
+            if (UnityEditor.AssetDatabase.GetAssetPath(this) == ThemeScript.AssetPath)
+                UnityEditor.EditorApplication.delayCall += () => { if (this) ThemeScript.Export(this); };
+        }
+#endif
     }
 }
