@@ -629,7 +629,9 @@
       "from": "Assets/Ecaty/Editor/RuntimeBehaviorVerification.cs",
       "to": "Assets/_Features/World/Editor/RuntimeBehaviorVerification.cs",
       "guid": "89a713d87497dc440b605be9141a5b77",
-      "sha256": "2e70ca819a7a2cf560cd5535e0469bf9eeee99970e3642354dc9fc808dafb44e"
+      "sha256": "2e70ca819a7a2cf560cd5535e0469bf9eeee99970e3642354dc9fc808dafb44e",
+      "retired": true,
+      "reason": "Runtime Behavior menu and verifier retired with the shared AgentBehavior path (2026-11-11)."
     },
     {
       "from": "Assets/Ecaty/Editor/RuntimeExperienceMenu.cs",

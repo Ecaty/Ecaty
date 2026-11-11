@@ -26,7 +26,7 @@ namespace Ecaty
             bool worldFixture = System.Array.IndexOf(args, "-capabilitySmokeResult") >= 0 ||
                 System.Array.IndexOf(args, "-runtimeEngineSmoke") >= 0 ||
                 System.Array.IndexOf(args, "-localAiSmokeResult") >= 0;
-            bool gallery = !smoke && !worldFixture && System.Array.IndexOf(args, "-workshopLegacy") < 0;
+            bool gallery = !smoke && !worldFixture;
 #if UNITY_EDITOR
             gallery &= !UnityEditor.SessionState.GetBool("Ecaty.WorkshopChainVerification", false)
                 && !UnityEditor.SessionState.GetBool("Ecaty.VerifyCapabilities", false)

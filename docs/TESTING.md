@@ -102,14 +102,12 @@ Current gallery evidence: Tests/Results/2026-11-09_20-08-58_486/index.html (108 
 | Runtime engine > Verify workflow | Runtime actor | Extended | current |
 | Runtime engine > Verify spatial workflow | Spatial demo | Extended | current |
 | Runtime engine > Verify runtime experience | Experience save/resume | Extended | current |
-| Runtime Behavior > Verify integration | Behavior integration (no AI) | Extended | current |
 | `PhotoObjectVerification.Run` | Photo-to-clay object | Extended | current |
 | `ChatLoopVerification.Start` | Chat loop, synthetic transport | Extended | current |
 | Runtime engine > Verify capabilities | Capability workflow | none yet | current; owned by the persistence work, register in `Tests/Extended.json` |
 | Runtime engine > Prepare capability assets, Start capability workshop | Setup and demo | none | manual |
 | Runtime engine > Start workshop chain, Start creature test, Start spatial demo, Land spatial demo, Take player control, Follow target, Stop | Interactive demos in Play | none | manual |
 | Runtime engine > Start runtime playground, Save current experience, Resume saved experience | Manual experience demo | none | manual |
-| Runtime Behavior > Start breathing demo, Stop behavior, Save/Load behavior source | Manual behavior demo | none | manual; RUNTIME-BEHAVIORS.md is titled "legacy" (uncertain) |
 | Runtime > Workshop > Icon Studio, Bake selected model / default MudBun seed / stock icons, Select baked seed prefab, Prepare post-processing | Asset authoring tools | none | current tools |
 | Runtime > Attach / Remove reference photo | Photo workflow helper | none | manual |
 | Runtime > Gallery > Layout and ring controls, Shuffle ring travel, Export config, Theme colours | Gallery authoring | none | current tools |
@@ -123,4 +121,4 @@ Current gallery evidence: Tests/Results/2026-11-09_20-08-58_486/index.html (108 
 | Flecs > Open Explorer | Opens Flecs Explorer | none | current tool |
 | Tools > Dev Console | Runner buttons, latest summary, capability rows | none | current tool |
 
-**Retired in this pass: none.** Every entry above is referenced by a current feature or document, and none was both unused and clearly superseded. Uncertain items, not deleted: the Runtime Behavior demo/menus (RUNTIME-BEHAVIORS.md calls the workflow legacy; decide with the I7 doc proposal), `Verification.BuildPlayer` (no suite builds players), and the candidates marked above. Capability entries belong to the persistence session; local-AI and Agent Trace entries to the ai-agent package.
+**Retired 2026-11-11:** the Runtime Behavior menu and `RuntimeBehaviorVerification` (they exercised the removed shared AgentBehavior path; the `inspect_behavior`/`apply_behavior` tools, `-workshopLegacy` and `docs/RUNTIME-BEHAVIORS.md`, now archived in `docs/history/`, went with them). Independent `RuntimeBehaviors.<id>` modules remain covered by Runtime experience. Uncertain items, not deleted: `Verification.BuildPlayer` (no suite builds players) and the candidates marked above. Capability entries belong to the persistence session; local-AI and Agent Trace entries to the ai-agent package.

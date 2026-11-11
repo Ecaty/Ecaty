@@ -64,7 +64,7 @@ namespace Ecaty
                     if (host.Session.EntityName(views[i].Entity) == "Sphere")
                         reactiveEntity = views[i].Entity;
                     initialScale = host.FindView(reactiveEntity).transform.localScale.x;
-                    host.Session.SetManagedScript(EcatyAgentTools.BehaviorEntity, Resources.Load<TextAsset>("Runtime/Behaviors/ReactiveBehavior").text);
+                    host.Session.SetManagedScript("PlayerSmokeBehavior", Resources.Load<TextAsset>("Runtime/Behaviors/ReactiveBehavior").text);
                 }
                 if (frames > 2 && host && host.FindView(reactiveEntity))
                     sawReactiveScale |= Math.Abs(host.FindView(reactiveEntity).transform.localScale.x - initialScale) > .0001f;
