@@ -502,6 +502,7 @@ namespace Ecaty
             RendererType.GetMethod("RescanBrushesImmediate").Invoke(generator, null);
         }
 
+        string liveQueryPath, liveQuery;
         // Native ECS is the live model definition, including changes from Script/Explorer.
         private void Update()
         {
@@ -516,7 +517,12 @@ namespace Ecaty
                         ResetModel();
                     return;
                 }
-                string changed = session.QueryChanges("[in] ClayPart, [in] ClayRest, [in] ClayStyle, ?(ChildOf, $parent), ?MudModel(" + EntityPath + ")");
+                if (liveQueryPath != EntityPath)
+                {
+                    liveQueryPath = EntityPath;
+                    liveQuery = "[in] ClayPart, [in] ClayRest, [in] ClayStyle, ?(ChildOf, $parent), ?MudModel(" + EntityPath + ")";
+                }
+                string changed = session.QueryChanges(liveQuery); // expression built once per path, not every frame
                 if (changed == null)
                     return;
                 Reconcile(JObject.Parse(changed));

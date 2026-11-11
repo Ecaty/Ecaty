@@ -196,16 +196,28 @@ namespace Ecaty
                 return;
             try
             {
-                foreach (var row in JObject.Parse(world.Session.Query("MudModel"))["results"])
+                // Parse the model list only when MudModel data, the bound models or the sources changed (was JSON every frame).
+                var session = world.Session;
+                int handle = session.QueryHandle("MudModel");
+                bool changed = session.QueryChanged(handle);
+                if (changed || modelScanPending || models.Count != scannedModels || session.SourceRevision != scannedRevision || session != scannedSession)
                 {
-                    string id = (string)row["name"];
-                    if (row["parent"] != null)
-                        continue; // Current binding IDs are top-level, named entities.
-                    if (!models.ContainsKey(id))
+                    modelScanPending = true;
+                    foreach (var row in JObject.Parse(session.QueryJson(handle))["results"])
                     {
-                        var model = BindModel(id);
-                        model.Creation.ReconcileNow();
+                        string id = (string)row["name"];
+                        if (row["parent"] != null)
+                            continue; // Current binding IDs are top-level, named entities.
+                        if (!models.ContainsKey(id))
+                        {
+                            var model = BindModel(id);
+                            model.Creation.ReconcileNow();
+                        }
                     }
+                    modelScanPending = false; // a failed bind leaves this set, so the scan repeats next frame as before
+                    scannedModels = models.Count;
+                    scannedRevision = session.SourceRevision;
+                    scannedSession = session;
                 }
                 ForwardInput();
                 Error = null;
@@ -213,6 +225,9 @@ namespace Ecaty
             catch (Exception error) { Error = error.Message; }
             PublishHealth();
         }
+        bool modelScanPending = true;
+        int scannedModels = -1, scannedRevision = -1;
+        FlecsSession scannedSession;
         private void PublishHealth()
         {
             if (Time.unscaledTime - lastHealth < .25f)

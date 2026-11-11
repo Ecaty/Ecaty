@@ -120,23 +120,29 @@ namespace Ecaty
             if (world == null || world.Session == null || world.Session.IsDisposed)
                 return;
             world.SyncViews();
-            int count = world.Session.ReadViews(out var views);
-            for (int i = 0; i < count; i++)
-            {
-                if (world.Session.EntityName(views[i].Entity) != "Ground")
-                    continue;
-                var data = JObject.Parse(world.Session.EntityJson("diorama.Ground"));
-                if (!(data["tags"] as JArray)?.Any(t => (string)t == "GroundSurface") ?? true)
-                    continue;
-                var view = world.FindView(views[i].Entity);
-                ground = view.GetComponent<BoxCollider>();
-                if (!ground)
-                    ground = view.AddComponent<BoxCollider>();
-                ground.size = Vector3.one;
+            // Runs every frame: re-check only when the ground entity or the sources changed (no per-view names or JSON).
+            ulong id = world.Session.Lookup("diorama.Ground");
+            if (id == groundEntity && world.Session.SourceRevision == groundRevision && (ground || !groundTagged))
                 return;
-            }
+            groundEntity = id;
+            groundRevision = world.Session.SourceRevision;
+            groundTagged = false;
             ground = null;
+            if (id == 0)
+                return;
+            var data = JObject.Parse(world.Session.EntityJson("diorama.Ground"));
+            groundTagged = (data["tags"] as JArray)?.Any(t => (string)t == "GroundSurface") ?? false;
+            var view = groundTagged ? world.FindView(id) : null;
+            if (!view)
+                return;
+            ground = view.GetComponent<BoxCollider>();
+            if (!ground)
+                ground = view.AddComponent<BoxCollider>();
+            ground.size = Vector3.one;
         }
+        ulong groundEntity;
+        int groundRevision = -1;
+        bool groundTagged;
 
         public string Configure(string json)
         {
