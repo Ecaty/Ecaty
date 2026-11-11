@@ -26,21 +26,31 @@ namespace Ecaty.Editor
     // Synthetic transport is confined to Editor verification. World/tools are real.
     public static class ChatLoopVerification
     {
-        public static bool Running { get; private set; }
+        public static bool Running
+        {
+            get; private set;
+        }
         private static readonly string ReportPath = "Verification/chat-loop-checks.json";
-        private static void Require(bool value, string error) { if (!value) throw new Exception(error); }
+        private static void Require(bool value, string error)
+        {
+            if (!value)
+                throw new Exception(error);
+        }
         public static async void Start()
         {
-            if (Running) return;
+            if (Running)
+                return;
             Running = true;
-            var checks = new List<string>(); GameObject root = null;
+            var checks = new List<string>();
+            GameObject root = null;
             var report = new JObject { ["passed"] = false, ["transport"] = "synthetic OAuth/Responses; real native Flecs and Unity objects" };
             try
             {
                 var clear = Encoding.UTF8.GetBytes("synthetic protected bytes");
                 Require(WindowsSecretStore.Transform(WindowsSecretStore.Transform(clear, true), false).SequenceEqual(clear), "DPAPI round trip failed");
                 checks.Add("Windows DPAPI encrypt/decrypt round trip, no account credentials used");
-                AgentTrace.ClearView(); AgentTrace.Configure(Path.GetFullPath("Logs/Agents/Verification"), true);
+                AgentTrace.ClearView();
+                AgentTrace.Configure(Path.GetFullPath("Logs/Agents/Verification"), true);
                 root = new GameObject("Chat loop verification");
                 var world = root.AddComponent<FlecsWorld>();
                 world.Initialize(0, Resources.Load<TextAsset>("Tests/Fixtures/VerificationWorld"));
@@ -50,7 +60,8 @@ namespace Ecaty.Editor
                 {
                     var store = new MemoryStore();
                     // Older builds may have saved an unverified workspace client after a failed exchange.
-                    store.Save(Encoding.UTF8.GetBytes(new JObject {
+                    store.Save(Encoding.UTF8.GetBytes(new JObject
+                    {
                         ["HostId"] = "urn:uuid:632f3cdb-7d85-4522-8dcf-7d34fb7b1714",
                         ["PendingClientId"] = "legacy-unverified-workspace"
                     }.ToString(Formatting.None)));
@@ -63,7 +74,10 @@ namespace Ecaty.Editor
                         foreach (var pair in new[] { new[] { "wrong-client", fixture.Nonce }, new[] { "verification-client", "wrong-nonce" } })
                         {
                             bool rejected = false;
-                            try { await OAuthProtocol.VerifyIdentity(http, fixture.Identity(), pair[0], pair[1], null, timeout.Token); }
+                            try
+                            {
+                                await OAuthProtocol.VerifyIdentity(http, fixture.Identity(), pair[0], pair[1], null, timeout.Token);
+                            }
                             catch (InvalidOperationException) { rejected = true; }
                             Require(rejected, "Mismatched audience/nonce accepted");
                         }
@@ -79,7 +93,8 @@ namespace Ecaty.Editor
                         var cube = views.Take(world.ViewCount).Single(v => world.Session.EntityName(v.Entity) == "Cube");
                         var actual = world.FindView(cube.Entity);
                         Require(Vector3.Distance(actual.transform.localScale, Vector3.one * 2) < .001f, "Actual object scale not updated");
-                        var block = new MaterialPropertyBlock(); actual.GetComponentInChildren<Renderer>().GetPropertyBlock(block);
+                        var block = new MaterialPropertyBlock();
+                        actual.GetComponentInChildren<Renderer>().GetPropertyBlock(block);
                         Require(block.GetColor("_BaseColor").b > .99f && block.GetColor("_BaseColor").r < .01f, "Actual renderer color not updated");
                         var observations = world.Session.Query("Presented");
                         Require(observations.Contains("frame") && observations.Contains("scale"), "Presentation observations missing");
@@ -157,13 +172,20 @@ namespace Ecaty.Editor
                     using (var provider = new ChatGptProvider("Verification", http, store, fixture.Browser))
                     {
                         bool failed = false;
-                        try { await provider.ReplyAsync(new AgentRequest("", new[] { new AgentMessage(AgentRole.User, "EOF fixture") }, null), null, CancellationToken.None); }
+                        try
+                        {
+                            await provider.ReplyAsync(new AgentRequest("", new[] { new AgentMessage(AgentRole.User, "EOF fixture") }, null), null, CancellationToken.None);
+                        }
                         catch (AgentServiceException) { failed = true; }
                         Require(failed && fixture.Tokens == 2, "EOF/refresh fixture failed");
                         var rotated = JObject.Parse(Encoding.UTF8.GetString(store.Load()));
                         Require((string)rotated["Active"]["RefreshToken"] == "synthetic-refresh-2", "Refresh token rotation not saved");
-                        fixture.Failure = "limit"; failed = false;
-                        try { await provider.ReplyAsync(new AgentRequest("", new[] { new AgentMessage(AgentRole.User, "Limit fixture") }, null), null, CancellationToken.None); }
+                        fixture.Failure = "limit";
+                        failed = false;
+                        try
+                        {
+                            await provider.ReplyAsync(new AgentRequest("", new[] { new AgentMessage(AgentRole.User, "Limit fixture") }, null), null, CancellationToken.None);
+                        }
                         catch (AgentServiceException e) { failed = e.Code == "subscription_sharing_usage_limit_exceeded"; }
                         Require(failed, "Late SSE error treated as success");
                         await provider.SignOutAsync(CancellationToken.None);
@@ -180,7 +202,8 @@ namespace Ecaty.Editor
             catch (Exception error) { report["error"] = error.ToString(); Debug.LogException(error); }
             finally
             {
-                if (root) UnityEngine.Object.DestroyImmediate(root);
+                if (root)
+                    UnityEngine.Object.DestroyImmediate(root);
                 report["checks"] = new JArray(checks);
                 File.WriteAllText(ReportPath, report.ToString(Formatting.Indented));
                 Running = false;
@@ -199,20 +222,24 @@ namespace Ecaty.Editor
             public string Nonce, Challenge, Redirect, Failure;
             public int Responses, Tokens, ToolReturns;
             public bool PkceChecked;
-            public Fixture() { }
+            public Fixture()
+            {
+            }
             public async void Browser(string url)
             {
                 var fields = OAuthProtocol.Query(new Uri(url).Query);
-                Nonce = fields["nonce"]; Challenge = fields["code_challenge"]; Redirect = fields["redirect_uri"];
+                Nonce = fields["nonce"];
+                Challenge = fields["code_challenge"];
+                Redirect = fields["redirect_uri"];
                 Require(fields["client_id"] == "dynamic_agent_client" && fields["ext_agent_host_id"].StartsWith("urn:uuid:"), "Registration fields missing");
                 using (var browser = new HttpClient())
-                    await browser.GetAsync(Redirect + "?" + OAuthProtocol.Form(new Dictionary<string,string> { ["code"]="synthetic-code", ["client_id"]="verification-client", ["state"]=fields["state"] }));
+                    await browser.GetAsync(Redirect + "?" + OAuthProtocol.Form(new Dictionary<string, string> { ["code"] = "synthetic-code", ["client_id"] = "verification-client", ["state"] = fields["state"] }));
             }
             public string Identity()
             {
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 var header = OAuthProtocol.Encode(Encoding.UTF8.GetBytes("{\"alg\":\"RS256\",\"kid\":\"verification\"}"));
-                var claims = OAuthProtocol.Encode(Encoding.UTF8.GetBytes(new JObject { ["iss"]=OAuthProtocol.Issuer, ["aud"]="verification-client", ["sub"]="synthetic-subject", ["iat"]=now, ["exp"]=now+3600, ["nonce"]=Nonce }.ToString(Formatting.None)));
+                var claims = OAuthProtocol.Encode(Encoding.UTF8.GetBytes(new JObject { ["iss"] = OAuthProtocol.Issuer, ["aud"] = "verification-client", ["sub"] = "synthetic-subject", ["iat"] = now, ["exp"] = now + 3600, ["nonce"] = Nonce }.ToString(Formatting.None)));
                 string input = header + "." + claims;
                 return input + "." + OAuthProtocol.Encode(rsa.SignData(Encoding.ASCII.GetBytes(input), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
             }
@@ -224,18 +251,23 @@ namespace Ecaty.Editor
                     var form = OAuthProtocol.Query(await request.Content.ReadAsStringAsync());
                     Require(form["client_id"] == "verification-client", "Issued client id not used");
                     if (form["grant_type"] == "authorization_code")
-                    { Require(form["redirect_uri"] == Redirect && OAuthProtocol.Challenge(form["code_verifier"]) == Challenge, "PKCE/redirect mismatch"); PkceChecked = true; }
-                    else Require(form["refresh_token"] == "synthetic-refresh-1", "Incorrect refresh token");
+                    {
+                        Require(form["redirect_uri"] == Redirect && OAuthProtocol.Challenge(form["code_verifier"]) == Challenge, "PKCE/redirect mismatch");
+                        PkceChecked = true;
+                    }
+                    else
+                        Require(form["refresh_token"] == "synthetic-refresh-1", "Incorrect refresh token");
                     Tokens++;
-                    return Json(new JObject { ["access_token"]="synthetic-access-"+Tokens, ["refresh_token"]="synthetic-refresh-"+Tokens, ["id_token"]=Identity(), ["token_type"]="Bearer", ["expires_in"]=3600, ["scope"]=OAuthProtocol.RequiredScope });
+                    return Json(new JObject { ["access_token"] = "synthetic-access-" + Tokens, ["refresh_token"] = "synthetic-refresh-" + Tokens, ["id_token"] = Identity(), ["token_type"] = "Bearer", ["expires_in"] = 3600, ["scope"] = OAuthProtocol.RequiredScope });
                 }
                 if (path == "/.well-known/jwks.json")
                 {
                     var key = rsa.ExportParameters(false);
-                    return Json(new JObject { ["keys"] = new JArray(new JObject { ["kid"]="verification", ["kty"]="RSA", ["alg"]="RS256", ["n"]=OAuthProtocol.Encode(key.Modulus), ["e"]=OAuthProtocol.Encode(key.Exponent) }) });
+                    return Json(new JObject { ["keys"] = new JArray(new JObject { ["kid"] = "verification", ["kty"] = "RSA", ["alg"] = "RS256", ["n"] = OAuthProtocol.Encode(key.Modulus), ["e"] = OAuthProtocol.Encode(key.Exponent) }) });
                 }
                 Require(request.Headers.Authorization?.Scheme == "Bearer", "OAuth bearer missing");
-                if (path == "/v1/models") return Json(new JObject { ["models"] = new JArray(new JObject { ["slug"]="verification-model", ["visibility"]="list" }) });
+                if (path == "/v1/models")
+                    return Json(new JObject { ["models"] = new JArray(new JObject { ["slug"] = "verification-model", ["visibility"] = "list" }) });
                 Require(path == "/v1/responses", "Unexpected endpoint");
                 var body = JObject.Parse(await request.Content.ReadAsStringAsync());
                 Require((bool)body["stream"] && !(bool)body["store"] && body["previous_response_id"] == null, "Unsupported transport fields");
@@ -247,44 +279,66 @@ namespace Ecaty.Editor
                         "Photo was not included in the request");
                     var items = new JArray();
                     if (Failure == "photo-final")
-                        items.Add(new JObject { ["type"] = "message", ["role"] = "assistant",
-                            ["content"] = new JArray(new JObject { ["type"] = "output_text", ["text"] = "Final text only." }) });
+                        items.Add(new JObject
+                        {
+                            ["type"] = "message",
+                            ["role"] = "assistant",
+                            ["content"] = new JArray(new JObject { ["type"] = "output_text", ["text"] = "Final text only." })
+                        });
                     var prefix = "";
                     if ((Failure == "photo-apply" || Failure.StartsWith("photo-stream-", StringComparison.Ordinal)) &&
                         !input.Any(item => (string)item["type"] == "function_call_output"))
                     {
-                        var call = new JObject { ["type"] = "function_call", ["namespace"] = "app", ["name"] = "apply_script",
-                            ["status"] = "completed", ["call_id"] = "photo-fixture",
-                            ["arguments"] = new JObject { ["code"] = "scene { Sphere { Scale: {1,1.1,1} } }" }.ToString(Formatting.None) };
+                        var call = new JObject
+                        {
+                            ["type"] = "function_call",
+                            ["namespace"] = "app",
+                            ["name"] = "apply_script",
+                            ["status"] = "completed",
+                            ["call_id"] = "photo-fixture",
+                            ["arguments"] = new JObject { ["code"] = "scene { Sphere { Scale: {1,1.1,1} } }" }.ToString(Formatting.None)
+                        };
                         prefix = Event(new JObject { ["type"] = "response.output_item.done", ["output_index"] = 0, ["item"] = call });
-                        if (Failure == "photo-stream-abort") return Sse(prefix + Event(new JObject { ["type"] = "response.incomplete" }));
-                        if (Failure == "photo-apply") items.Add(call);
+                        if (Failure == "photo-stream-abort")
+                            return Sse(prefix + Event(new JObject { ["type"] = "response.incomplete" }));
+                        if (Failure == "photo-apply")
+                            items.Add(call);
                     }
-                    return Sse(prefix + Event(new JObject { ["type"] = "response.completed",
-                        ["response"] = new JObject { ["status"] = "completed", ["output"] = items } }));
+                    return Sse(prefix + Event(new JObject
+                    {
+                        ["type"] = "response.completed",
+                        ["response"] = new JObject { ["status"] = "completed", ["output"] = items }
+                    }));
                 }
                 if (Failure != null)
                 {
-                    var partial = Event(new JObject { ["type"]="response.output_text.delta", ["delta"]="Partial" });
-                    if (Failure == "limit") partial += Event(new JObject { ["type"]="error", ["code"]="subscription_sharing_usage_limit_exceeded" });
+                    var partial = Event(new JObject { ["type"] = "response.output_text.delta", ["delta"] = "Partial" });
+                    if (Failure == "limit")
+                        partial += Event(new JObject { ["type"] = "error", ["code"] = "subscription_sharing_usage_limit_exceeded" });
                     return Sse(partial);
                 }
                 if (Responses > 0)
                 {
                     var result = (body["input"] as JArray).OfType<JObject>().LastOrDefault(i => (string)i["type"] == "function_call_output");
-                    Require(result != null && ((string)result["output"]).Contains("Cube"), "World tool output not replayed"); ToolReturns++;
+                    Require(result != null && ((string)result["output"]).Contains("Cube"), "World tool output not replayed");
+                    ToolReturns++;
                 }
                 string[] names = { "query", "apply_script", "observe_world" };
-                var args = new[] { new JObject { ["expression"]="Position, ?Color, ?Scale, ?Presented" }, new JObject { ["code"]="scene { Cube { Color: {0, 0, 1, 1}; Scale: {2, 2, 2} } }" }, new JObject() };
+                var args = new[] { new JObject { ["expression"] = "Position, ?Color, ?Scale, ?Presented" }, new JObject { ["code"] = "scene { Cube { Color: {0, 0, 1, 1}; Scale: {2, 2, 2} } }" }, new JObject() };
                 int round = Responses++;
-                JArray output = round < 3 ? new JArray(new JObject { ["type"]="function_call", ["name"]=names[round], ["namespace"]="app", ["call_id"]="call-"+round, ["arguments"]=args[round].ToString(Formatting.None) }) : new JArray(new JObject { ["type"]="message", ["role"]="assistant", ["content"]=new JArray(new JObject { ["type"]="output_text", ["text"]="Done." }) });
-                string data = round == 3 ? Event(new JObject { ["type"]="response.output_text.delta", ["delta"]="Done." }) : "";
-                return Sse(data + Event(new JObject { ["type"]="response.completed", ["response"]=new JObject { ["status"]="completed", ["output"]=output } }));
+                JArray output = round < 3 ? new JArray(new JObject { ["type"] = "function_call", ["name"] = names[round], ["namespace"] = "app", ["call_id"] = "call-" + round, ["arguments"] = args[round].ToString(Formatting.None) }) : new JArray(new JObject { ["type"] = "message", ["role"] = "assistant", ["content"] = new JArray(new JObject { ["type"] = "output_text", ["text"] = "Done." }) });
+                string data = round == 3 ? Event(new JObject { ["type"] = "response.output_text.delta", ["delta"] = "Done." }) : "";
+                return Sse(data + Event(new JObject { ["type"] = "response.completed", ["response"] = new JObject { ["status"] = "completed", ["output"] = output } }));
             }
             private static string Event(JObject data) => "data: " + data.ToString(Formatting.None) + "\n\n";
             private static HttpResponseMessage Json(JObject body) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body.ToString(Formatting.None), Encoding.UTF8, "application/json") };
             private static HttpResponseMessage Sse(string body) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "text/event-stream") };
-            protected override void Dispose(bool disposing) { if (disposing) rsa.Dispose(); base.Dispose(disposing); }
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                    rsa.Dispose();
+                base.Dispose(disposing);
+            }
         }
     }
 }

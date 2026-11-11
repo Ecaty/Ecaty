@@ -21,11 +21,16 @@ namespace Ecaty
         private FlecsWorld owner;
         private string liveSignature;
         public string EntityPath { get; private set; } = RootName;
-        public string LiveError { get; private set; }
+        public string LiveError
+        {
+            get; private set;
+        }
         public void Initialize(FlecsWorld world, string path)
         {
-            if (!Regex.IsMatch(path, @"\A[A-Za-z][A-Za-z0-9_]{0,47}\z")) throw new ArgumentException("Invalid model ID.");
-            owner = world; EntityPath = path;
+            if (!Regex.IsMatch(path, @"\A[A-Za-z][A-Za-z0-9_]{0,47}\z"))
+                throw new ArgumentException("Invalid model ID.");
+            owner = world;
+            EntityPath = path;
         }
         private static readonly Type RendererType = typeof(RuntimeMudRenderer);
         private static readonly Type SphereType = Type.GetType("MudBun.MudSphere, MudBun");
@@ -49,12 +54,22 @@ namespace Ecaty
 
         public Bounds WorldBounds()
         {
-            var local = LocalBounds(); var result = new Bounds(); bool first = true;
-            if (!PresentationRoot) return result;
-            for (int i = 0; i < 8; i++) {
+            var local = LocalBounds();
+            var result = new Bounds();
+            bool first = true;
+            if (!PresentationRoot)
+                return result;
+            for (int i = 0; i < 8; i++)
+            {
                 var p = PresentationRoot.TransformPoint(local.center + Vector3.Scale(local.extents,
                     new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)));
-                if (first) { result = new Bounds(p, Vector3.zero); first = false; } else result.Encapsulate(p);
+                if (first)
+                {
+                    result = new Bounds(p, Vector3.zero);
+                    first = false;
+                }
+                else
+                    result.Encapsulate(p);
             }
             return result;
         }
@@ -62,17 +77,25 @@ namespace Ecaty
         {
             var bounds = new Bounds();
             bool first = true;
-            if (!surface) return bounds;
+            if (!surface)
+                return bounds;
             foreach (var brush in brushes.Values)
             {
                 if (brush.Kind == 2 || !brush.Component ||
-                    brush.Component.GetType().GetProperty("Operator").GetValue(brush.Component).ToString() == "Dye") continue;
+                    brush.Component.GetType().GetProperty("Operator").GetValue(brush.Component).ToString() == "Dye")
+                    continue;
                 var matrix = surface.transform.worldToLocalMatrix * brush.Component.transform.localToWorldMatrix;
                 for (int i = 0; i < 8; i++)
                 {
                     var point = matrix.MultiplyPoint3x4(new Vector3((i & 1) == 0 ? -.5f : .5f,
                         (i & 2) == 0 ? -.5f : .5f, (i & 4) == 0 ? -.5f : .5f));
-                    if (first) { bounds = new Bounds(point, Vector3.zero); first = false; } else bounds.Encapsulate(point);
+                    if (first)
+                    {
+                        bounds = new Bounds(point, Vector3.zero);
+                        first = false;
+                    }
+                    else
+                        bounds.Encapsulate(point);
                 }
             }
             return bounds;
@@ -105,26 +128,37 @@ namespace Ecaty
             Rebuilding?.Invoke();
             try
             {
-                if (staged != null) File.WriteAllText(staged, recipe.ToString(Formatting.Indented));
+                if (staged != null)
+                    File.WriteAllText(staged, recipe.ToString(Formatting.Indented));
                 Install(recipe);
                 if (staged != null)
                 {
-                    if (File.Exists(path)) File.Replace(staged, path, null);
-                    else File.Move(staged, path);
+                    if (File.Exists(path))
+                        File.Replace(staged, path, null);
+                    else
+                        File.Move(staged, path);
                 }
                 accepted = recipe;
                 Rebuilt?.Invoke();
-                return new JObject { ["saved"] = path != null,
+                return new JObject
+                {
+                    ["saved"] = path != null,
                     ["brushes"] = brushes.Values.Count(brush => brush.Kind != 2),
-                    ["pivots"] = brushes.Values.Count(brush => brush.Kind == 2) }.ToString(Formatting.None);
+                    ["pivots"] = brushes.Values.Count(brush => brush.Kind == 2)
+                }.ToString(Formatting.None);
             }
             catch
             {
-                if (previous != null) { Install(previous); Rebuilt?.Invoke(); }
+                if (previous != null)
+                {
+                    Install(previous);
+                    Rebuilt?.Invoke();
+                }
                 else
                 {
                     Session.SetManagedScript(ScriptName, "");
-                    if (surface) surface.SetActive(false);
+                    if (surface)
+                        surface.SetActive(false);
                 }
                 throw;
             }
@@ -133,7 +167,8 @@ namespace Ecaty
 
         private static JObject Validate(string json)
         {
-            if (string.IsNullOrEmpty(json) || json.Length > 16000) throw new ArgumentException("Invalid photo recipe size.");
+            if (string.IsNullOrEmpty(json) || json.Length > 16000)
+                throw new ArgumentException("Invalid photo recipe size.");
             var value = JObject.Parse(json, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
             int version = value["version"]?.Type == JTokenType.Integer ? (int)value["version"] : 0;
             if (version < 1 || version > 4 || value.Count != (version == 2 ? 3 : 2) ||
@@ -184,18 +219,24 @@ namespace Ecaty
                 if (version >= 3 && part["parent"]?.Type != JTokenType.Null && part["parent"]?.Type != JTokenType.String)
                     throw new ArgumentException("Each part needs a parent pivot ID or null.");
                 ValidateVector(part, positionKey, -2.5f, 2.5f);
-                if (!pivot || part.ContainsKey(rotationKey)) ValidateVector(part, rotationKey, -360, 360);
-                if (pivot) continue;
-                if (!dye) visible++;
+                if (!pivot || part.ContainsKey(rotationKey))
+                    ValidateVector(part, rotationKey, -360, 360);
+                if (pivot)
+                    continue;
+                if (!dye)
+                    visible++;
                 ValidateVector(part, "size", dye ? MinimumDyeSize : MinimumBrushSize, MaximumBrushSize, sizeErrors);
                 ValidateVector(part, "color", 0, 1);
-                if (part.ContainsKey("finish")) ValidateVector(part, "finish", 0, 1);
+                if (part.ContainsKey("finish"))
+                    ValidateVector(part, "finish", 0, 1);
             }
 
             if (sizeErrors.Count > 0)
                 throw new ArgumentException("Brush dimensions outside the allowed range. Adjust: " + string.Join(", ", sizeErrors));
-            if (visible == 0) throw new ArgumentException("Include at least one solid brush for the surface.");
-            if (version == 2) return UpgradeRig(value, byId);
+            if (visible == 0)
+                throw new ArgumentException("Include at least one solid brush for the surface.");
+            if (version == 2)
+                return UpgradeRig(value, byId);
             if (version >= 3)
             {
                 if (byId.Values.Count(part => part["parent"].Type == JTokenType.Null) != 1)
@@ -208,7 +249,8 @@ namespace Ecaty
                     {
                         if (!byId.TryGetValue(parent, out var next) || (string)next["shape"] != "pivot")
                             throw new ArgumentException("Parent must be an existing pivot: " + parent);
-                        if (++ancestors >= byId.Count) throw new ArgumentException("The parent hierarchy contains a cycle.");
+                        if (++ancestors >= byId.Count)
+                            throw new ArgumentException("The parent hierarchy contains a cycle.");
                         parent = (string)next["parent"];
                     }
                 }
@@ -235,19 +277,29 @@ namespace Ecaty
                     !((double)radius >= .05 && (double)radius <= 2))
                     throw new ArgumentException("Invalid legacy bone radius.");
                 string id;
-                do { id = "pivot_" + index++; } while (visible.ContainsKey(id));
-                if (!ids.TryAdd((string)bone["id"], id)) throw new ArgumentException("Duplicate legacy bone.");
+                do
+                {
+                    id = "pivot_" + index++;
+                } while (visible.ContainsKey(id));
+                if (!ids.TryAdd((string)bone["id"], id))
+                    throw new ArgumentException("Duplicate legacy bone.");
             }
 
             var nodes = new JArray();
             foreach (JObject bone in bones)
             {
                 string parent = (string)bone["parent"];
-                if (parent != null && !ids.ContainsKey(parent)) throw new ArgumentException("Unknown legacy bone parent.");
-                var pivot = new JObject { ["id"] = ids[(string)bone["id"]], ["shape"] = "pivot",
+                if (parent != null && !ids.ContainsKey(parent))
+                    throw new ArgumentException("Unknown legacy bone parent.");
+                var pivot = new JObject
+                {
+                    ["id"] = ids[(string)bone["id"]],
+                    ["shape"] = "pivot",
                     ["parent"] = parent == null ? JValue.CreateNull() : new JValue(ids[parent]),
-                    ["position"] = bone["position"].DeepClone() };
-                if (bone.ContainsKey("rotation")) pivot["rotation"] = bone["rotation"].DeepClone();
+                    ["position"] = bone["position"].DeepClone()
+                };
+                if (bone.ContainsKey("rotation"))
+                    pivot["rotation"] = bone["rotation"].DeepClone();
                 nodes.Add(pivot);
             }
             foreach (var part in visible.Values)
@@ -277,8 +329,10 @@ namespace Ecaty
                 {
                     string actual = FormattableString.Invariant($"{axis}={number:G}");
                     string error = FormattableString.Invariant($"{actual} must be {min} to {max}");
-                    if (outOfRange != null) outOfRange.Add(error);
-                    else throw new ArgumentException(error + ".");
+                    if (outOfRange != null)
+                        outOfRange.Add(error);
+                    else
+                        throw new ArgumentException(error + ".");
                 }
             }
         }
@@ -339,10 +393,12 @@ namespace Ecaty
 
             Append("", EntityPath, Vector3.zero, Quaternion.identity);
             var declaration = data.Append("}\n").ToString();
-            if (session.ManagedScriptSource(ScriptName) != declaration) session.SetManagedScript(ScriptName, declaration);
+            if (session.ManagedScriptSource(ScriptName) != declaration)
+                session.SetManagedScript(ScriptName, declaration);
             SyncBrushes(session, order);
             var bridge = GetComponent<RuntimePoseBridge>();
-            if (!bridge) bridge = gameObject.AddComponent<RuntimePoseBridge>();
+            if (!bridge)
+                bridge = gameObject.AddComponent<RuntimePoseBridge>();
             bridge.Initialize(this, session);
         }
 
@@ -387,7 +443,8 @@ namespace Ecaty
                     {
                         var old = brush.Component.transform;
                         // A child may survive the shape change under a different pivot.
-                        while (old.childCount > 0) old.GetChild(0).SetParent(null, false);
+                        while (old.childCount > 0)
+                            old.GetChild(0).SetParent(null, false);
                         RemoveBrush(old.gameObject);
                     }
                     var go = new GameObject("part_" + node.Id);
@@ -403,7 +460,8 @@ namespace Ecaty
                     else
                     {
                         go.AddComponent(MaterialType);
-                        if (kind == 1) type.GetProperty("Round").SetValue(component, .045f);
+                        if (kind == 1)
+                            type.GetProperty("Round").SetValue(component, .045f);
                     }
                     brushes[node.Id] = brush = new Brush { Component = component, Kind = kind };
                 }
@@ -418,8 +476,10 @@ namespace Ecaty
                     target.localScale = ReadFields(rest, "sx", "sy", "sz");
                     brush.RestPose = rest;
                 }
-                if (target.GetSiblingIndex() != node.Sibling) target.SetSiblingIndex(node.Sibling);
-                if (kind == 2) continue;
+                if (target.GetSiblingIndex() != node.Sibling)
+                    target.SetSiblingIndex(node.Sibling);
+                if (kind == 2)
+                    continue;
                 var brushType = brush.Component.GetType();
                 var op = brushType.GetProperty("Operator");
                 op.SetValue(brush.Component, Enum.Parse(op.PropertyType, (bool)style["dye"] ? "Dye" : "Union"));
@@ -434,7 +494,8 @@ namespace Ecaty
             foreach (string id in brushes.Keys.Where(id => !seen.Contains(id)).ToArray())
             {
                 var removed = brushes[id].Component;
-                if (removed) RemoveBrush(removed.gameObject);
+                if (removed)
+                    RemoveBrush(removed.gameObject);
                 brushes.Remove(id);
             }
             surface.SetActive(true);
@@ -445,12 +506,19 @@ namespace Ecaty
         private void Update()
         {
             var session = Session;
-            if (session == null || session.IsDisposed || session.Lookup("ClayPart") == 0) return;
+            if (session == null || session.IsDisposed || session.Lookup("ClayPart") == 0)
+                return;
             try
             {
-                if (session.Lookup(EntityPath) == 0) { if (surface) ResetModel(); return; }
+                if (session.Lookup(EntityPath) == 0)
+                {
+                    if (surface)
+                        ResetModel();
+                    return;
+                }
                 string changed = session.QueryChanges("[in] ClayPart, [in] ClayRest, [in] ClayStyle, ?(ChildOf, $parent), ?MudModel(" + EntityPath + ")");
-                if (changed == null) return;
+                if (changed == null)
+                    return;
                 Reconcile(JObject.Parse(changed));
                 LiveError = null;
             }
@@ -465,47 +533,81 @@ namespace Ecaty
             var rows = snapshot["results"].Where(r => ((string)r["parent"] ?? "").StartsWith(EntityPath + ".", StringComparison.Ordinal)
                 || (string)r["parent"] == EntityPath).ToList();
             var byPath = rows.ToDictionary(r => (string)r["parent"] + "." + (string)r["name"], StringComparer.Ordinal);
-            if (rows.Count == 0) { if (surface) ResetModel(); return; }
+            if (rows.Count == 0)
+            {
+                if (surface)
+                    ResetModel();
+                return;
+            }
             var parts = new JArray();
             var order = new List<(string Id, string Parent, string Path, int Sibling)>();
             void Append(string parent, int depth)
             {
-                if (depth > 64) throw new InvalidOperationException("Model hierarchy too deep.");
+                if (depth > 64)
+                    throw new InvalidOperationException("Model hierarchy too deep.");
                 foreach (var row in rows.Where(r => (string)r["parent"] == parent).OrderBy(r => (int)r["fields"]["values"][0]["order"]))
                 {
-                    var values = row["fields"]["values"]; var part = values[0]; var rest = values[1]; var style = values[2];
+                    var values = row["fields"]["values"];
+                    var part = values[0];
+                    var rest = values[1];
+                    var style = values[2];
                     string path = parent + "." + (string)row["name"], id = (string)part["id"];
                     string parentId = parent == EntityPath ? null : (string)byPath[parent]["fields"]["values"][0]["id"];
                     int kind = (int)style["kind"];
-                    if (kind < 0 || kind > 2) throw new ArgumentException("Unsupported brush kind.");
-                    var item = new JObject { ["id"] = id, ["parent"] = parentId, ["shape"] = kind == 2 ? "pivot" : kind == 1 ? "box" : "ellipsoid",
+                    if (kind < 0 || kind > 2)
+                        throw new ArgumentException("Unsupported brush kind.");
+                    var item = new JObject
+                    {
+                        ["id"] = id,
+                        ["parent"] = parentId,
+                        ["shape"] = kind == 2 ? "pivot" : kind == 1 ? "box" : "ellipsoid",
                         ["localPosition"] = new JArray(rest["px"], rest["py"], rest["pz"]),
-                        ["localRotation"] = new JArray(rest["rx"], rest["ry"], rest["rz"]) };
-                    if (kind != 2) { item["size"] = new JArray(rest["sx"], rest["sy"], rest["sz"]);
+                        ["localRotation"] = new JArray(rest["rx"], rest["ry"], rest["rz"])
+                    };
+                    if (kind != 2)
+                    {
+                        item["size"] = new JArray(rest["sx"], rest["sy"], rest["sz"]);
                         item["color"] = new JArray(style["r"], style["g"], style["b"]);
                         item["finish"] = new JArray(style["metallic"], style["smoothness"], style["glow"]);
-                        item["blend"] = style["blend"].DeepClone(); item["operation"] = (bool)style["dye"] ? "dye" : "solid"; }
-                    parts.Add(item); order.Add((id, parentId ?? "", path, (int)part["order"]));
+                        item["blend"] = style["blend"].DeepClone();
+                        item["operation"] = (bool)style["dye"] ? "dye" : "solid";
+                    }
+                    parts.Add(item);
+                    order.Add((id, parentId ?? "", path, (int)part["order"]));
                     Append(path, depth + 1);
                 }
             }
             Append(EntityPath, 0);
             var recipe = Validate(new JObject { ["version"] = 4, ["parts"] = parts }.ToString(Formatting.None));
             string signature = recipe.ToString(Formatting.None);
-            if (signature == liveSignature) return;
-            GetComponent<RuntimePoseBridge>()?.Restore(); Rebuilding?.Invoke();
+            if (signature == liveSignature)
+                return;
+            GetComponent<RuntimePoseBridge>()?.Restore();
+            Rebuilding?.Invoke();
             SyncBrushes(Session, order);
             var bridge = GetComponent<RuntimePoseBridge>();
-            if (!bridge) bridge = gameObject.AddComponent<RuntimePoseBridge>();
+            if (!bridge)
+                bridge = gameObject.AddComponent<RuntimePoseBridge>();
             bridge.Initialize(this, Session);
-            accepted = recipe; liveSignature = signature; Rebuilt?.Invoke();
+            accepted = recipe;
+            liveSignature = signature;
+            Rebuilt?.Invoke();
         }
         public void ResetModel()
         {
-            GetComponent<RuntimePoseBridge>()?.Restore(); Rebuilding?.Invoke();
-            if (surface) { surface.SetActive(false); Release(surface); }
-            surface = null; generator = null; accepted = null; liveSignature = null;
-            brushes.Clear(); runtimeNodes.Clear();
+            GetComponent<RuntimePoseBridge>()?.Restore();
+            Rebuilding?.Invoke();
+            if (surface)
+            {
+                surface.SetActive(false);
+                Release(surface);
+            }
+            surface = null;
+            generator = null;
+            accepted = null;
+            liveSignature = null;
+            brushes.Clear();
+            runtimeNodes.Clear();
         }
 
         private static Vector3 ReadVector(JToken vector) => new Vector3((float)vector[0], (float)vector[1], (float)vector[2]);
@@ -523,8 +625,12 @@ namespace Ecaty
         private void OnDestroy() => Release(surface);
         private static void Release(UnityEngine.Object item)
         {
-            if (!item) return;
-            if (Application.isPlaying) Destroy(item); else DestroyImmediate(item);
+            if (!item)
+                return;
+            if (Application.isPlaying)
+                Destroy(item);
+            else
+                DestroyImmediate(item);
         }
     }
 }

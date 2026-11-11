@@ -18,13 +18,25 @@ namespace Ecaty.Editor
 {
     public static class BrowserTraceVerification
     {
-        public static bool Running { get; private set; }
+        public static bool Running
+        {
+            get; private set;
+        }
         private static AgentTraceWebServer fixture;
         [UnityEditor.InitializeOnLoadMethod]
-        private static void CleanupHook() { UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += CloseFixture; UnityEditor.EditorApplication.quitting += CloseFixture; }
+        private static void CleanupHook()
+        {
+            UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += CloseFixture;
+            UnityEditor.EditorApplication.quitting += CloseFixture;
+        }
         public static string FixtureAddress => fixture?.BaseUri;
-        private static void Require(bool value, string message) { if (!value) throw new Exception(message); }
-        private static Dictionary<string, string> Assets() => new Dictionary<string, string> {
+        private static void Require(bool value, string message)
+        {
+            if (!value)
+                throw new Exception(message);
+        }
+        private static Dictionary<string, string> Assets() => new Dictionary<string, string>
+        {
             ["/"] = Resources.Load<TextAsset>("EcatyAgentTrace/index.html").text,
             ["/viewer.js"] = Resources.Load<TextAsset>("EcatyAgentTrace/viewer.js").text,
             ["/viewer.css"] = Resources.Load<TextAsset>("EcatyAgentTrace/viewer.css").text
@@ -43,19 +55,28 @@ namespace Ecaty.Editor
         }
         public static void OpenFixture(bool openBrowser = true)
         {
-            fixture?.Dispose(); fixture = new AgentTraceWebServer("Synthetic browser verification", Assets(), Path.GetFullPath("Logs/TraceVerification"), false, 0, ReadDemo, "synthetic-browser-verification-key");
-            if (openBrowser) Application.OpenURL(fixture.ViewerUri());
+            fixture?.Dispose();
+            fixture = new AgentTraceWebServer("Synthetic browser verification", Assets(), Path.GetFullPath("Logs/TraceVerification"), false, 0, ReadDemo, "synthetic-browser-verification-key");
+            if (openBrowser)
+                Application.OpenURL(fixture.ViewerUri());
         }
-        public static void CloseFixture() { fixture?.Dispose(); fixture = null; }
+        public static void CloseFixture()
+        {
+            fixture?.Dispose();
+            fixture = null;
+        }
         public static async void Start()
         {
-            if (Running) return;
-            Running = true; var checks = new JArray();
+            if (Running)
+                return;
+            Running = true;
+            var checks = new JArray();
             var report = new JObject { ["passed"] = false, ["transport"] = "real HTTP; synthetic trace data; no AI requests", ["unity"] = Application.unityVersion };
             bool capture = AgentTrace.Enabled;
             try
             {
-                var folder = Path.GetFullPath("Logs/TraceVerification"); Directory.CreateDirectory(folder);
+                var folder = Path.GetFullPath("Logs/TraceVerification");
+                Directory.CreateDirectory(folder);
                 File.WriteAllText(Path.Combine(folder, "synthetic.jsonl"), string.Join("\n", Demo().Select(JsonConvert.SerializeObject)));
                 using (var server = new AgentTraceWebServer("Verification", Assets(), folder, port: 0, read: ReadDemo))
                 using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) })
@@ -91,7 +112,8 @@ namespace Ecaty.Editor
                 }
                 checks.Add("LAN binding is opt-in and still requires pairing; loopback HTTP checks only, no phone-device claim");
                 AgentTrace.Enabled = true;
-                var before = AgentTrace.Read(0, null); string id = "browser-check-" + Guid.NewGuid().ToString("N");
+                var before = AgentTrace.Read(0, null);
+                string id = "browser-check-" + Guid.NewGuid().ToString("N");
                 AgentTrace.Record(id, "request", "Fixture", "Synthetic request");
                 AgentTrace.Record(id, "tool-result", "query", "{}", "Bearer synthetic-secret AIza12345678901234567890123456789012345");
                 AgentTrace.Record(id, "completed", "Fixture", result: "Done.");
@@ -109,33 +131,46 @@ namespace Ecaty.Editor
         public static async void CheckChatUI()
         {
             var report = new JObject { ["passed"] = false, ["unity"] = Application.unityVersion };
-            AgentChatView view = null; StyleLength originalWidth = default;
+            AgentChatView view = null;
+            StyleLength originalWidth = default;
             try
             {
                 var panel = UnityEngine.Object.FindAnyObjectByType<AgentChatPanel>();
                 Require(panel, "Enter the verification Play session first");
                 view = (AgentChatView)typeof(AgentChatPanel).GetField("view", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(panel);
                 originalWidth = view.Root.style.width;
-                for (int i = 0; i < 25; i++) view.AppendMessage("Synthetic chat layout verification " + i + "\nSecond line.", i % 2 == 0);
-                view.SetDraft("Visible caret sample"); await Task.Delay(200);
+                for (int i = 0; i < 25; i++)
+                    view.AppendMessage("Synthetic chat layout verification " + i + "\nSecond line.", i % 2 == 0);
+                view.SetDraft("Visible caret sample");
+                await Task.Delay(200);
                 var input = view.Root.Q<TextField>("messageInput");
-                var messages = view.Root.Q<ScrollView>("messages"); var history = view.Root.Q<Button>("historyButton");
+                var messages = view.Root.Q<ScrollView>("messages");
+                var history = view.Root.Q<Button>("historyButton");
                 Require(input.textSelection.cursorColor.r > .8f && input.textSelection.selectionColor.b > .3f, "Caret/selection color still dark");
                 Require(messages.verticalScroller.resolvedStyle.width <= 8 && messages.verticalScroller.resolvedStyle.backgroundColor.a < .05f, "Scrollbar still has wide/opaque default track");
                 Require(view.Root.Q("conversation").Contains(history) && !view.Root.Q("composer").Contains(history), "Collapse button not under conversation");
                 Require(history.worldBound.y >= messages.worldBound.yMax - 1, "Collapse button is above the history");
                 Require(messages.verticalScroller.highValue > 0 && messages.verticalScroller.value >= messages.verticalScroller.highValue - 3, "New messages did not follow tail");
-                view.SetHistoryExpanded(false); Require(messages.style.display.value == DisplayStyle.None && history.resolvedStyle.display == DisplayStyle.Flex, "Collapsed conversation cannot reopen");
+                view.SetHistoryExpanded(false);
+                Require(messages.style.display.value == DisplayStyle.None && history.resolvedStyle.display == DisplayStyle.Flex, "Collapsed conversation cannot reopen");
                 view.SetHistoryExpanded(true);
-                view.Root.style.width = 340; await Task.Delay(150);
+                view.Root.style.width = 340;
+                await Task.Delay(150);
                 Require(view.Root.Q("composer").worldBound.width <= 342 && input.resolvedStyle.width > 100, "Compact composer overflow");
-                report["passed"] = true; report["caret"] = input.textSelection.cursorColor.ToString(); report["scrollbarWidth"] = messages.verticalScroller.resolvedStyle.width;
+                report["passed"] = true;
+                report["caret"] = input.textSelection.cursorColor.ToString();
+                report["scrollbarWidth"] = messages.verticalScroller.resolvedStyle.width;
                 report["checks"] = new JArray("light caret/selection", "thin transparent scrollbar", "collapse/reopen below conversation", "new-message auto-scroll", "340px compact composer");
             }
             catch (Exception e) { report["error"] = e.ToString(); Debug.LogException(e); }
             finally
             {
-                if (view != null) { view.ClearMessages(); view.SetDraft(""); view.Root.style.width = originalWidth; }
+                if (view != null)
+                {
+                    view.ClearMessages();
+                    view.SetDraft("");
+                    view.Root.style.width = originalWidth;
+                }
                 File.WriteAllText("Verification/chat-ui-polish-checks.json", report.ToString(Formatting.Indented));
             }
         }

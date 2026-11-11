@@ -56,14 +56,16 @@ namespace Ecaty
                 tools.Add(new Tool("configure_actor", "Configure the existing generated model at runtime. Pass a JSON patch as config. Fields: motion (ground/spatial), gravityScale (0..4; 0 disables gravity), facingYaw (-180..180 degrees rotating the created model so its front points along motor +Z; use 180 for a model drawn facing -Z), driver (idle/player/follow/script), speed 0.1 to 8, acceleration 0.1 to 40, spawn [x,y,z] used only when the motor is first created, hips (pivot ID), legs (array of [upper,knee,foot] pivot IDs), lean (a pivot below hips), boing (separate secondary branch root IDs). Supply real existing nonzero chains, not guessed names. Example: {\"driver\":\"player\",\"hips\":\"pelvis\",\"legs\":[[\"left_hip\",\"left_knee\",\"left_foot\"]],\"boing\":[\"ear_base\"]}. Settings become runtime Flecs ActorControl, ActorRig, MoveIntent and ActorMotion. Player driver accepts WASD/gamepad. Follow driver uses Goal.MoveGoal. Script driver reads ScriptInput.MoveIntent{x,z} for ground motion or ScriptInput.SpatialIntent{x,y,z} for spatial motion. These are normalized steering inputs. Use spatial plus gravityScale 0 for controlled hovering, with Script feedback from ActorMotion to hold a chosen height. Motor resolves ground/collisions and publishes actual state. Input and Goal can be updated with apply_script. Use apply_behavior for new ongoing control rules. Existing animation bindings remain when a patch changes only driver/speed.", "config", main,
                     a => engine.Configure((string)a["config"])));
             }
-            if (experience) tools.AddRange(RuntimeExperienceTools.Create(world, experience, main));
+            if (experience)
+                tools.AddRange(RuntimeExperienceTools.Create(world, experience, main));
             return tools;
         }
 
         private static string Query(FlecsWorld world, string expression)
         {
             string result = world.Session.Query(expression);
-            return result.Length <= 60000 ? result : new JObject {
+            return result.Length <= 60000 ? result : new JObject
+            {
                 ["error"] = "Too many matches. Optional-only queries include engine internals. Add a required component, e.g. Position, ?Primitive, ?Color, ?Scale; or inspect_entity with an exact entity path. Do not repeat this query unchanged."
             }.ToString(Formatting.None);
         }
@@ -71,8 +73,10 @@ namespace Ecaty
         private static string Observe(FlecsWorld world, DioramaRuntime engine = null)
         {
             var result = JObject.Parse(world.Session.Query("Position, ?Primitive, ?Color, ?Scale, ?Spin, ?Presented"));
-            if (engine != null && engine.Motor) result["runtime_actor"] = JObject.Parse(engine.Inspect());
-            if (world.TryGetComponent<RuntimeExperience>(out var experience)) result["experience"] = JObject.Parse(experience.Inspect());
+            if (engine != null && engine.Motor)
+                result["runtime_actor"] = JObject.Parse(engine.Inspect());
+            if (world.TryGetComponent<RuntimeExperience>(out var experience))
+                result["experience"] = JObject.Parse(experience.Inspect());
             return result.ToString(Formatting.None);
         }
 
@@ -83,7 +87,11 @@ namespace Ecaty
             public string Name => "observe_over_time";
             public string Description => "Sample one entity's native state and measured Presented/PoseObserved state three times over about 0.4 seconds. Use after changing motion; compare the requested property and verify that Clock/frame advanced. Static readback is not proof of animation. This does not advance a paused world.";
             public string InputJsonSchema => "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}},\"required\":[\"path\"],\"additionalProperties\":false}";
-            public ObserveOverTime(FlecsWorld world, AgentMainThread main) { this.world = world; this.main = main; }
+            public ObserveOverTime(FlecsWorld world, AgentMainThread main)
+            {
+                this.world = world;
+                this.main = main;
+            }
             public async Task<string> ExecuteAsync(string argumentsJson, CancellationToken cancellationToken)
             {
                 var args = JObject.Parse(argumentsJson);
@@ -93,10 +101,13 @@ namespace Ecaty
                 var samples = new JArray();
                 for (int i = 0; i < 3; i++)
                 {
-                    if (i != 0) await Task.Delay(200, cancellationToken).ConfigureAwait(false);
-                    samples.Add(await main.RunAsync(() => {
+                    if (i != 0)
+                        await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+                    samples.Add(await main.RunAsync(() =>
+                    {
                         world.SyncViews();
-                        return new JObject {
+                        return new JObject
+                        {
                             ["clock"] = JObject.Parse(world.Session.EntityJson("Clock"))["components"]?["Clock"],
                             ["entity"] = JObject.Parse(world.Session.EntityJson(path))
                         };
@@ -109,20 +120,33 @@ namespace Ecaty
                 var firstPose = firstComponents?["PoseObserved"] ?? firstComponents?["Presented"];
                 var lastPose = lastComponents?["PoseObserved"] ?? lastComponents?["Presented"];
                 bool measured = firstPose != null && lastPose != null;
-                return new JObject { ["path"] = path, ["frames_advanced"] = last - first,
+                return new JObject
+                {
+                    ["path"] = path,
+                    ["frames_advanced"] = last - first,
                     ["presentation_available"] = measured,
                     ["presentation_frames_advanced"] = measured ? (long)lastPose["frame"] - (long)firstPose["frame"] : 0,
                     ["verification"] = measured ? "Compare PoseObserved/Presented values with the request; native command changes alone do not prove scene motion."
                         : "No actual scene pose readback for this entity. Native values alone cannot verify a visible result.",
-                    ["samples"] = samples }.ToString(Formatting.None);
+                    ["samples"] = samples
+                }.ToString(Formatting.None);
             }
         }
 
         private sealed class Tool : IAgentTool
         {
-            public string Name { get; }
-            public string Description { get; }
-            public string InputJsonSchema { get; }
+            public string Name
+            {
+                get;
+            }
+            public string Description
+            {
+                get;
+            }
+            public string InputJsonSchema
+            {
+                get;
+            }
             private readonly string field;
             private readonly bool acceptsObject;
             private readonly AgentMainThread main;
@@ -130,9 +154,18 @@ namespace Ecaty
             public Tool(string name, string description, string field, AgentMainThread main, Func<JObject, string> action, JObject fieldSchema = null)
             {
                 acceptsObject = fieldSchema != null;
-                Name = name; Description = description; this.field = field; this.main = main; this.action = action;
-                var properties = new JObject(); var required = new JArray();
-                if (field != null) { properties[field] = fieldSchema ?? new JObject { ["type"] = "string" }; required.Add(field); }
+                Name = name;
+                Description = description;
+                this.field = field;
+                this.main = main;
+                this.action = action;
+                var properties = new JObject();
+                var required = new JArray();
+                if (field != null)
+                {
+                    properties[field] = fieldSchema ?? new JObject { ["type"] = "string" };
+                    required.Add(field);
+                }
                 InputJsonSchema = new JObject { ["type"] = "object", ["properties"] = properties, ["required"] = required, ["additionalProperties"] = false }.ToString(Formatting.None);
             }
             public Task<string> ExecuteAsync(string argumentsJson, CancellationToken cancellationToken)

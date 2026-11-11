@@ -83,7 +83,10 @@ namespace Ecaty.Editor
                 undersized["parts"][1]["size"][2] = 0.045;
                 undersized["parts"][6]["size"][0] = 0.085;
                 string sizeError = null;
-                try { view.Apply(undersized.ToString(), null); }
+                try
+                {
+                    view.Apply(undersized.ToString(), null);
+                }
                 catch (ArgumentException error) { sizeError = error.Message; }
                 Require(sizeError != null && sizeError.Contains("body.size.z=0.045") && sizeError.Contains("toe.size.x=0.085") &&
                     JToken.DeepEquals(edited, JObject.Parse(view.Inspect())), "Validation lost rejected brush dimensions or changed the object.");
@@ -91,7 +94,10 @@ namespace Ecaty.Editor
                 var cyclic = (JObject)edited.DeepClone();
                 cyclic["parts"][3]["parent"] = "foot";
                 bool rejected = false;
-                try { view.Apply(cyclic.ToString(), null); }
+                try
+                {
+                    view.Apply(cyclic.ToString(), null);
+                }
                 catch (ArgumentException) { rejected = true; }
                 Require(rejected && JToken.DeepEquals(edited, JObject.Parse(view.Inspect())), "A cyclic recipe changed the object.");
                 report["fimpossibleBinding"] = VerifyAnimatorReferences(surface, shell, upper, knee, foot);
@@ -137,15 +143,18 @@ namespace Ecaty.Editor
             catch (Exception ex) { report["error"] = ex.ToString(); throw; }
             finally
             {
-                if (root) UnityEngine.Object.DestroyImmediate(root);
-                if (File.Exists(save)) File.Delete(save);
+                if (root)
+                    UnityEngine.Object.DestroyImmediate(root);
+                if (File.Exists(save))
+                    File.Delete(save);
                 File.WriteAllText("Verification/photo-object-checks.json", report.ToString());
             }
         }
 
         private static void Require(bool condition, string message)
         {
-            if (!condition) throw new InvalidOperationException(message);
+            if (!condition)
+                throw new InvalidOperationException(message);
         }
 
         private static void VerifyLocalRecipe(ClayCreation view, Transform root)
@@ -206,7 +215,8 @@ namespace Ecaty.Editor
             Type Find(string name) => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(name)).FirstOrDefault(t => t != null);
             var legsType = Find("FIMSpace.FProceduralAnimation.LegsAnimator");
             var leaningType = Find("FIMSpace.LeaningAnimator");
-            if (legsType == null || leaningType == null) return false;
+            if (legsType == null || leaningType == null)
+                return false;
             var setup = new GameObject("Optional animation bindings");
             setup.SetActive(false);
             try
@@ -262,8 +272,14 @@ namespace Ecaty.Editor
         private sealed class ImageFixture : HttpMessageHandler
         {
             private readonly string expected;
-            public bool Verified { get; private set; }
-            public ImageFixture(byte[] jpeg) { expected = Convert.ToBase64String(jpeg); }
+            public bool Verified
+            {
+                get; private set;
+            }
+            public ImageFixture(byte[] jpeg)
+            {
+                expected = Convert.ToBase64String(jpeg);
+            }
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellation)
             {
                 var payload = JObject.Parse(await request.Content.ReadAsStringAsync().ConfigureAwait(false));
@@ -271,8 +287,11 @@ namespace Ecaty.Editor
                 Verified = (string)parts?[0]?["text"] == "Make it shiny silver." &&
                     (string)parts?[1]?["inlineData"]?["mimeType"] == "image/jpeg" &&
                     (string)parts?[1]?["inlineData"]?["data"] == expected;
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(
-                    "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"Fixture complete.\"}]}}]}") };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                    "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"Fixture complete.\"}]}}]}")
+                };
             }
         }
     }

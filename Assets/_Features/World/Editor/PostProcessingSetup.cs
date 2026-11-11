@@ -16,7 +16,8 @@ namespace Ecaty.Editor
         public static void Prepare()
         {
             var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(AssetPath);
-            if (profile) return;
+            if (profile)
+                return;
             profile = ScriptableObject.CreateInstance<VolumeProfile>();
             profile.name = "Environment";
             profile.Add<ColorAdjustments>(true);

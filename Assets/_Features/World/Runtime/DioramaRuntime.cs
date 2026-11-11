@@ -35,23 +35,44 @@ namespace Ecaty
         public string GoalPath => EntityPath == ClayCreation.RootName ? "Goal" : EntityPath + "Goal";
         public string CommandPath => EntityPath == ClayCreation.RootName ? "ScriptInput" : EntityPath + "Command";
         private string DriverModule => EntityPath == ClayCreation.RootName ? "ActorDriver" : "Drivers." + EntityPath;
-        private struct ControlData { public int Mode; public float Speed, Acceleration; }
-        private struct Direction2 { public float X, Z; }
-        private struct Direction3 { public float X, Y, Z; }
-        private struct PolicyData { public byte Spatial; public float Gravity; }
-        private struct MotionData { public float X,Y,Z,Yaw,Vx,Vy,Vz; public byte Grounded; }
+        private struct ControlData
+        {
+            public int Mode; public float Speed, Acceleration;
+        }
+        private struct Direction2
+        {
+            public float X, Z;
+        }
+        private struct Direction3
+        {
+            public float X, Y, Z;
+        }
+        private struct PolicyData
+        {
+            public byte Spatial; public float Gravity;
+        }
+        private struct MotionData
+        {
+            public float X, Y, Z, Yaw, Vx, Vy, Vz; public byte Grounded;
+        }
         private readonly ulong[] singleId = new ulong[1];
         private readonly ControlData[] controlWrite = new ControlData[1];
         private readonly Direction2[] inputWrite = new Direction2[1];
         private readonly float[] liftWrite = new float[1];
         private readonly MotionData[] motionWrite = new MotionData[1];
-        public string Error { get; private set; }
+        public string Error
+        {
+            get; private set;
+        }
         public CharacterController Motor => motor;
         public LegsAnimator Legs => legs;
         public BoingKit.BoingBones Secondary => secondary;
         public bool ReadDevices { get; set; } = true;
         public bool AutoStep { get; set; } = true;
-        public Camera InteractionCamera { get; set; }
+        public Camera InteractionCamera
+        {
+            get; set;
+        }
         public string Inspect()
         {
             var result = new JObject { ["configuration"] = configuration?.DeepClone(), ["error"] = Error, ["poseError"] = GetComponent<RuntimePoseBridge>()?.Error };
@@ -61,15 +82,18 @@ namespace Ecaty
         }
 
         public string Capabilities() => world.Session.Lookup("EngineCapability") != 0 ? world.Session.Query("EngineCapability, BoundCapability") : LegacyCapabilities();
-        private string LegacyCapabilities() => new JObject {
+        private string LegacyCapabilities() => new JObject
+        {
             ["version"] = 1,
-            ["motion"] = new JObject {
+            ["motion"] = new JObject
+            {
                 ["settings"] = "PhotoClay.MotorPolicy{spatial:bool,gravityScale:0..4}; ActorControl{mode,speed,acceleration}",
                 ["input"] = "mode 3: ScriptInput.SpatialIntent{x,y,z} for spatial movement, ScriptInput.MoveIntent{x,z} for ground movement; normalized direction, speed in metres/second",
                 ["solver"] = "one collision-resolving CharacterController; controlled 3D velocity, not an aerodynamic solver",
                 ["observed"] = "PhotoClay.ActorMotion actual motor pose/velocity/grounding"
             },
-            ["pose"] = new JObject {
+            ["pose"] = new JObject
+            {
                 ["command"] = "PoseOffset{x,y,z,rx,ry,rz} on a behavior-owned command entity linked with (PoseTarget, existingViewEntity). Additive local translation/Euler degrees AFTER procedural animation. Removing/replacing the owning behavior removes its command entities and restores the base pose; multiple command channels sum per target",
                 ["observed"] = "PoseObserved world position/Euler/lossy scale and local position, offsetApplied and Unity frame; sampled after MudBun's update",
                 ["ownership"] = "ClayRest is authored rest data, not a live animation command. Model structure/style use apply_photo_object. Visual offsets do not move the motor collider."
@@ -82,8 +106,10 @@ namespace Ecaty
         {
             world = owner;
             creation = model;
-            if (world.Session.ManagedScriptSource("ActorSchema") == null) world.Session.SetManagedScript("ActorSchema", Resources.Load<TextAsset>("Runtime/Schemas/ActorSchema").text);
-            creation.Rebuilding -= SuspendAnimations; creation.Rebuilt -= OnModelRebuilt;
+            if (world.Session.ManagedScriptSource("ActorSchema") == null)
+                world.Session.SetManagedScript("ActorSchema", Resources.Load<TextAsset>("Runtime/Schemas/ActorSchema").text);
+            creation.Rebuilding -= SuspendAnimations;
+            creation.Rebuilt -= OnModelRebuilt;
             creation.Rebuilding += SuspendAnimations;
             creation.Rebuilt += OnModelRebuilt;
             SyncGround();
@@ -91,17 +117,21 @@ namespace Ecaty
 
         public void SyncGround()
         {
-            if (world == null || world.Session == null || world.Session.IsDisposed) return;
+            if (world == null || world.Session == null || world.Session.IsDisposed)
+                return;
             world.SyncViews();
             int count = world.Session.ReadViews(out var views);
             for (int i = 0; i < count; i++)
             {
-                if (world.Session.EntityName(views[i].Entity) != "Ground") continue;
+                if (world.Session.EntityName(views[i].Entity) != "Ground")
+                    continue;
                 var data = JObject.Parse(world.Session.EntityJson("diorama.Ground"));
-                if (!(data["tags"] as JArray)?.Any(t => (string)t == "GroundSurface") ?? true) continue;
+                if (!(data["tags"] as JArray)?.Any(t => (string)t == "GroundSurface") ?? true)
+                    continue;
                 var view = world.FindView(views[i].Entity);
                 ground = view.GetComponent<BoxCollider>();
-                if (!ground) ground = view.AddComponent<BoxCollider>();
+                if (!ground)
+                    ground = view.AddComponent<BoxCollider>();
                 ground.size = Vector3.one;
                 return;
             }
@@ -110,27 +140,37 @@ namespace Ecaty
 
         public string Configure(string json)
         {
-            if (!creation.PresentationRoot) throw new ArgumentException("Create a model before configuring its control.");
+            if (!creation.PresentationRoot)
+                throw new ArgumentException("Create a model before configuring its control.");
             var patch = JObject.Parse(json, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
             string[] allowed = { "driver", "speed", "acceleration", "hips", "legs", "lean", "boing", "spawn", "facingYaw", "motion", "gravityScale" };
-            if (patch.Properties().Any(p => !allowed.Contains(p.Name))) throw new ArgumentException("Unknown actor configuration field.");
+            if (patch.Properties().Any(p => !allowed.Contains(p.Name)))
+                throw new ArgumentException("Unknown actor configuration field.");
             var next = configuration == null
                 ? JObject.Parse(@"{""driver"":""player"",""speed"":2,""acceleration"":8,""hips"":null,""legs"":[],""lean"":null,""boing"":[],""spawn"":[0,0,0],""facingYaw"":0,""motion"":""ground"",""gravityScale"":1}")
                 : (JObject)configuration.DeepClone();
-            foreach (var property in patch.Properties()) next[property.Name] = property.Value.DeepClone();
+            foreach (var property in patch.Properties())
+                next[property.Name] = property.Value.DeepClone();
             string driver = (string)next["driver"];
             int mode = Array.IndexOf(new[] { "idle", "player", "follow", "script" }, driver);
-            if (mode < 0) throw new ArgumentException("Driver must be idle, player, follow or script.");
-            if (next["motion"] == null) next["motion"] = "ground";
-            if (next["gravityScale"] == null) next["gravityScale"] = 1;
-            if ((string)next["motion"] != "ground" && (string)next["motion"] != "spatial") throw new ArgumentException("motion must be ground or spatial.");
+            if (mode < 0)
+                throw new ArgumentException("Driver must be idle, player, follow or script.");
+            if (next["motion"] == null)
+                next["motion"] = "ground";
+            if (next["gravityScale"] == null)
+                next["gravityScale"] = 1;
+            if ((string)next["motion"] != "ground" && (string)next["motion"] != "spatial")
+                throw new ArgumentException("motion must be ground or spatial.");
             ValidateNumber(next["gravityScale"], 0, 4, "gravityScale");
-            if (next["facingYaw"] == null) next["facingYaw"] = 0;
+            if (next["facingYaw"] == null)
+                next["facingYaw"] = 0;
             ValidateNumber(next["facingYaw"], -180, 180, "facingYaw");
             ValidateNumber(next["speed"], .1, 8, "speed");
             ValidateNumber(next["acceleration"], .1, 40, "acceleration");
-            if (!(next["spawn"] is JArray spawn) || spawn.Count != 3) throw new ArgumentException("spawn needs x, y and z.");
-            foreach (var coordinate in spawn) ValidateNumber(coordinate, -6, 6, "spawn");
+            if (!(next["spawn"] is JArray spawn) || spawn.Count != 3)
+                throw new ArgumentException("spawn needs x, y and z.");
+            foreach (var coordinate in spawn)
+                ValidateNumber(coordinate, -6, 6, "spawn");
             if (!(next["legs"] is JArray chains) || chains.Count > 12 || !(next["boing"] is JArray roots) || roots.Count > 8)
                 throw new ArgumentException("Use up to 12 legs and 8 secondary chains.");
             Transform hips = OptionalPivot(next["hips"]);
@@ -139,8 +179,11 @@ namespace Ecaty
                 throw new ArgumentException("The leaning pivot must be a descendant of the hips.");
             foreach (var chain in chains)
             {
-                if (!(chain is JArray ids) || ids.Count != 3 || !hips) throw new ArgumentException("Each leg needs three pivot IDs and a hips pivot.");
-                var upper = Pivot(ids[0]); var knee = Pivot(ids[1]); var foot = Pivot(ids[2]);
+                if (!(chain is JArray ids) || ids.Count != 3 || !hips)
+                    throw new ArgumentException("Each leg needs three pivot IDs and a hips pivot.");
+                var upper = Pivot(ids[0]);
+                var knee = Pivot(ids[1]);
+                var foot = Pivot(ids[2]);
                 if (upper == hips || knee == upper || foot == knee || !upper.IsChildOf(hips) ||
                     !knee.IsChildOf(upper) || !foot.IsChildOf(knee) ||
                     Vector3.Distance(upper.position, knee.position) < .05f || Vector3.Distance(knee.position, foot.position) < .05f)
@@ -149,7 +192,8 @@ namespace Ecaty
             foreach (var id in roots)
             {
                 var branch = Pivot(id);
-                if (hips && (branch == hips || hips.IsChildOf(branch))) throw new ArgumentException("Secondary motion needs a separate branch from the hips.");
+                if (hips && (branch == hips || hips.IsChildOf(branch)))
+                    throw new ArgumentException("Secondary motion needs a separate branch from the hips.");
                 foreach (var chain in chains)
                     foreach (var legId in chain)
                     {
@@ -165,11 +209,17 @@ namespace Ecaty
                 !JToken.DeepEquals(configuration["facingYaw"], next["facingYaw"]);
             GetComponent<RuntimePoseBridge>()?.Restore();
             EnsureMotor(next);
-            if (rebuild) BindAnimation(next, hips, spine);
+            if (rebuild)
+                BindAnimation(next, hips, spine);
             configuration = next;
             appliedRig = next.ToString(Formatting.None);
-            var state = new JObject { ["x"] = body.transform.position.x, ["y"] = body.transform.position.y,
-                ["z"] = body.transform.position.z, ["yaw"] = body.transform.eulerAngles.y };
+            var state = new JObject
+            {
+                ["x"] = body.transform.position.x,
+                ["y"] = body.transform.position.y,
+                ["z"] = body.transform.position.z,
+                ["yaw"] = body.transform.eulerAngles.y
+            };
             var script = EntityPath + " {\nActorControl: {" + mode + "," + Number((float)next["speed"]) + "," + Number((float)next["acceleration"]) + "}\n" +
                 "MotorPolicy: {" + ((string)next["motion"] == "spatial" ? "true" : "false") + "," + Number((float)next["gravityScale"]) + "}\n" +
                 "ActorRig: {" + JsonConvert.SerializeObject(next.ToString(Formatting.None)).Replace("{", "\\{").Replace("$", "\\$") + "}\n";
@@ -185,8 +235,14 @@ namespace Ecaty
             if (world.Session.ManagedScriptSource(DriverModule) == null)
                 world.Session.SetManagedScript(DriverModule, EntityPath + " { RuntimeMotorDriver: {" + InputPath + "," + GoalPath + "," + CommandPath + "} }");
             Error = null;
-            return new JObject { ["configured"] = true, ["driver"] = driver, ["legs"] = chains.Count,
-                ["secondaryChains"] = roots.Count, ["state"] = state }.ToString(Formatting.None);
+            return new JObject
+            {
+                ["configured"] = true,
+                ["driver"] = driver,
+                ["legs"] = chains.Count,
+                ["secondaryChains"] = roots.Count,
+                ["state"] = state
+            }.ToString(Formatting.None);
         }
 
         private void EnsureMotor(JObject next)
@@ -219,9 +275,12 @@ namespace Ecaty
         private void BindAnimation(JObject next, Transform hips, Transform spine)
         {
             SuspendAnimations();
-            if (legs) DestroyImmediate(legs);
-            if (leaning) DestroyImmediate(leaning);
-            if (secondary) DestroyImmediate(secondary);
+            if (legs)
+                DestroyImmediate(legs);
+            if (leaning)
+                DestroyImmediate(leaning);
+            if (secondary)
+                DestroyImmediate(secondary);
             var visual = creation.PresentationRoot.gameObject;
             visual.SetActive(false);
             try
@@ -239,9 +298,12 @@ namespace Ecaty
                     {
                         legs.Legs_AddNewLeg();
                         var leg = legs.Legs[legs.Legs.Count - 1];
-                        leg.BoneStart = Pivot(chain[0]); leg.BoneMid = Pivot(chain[1]); leg.BoneEnd = Pivot(chain[2]);
+                        leg.BoneStart = Pivot(chain[0]);
+                        leg.BoneMid = Pivot(chain[1]);
+                        leg.BoneEnd = Pivot(chain[2]);
                     }
-                    foreach (var leg in legs.Legs) leg.DefineLegSide(legs);
+                    foreach (var leg in legs.Legs)
+                        leg.DefineLegSide(legs);
                     legs.Finder_AutoDefineOppositeLegs();
                     legs.Finders_RefreshAllLegsAnkleAxes();
                 }
@@ -257,8 +319,12 @@ namespace Ecaty
                     secondary = visual.AddComponent<BoingKit.BoingBones>();
                     var geometry = JObject.Parse(creation.Inspect())["parts"].Where(p => (string)p["shape"] != "pivot")
                         .Select(p => creation.FindPart((string)p["id"])).Where(t => t).ToArray();
-                    secondary.BoneChains = next["boing"].Select(id => new BoingKit.BoingBones.Chain {
-                        Root = Pivot(id), Exclusion = geometry, LooseRoot = false }).ToArray();
+                    secondary.BoneChains = next["boing"].Select(id => new BoingKit.BoingBones.Chain
+                    {
+                        Root = Pivot(id),
+                        Exclusion = geometry,
+                        LooseRoot = false
+                    }).ToArray();
                     secondary.EnablePositionEffect = true;
                     secondary.EnableRotationEffect = true;
                 }
@@ -269,7 +335,8 @@ namespace Ecaty
         private Transform OptionalPivot(JToken id) => id == null || id.Type == JTokenType.Null ? null : Pivot(id);
         private Transform Pivot(JToken id)
         {
-            if (id?.Type != JTokenType.String) throw new ArgumentException("A pivot reference must be an ID.");
+            if (id?.Type != JTokenType.String)
+                throw new ArgumentException("A pivot reference must be an ID.");
             var part = JObject.Parse(creation.Inspect())["parts"].FirstOrDefault(p => (string)p["id"] == (string)id);
             if ((string)part?["shape"] != "pivot" || !creation.FindPart((string)id))
                 throw new ArgumentException("Missing pivot: " + (string)id);
@@ -284,10 +351,13 @@ namespace Ecaty
 
         public void SetDriver(int mode)
         {
-            if (mode < 0 || mode > 3 || !motor) return;
+            if (mode < 0 || mode > 3 || !motor)
+                return;
             singleId[0] = world.Session.Lookup(EntityPath);
-            if (!world.Session.TryRead(singleId[0], "ActorControl", out ControlData control) || control.Mode == mode) return;
-            control.Mode = mode; controlWrite[0] = control;
+            if (!world.Session.TryRead(singleId[0], "ActorControl", out ControlData control) || control.Mode == mode)
+                return;
+            control.Mode = mode;
+            controlWrite[0] = control;
             world.Session.WriteBatch("ActorControl", singleId, controlWrite, 1);
             configuration["driver"] = new[] { "idle", "player", "follow", "script" }[mode];
         }
@@ -300,10 +370,12 @@ namespace Ecaty
         // Changes from chat tools, Explorer or new runtime rules use the same binding path.
         private void RefreshRig()
         {
-            if (!creation.PresentationRoot) return;
+            if (!creation.PresentationRoot)
+                return;
             string rigJson = world.Session.ComponentJson(world.Session.Lookup(EntityPath), "ActorRig");
             string rig = rigJson == null ? null : (string)JObject.Parse(rigJson)["json"];
-            if (string.IsNullOrEmpty(rig) || rig == appliedRig) return;
+            if (string.IsNullOrEmpty(rig) || rig == appliedRig)
+                return;
             appliedRig = rig; // Reject a bad edit once; retry only when its data changes.
             try
             {
@@ -313,10 +385,16 @@ namespace Ecaty
                 if (control != null)
                 {
                     int mode = (int)control["mode"];
-                    if (mode >= 0 && mode <= 3) next["driver"] = new[] { "idle", "player", "follow", "script" }[mode];
-                    next["speed"] = control["speed"].DeepClone(); next["acceleration"] = control["acceleration"].DeepClone();
+                    if (mode >= 0 && mode <= 3)
+                        next["driver"] = new[] { "idle", "player", "follow", "script" }[mode];
+                    next["speed"] = control["speed"].DeepClone();
+                    next["acceleration"] = control["acceleration"].DeepClone();
                     var policy = components["MotorPolicy"];
-                    if (policy != null) { next["motion"] = (bool)policy["spatial"] ? "spatial" : "ground"; next["gravityScale"] = policy["gravityScale"].DeepClone(); }
+                    if (policy != null)
+                    {
+                        next["motion"] = (bool)policy["spatial"] ? "spatial" : "ground";
+                        next["gravityScale"] = policy["gravityScale"].DeepClone();
+                    }
                 }
                 Configure(next.ToString(Formatting.None));
             }
@@ -325,22 +403,41 @@ namespace Ecaty
 
         private void Update()
         {
-            if (world == null || world.Session == null || world.Session.IsDisposed) return;
+            if (world == null || world.Session == null || world.Session.IsDisposed)
+                return;
             SyncGround();
-            if (!creation.PresentationRoot) { if (motor) ResetActor(); return; }
-            RefreshRig();
-            if(motor && world.Session.Lookup("CapDrag")!=0) {
-                var request=world.Session.ComponentJson(world.Session.Lookup(creation.EntityPath),"CapDrag");
-                if(!string.IsNullOrEmpty(request)) {var drag=JObject.Parse(request);if((bool?)drag["active"]==true){RestoreMotorPose(new Vector3((float)drag["x"],(float)drag["y"],(float)drag["z"]),motor.transform.rotation);return;}}
+            if (!creation.PresentationRoot)
+            {
+                if (motor)
+                    ResetActor();
+                return;
             }
-            if (!motor || configuration == null) return;
-            if (ReadDevices) CaptureInput();
-            if (AutoStep) StepMotor(Mathf.Min(Time.deltaTime, .05f));
+            RefreshRig();
+            if (motor && world.Session.Lookup("CapDrag") != 0)
+            {
+                var request = world.Session.ComponentJson(world.Session.Lookup(creation.EntityPath), "CapDrag");
+                if (!string.IsNullOrEmpty(request))
+                {
+                    var drag = JObject.Parse(request);
+                    if ((bool?)drag["active"] == true)
+                    {
+                        RestoreMotorPose(new Vector3((float)drag["x"], (float)drag["y"], (float)drag["z"]), motor.transform.rotation);
+                        return;
+                    }
+                }
+            }
+            if (!motor || configuration == null)
+                return;
+            if (ReadDevices)
+                CaptureInput();
+            if (AutoStep)
+                StepMotor(Mathf.Min(Time.deltaTime, .05f));
         }
 
         private void CaptureInput()
         {
-            if (!chat) chat = FindAnyObjectByType<AgentChatPanel>();
+            if (!chat)
+                chat = FindAnyObjectByType<AgentChatPanel>();
             var input = Vector2.zero;
             float lift = 0;
             if (!chat || !chat.IsEditingText)
@@ -358,9 +455,11 @@ namespace Ecaty
                     lift = Gamepad.current.rightTrigger.ReadValue() - Gamepad.current.leftTrigger.ReadValue();
             }
             input = Vector2.ClampMagnitude(input, 1);
-            if (input.sqrMagnitude > .01f || Mathf.Abs(lift) > .1f) SetDriver(1);
+            if (input.sqrMagnitude > .01f || Mathf.Abs(lift) > .1f)
+                SetDriver(1);
             singleId[0] = world.Session.Lookup(InputPath);
-            inputWrite[0] = new Direction2 { X=input.x, Z=input.y }; liftWrite[0] = lift;
+            inputWrite[0] = new Direction2 { X = input.x, Z = input.y };
+            liftWrite[0] = lift;
             world.Session.WriteBatch("PlayerMotion", singleId, inputWrite, 1);
             world.Session.WriteBatch("LiftIntent", singleId, liftWrite, 1);
             var experience = world.GetComponent<RuntimeExperience>();
@@ -371,7 +470,11 @@ namespace Ecaty
             }
             var pointer = Pointer.current;
             var camera = InteractionCamera ? InteractionCamera : Camera.main;
-            if (pointer == null || !camera) { groundClickPending = false; return; }
+            if (pointer == null || !camera)
+            {
+                groundClickPending = false;
+                return;
+            }
             Vector2 screen = pointer.position.ReadValue();
             bool claimed = experience && (experience.WorkshopOwnsPointer || experience.Navigation && experience.Navigation.IsNavigating);
             var ray = camera.ScreenPointToRay(screen);
@@ -381,7 +484,8 @@ namespace Ecaty
                 groundClickPending = !claimed && (!chat || !chat.CoversScreenPoint(screen)) &&
                     (!experience || !experience.HitsWorldObject(ray));
             }
-            if (claimed || (screen - groundPressPoint).sqrMagnitude > 81) groundClickPending = false;
+            if (claimed || (screen - groundPressPoint).sqrMagnitude > 81)
+                groundClickPending = false;
             if (pointer.press.wasReleasedThisFrame)
             {
                 if (groundClickPending && (!chat || !chat.CoversScreenPoint(screen)) &&
@@ -393,20 +497,26 @@ namespace Ecaty
 
         public void StepMotor(float delta)
         {
-            if (!motor || !ground || delta <= 0) return;
+            if (!motor || !ground || delta <= 0)
+                return;
             ulong entity = world.Session.Lookup(EntityPath);
-            if (!world.Session.TryRead(entity, "ActorControl", out ControlData control) || !world.Session.TryRead(entity, "MoveIntent", out Direction2 intent)) return;
-            var policy = new PolicyData { Gravity=1 };
-            if (world.Session.TryRead(entity, "MotorPolicy", out PolicyData currentPolicy)) policy=currentPolicy;
+            if (!world.Session.TryRead(entity, "ActorControl", out ControlData control) || !world.Session.TryRead(entity, "MoveIntent", out Direction2 intent))
+                return;
+            var policy = new PolicyData { Gravity = 1 };
+            if (world.Session.TryRead(entity, "MotorPolicy", out PolicyData currentPolicy))
+                policy = currentPolicy;
             bool spatial = policy.Spatial != 0;
             float gravityScale = Mathf.Clamp(policy.Gravity, 0, 4);
             var direction = new Vector3(intent.X, 0, intent.Z);
-            if (spatial && world.Session.TryRead(entity, "SpatialIntent", out Direction3 space)) direction = new Vector3(space.X, space.Y, space.Z);
-            if (!float.IsFinite(direction.x) || !float.IsFinite(direction.y) || !float.IsFinite(direction.z)) direction = Vector3.zero;
+            if (spatial && world.Session.TryRead(entity, "SpatialIntent", out Direction3 space))
+                direction = new Vector3(space.X, space.Y, space.Z);
+            if (!float.IsFinite(direction.x) || !float.IsFinite(direction.y) || !float.IsFinite(direction.z))
+                direction = Vector3.zero;
             direction = Vector3.ClampMagnitude(direction, 1);
             float speed = Mathf.Clamp(control.Speed, 0, 8);
             float acceleration = Mathf.Clamp(control.Acceleration, .1f, 40);
-            if (!float.IsFinite(speed) || !float.IsFinite(acceleration) || !float.IsFinite(gravityScale)) return;
+            if (!float.IsFinite(speed) || !float.IsFinite(acceleration) || !float.IsFinite(gravityScale))
+                return;
             if (spatial)
             {
                 velocity = Vector3.MoveTowards(velocity, direction * speed, acceleration * delta);
@@ -434,33 +544,60 @@ namespace Ecaty
             publishedPosition = body.transform.position;
             var p = publishedPosition;
             singleId[0] = entity;
-            motionWrite[0] = new MotionData { X=p.x,Y=p.y,Z=p.z,Yaw=body.transform.eulerAngles.y,
-                Vx=actual.x,Vy=actual.y,Vz=actual.z,Grounded=motor.isGrounded ? (byte)1 : (byte)0 };
+            motionWrite[0] = new MotionData
+            {
+                X = p.x,
+                Y = p.y,
+                Z = p.z,
+                Yaw = body.transform.eulerAngles.y,
+                Vx = actual.x,
+                Vy = actual.y,
+                Vz = actual.z,
+                Grounded = motor.isGrounded ? (byte)1 : (byte)0
+            };
             world.Session.WriteBatch("ActorMotion", singleId, motionWrite, 1);
         }
 
         public void RestoreMotorPose(Vector3 position, Quaternion rotation)
         {
-            if (!motor) return;
-            motor.enabled = false; body.transform.SetPositionAndRotation(position, rotation); motor.enabled = true;
+            if (!motor)
+                return;
+            motor.enabled = false;
+            body.transform.SetPositionAndRotation(position, rotation);
+            motor.enabled = true;
             velocity = Vector3.zero;
         }
         public void ResetActor()
         {
             SuspendAnimations();
-            if (body) { body.SetActive(false); Destroy(body); }
-            body = null; motor = null; poseRoot = null; legs = null; leaning = null; secondary = null;
-            configuration = null; appliedRig = null; velocity = Vector3.zero;
+            if (body)
+            {
+                body.SetActive(false);
+                Destroy(body);
+            }
+            body = null;
+            motor = null;
+            poseRoot = null;
+            legs = null;
+            leaning = null;
+            secondary = null;
+            configuration = null;
+            appliedRig = null;
+            velocity = Vector3.zero;
         }
         private void SuspendAnimations()
         {
-            if (legs) legs.enabled = false;
-            if (leaning) leaning.enabled = false;
-            if (secondary) secondary.enabled = false;
+            if (legs)
+                legs.enabled = false;
+            if (leaning)
+                leaning.enabled = false;
+            if (secondary)
+                secondary.enabled = false;
         }
         private void OnModelRebuilt()
         {
-            if (configuration == null) return;
+            if (configuration == null)
+                return;
             try
             {
                 var saved = (JObject)configuration.DeepClone();
@@ -471,8 +608,13 @@ namespace Ecaty
         }
         private void OnDestroy()
         {
-            if (creation) { creation.Rebuilding -= SuspendAnimations; creation.Rebuilt -= OnModelRebuilt; }
-            if (body) Destroy(body);
+            if (creation)
+            {
+                creation.Rebuilding -= SuspendAnimations;
+                creation.Rebuilt -= OnModelRebuilt;
+            }
+            if (body)
+                Destroy(body);
         }
     }
 }

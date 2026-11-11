@@ -19,7 +19,11 @@ namespace Ecaty.Editor
         {
             var slot = new EnumField("Icon slot", WorkshopIcon.Seed);
             var source = new ObjectField("Sculpt or mesh")
-                { objectType = typeof(GameObject), allowSceneObjects = true, value = Selection.activeGameObject };
+            {
+                objectType = typeof(GameObject),
+                allowSceneObjects = true,
+                value = Selection.activeGameObject
+            };
             var density = new Slider("MudBun resolution", 6, 24) { value = 12 };
             var result = new Label();
             var preview = new ObjectField("Baked prefab") { objectType = typeof(GameObject) };
@@ -38,7 +42,10 @@ namespace Ecaty.Editor
                 UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(sculpt.scene);
                 Selection.activeGameObject = sculpt;
                 source.value = sculpt;
-            }) { text = "Create editable sculpt" });
+            })
+            {
+                text = "Create editable sculpt"
+            });
             rootVisualElement.Add(new Button(() =>
             {
                 try
@@ -50,17 +57,27 @@ namespace Ecaty.Editor
                     Refresh();
                 }
                 catch (Exception error) { result.text = error.Message; }
-            }) { text = "Bake into slot" });
+            })
+            {
+                text = "Bake into slot"
+            });
             rootVisualElement.Add(preview);
             rootVisualElement.Add(new Button(() => { var asset = LoadIcon((WorkshopIcon)slot.value); if (asset) EditorGUIUtility.PingObject(asset); })
-                { text = "Find baked asset" });
+            {
+                text = "Find baked asset"
+            });
             rootVisualElement.Add(result);
             Refresh();
         }
 
         private static void EnsureFolder(string folder)
         {
-            if(AssetDatabase.IsValidFolder(folder))return;int slash=folder.LastIndexOf('/');string parent=folder.Substring(0,slash);EnsureFolder(parent);AssetDatabase.CreateFolder(parent,folder.Substring(slash+1));
+            if (AssetDatabase.IsValidFolder(folder))
+                return;
+            int slash = folder.LastIndexOf('/');
+            string parent = folder.Substring(0, slash);
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, folder.Substring(slash + 1));
         }
 
         private static string Resource(WorkshopIcon icon) =>
@@ -195,9 +212,10 @@ namespace Ecaty.Editor
 
         private static GameObject Bake(GameObject source, WorkshopIcon icon, float density = 0)
         {
-            if (!CanBake(source)) throw new InvalidOperationException("Select a MudBun renderer or a mesh in Edit Mode.");
+            if (!CanBake(source))
+                throw new InvalidOperationException("Select a MudBun renderer or a mesh in Edit Mode.");
             string basePath = Folder + Resource(icon);
-            EnsureFolder(System.IO.Path.GetDirectoryName(basePath).Replace('\\','/'));
+            EnsureFolder(System.IO.Path.GetDirectoryName(basePath).Replace('\\', '/'));
             string meshPath = basePath + "Mesh.asset";
             GameObject temporary = null;
             GameObject prefabRoot = null;
@@ -210,7 +228,8 @@ namespace Ecaty.Editor
                     temporary = Object.Instantiate(source);
                     temporary.hideFlags = HideFlags.HideAndDontSave;
                     var renderer = temporary.GetComponent<MudRenderer>();
-                    if (density > 0) renderer.VoxelDensity = density;
+                    if (density > 0)
+                        renderer.VoxelDensity = density;
                     generated = renderer.GenerateMesh(MudRendererBase.GeneratedMeshType.Standard, async: false,
                         weldVertices: true, optimizeMeshForRendering: true);
                     materials = new[] { ResourcesUtil.DefaultLockedMeshMaterial };
@@ -257,9 +276,12 @@ namespace Ecaty.Editor
             }
             finally
             {
-                if (prefabRoot) Object.DestroyImmediate(prefabRoot);
-                if (temporary) Object.DestroyImmediate(temporary);
-                if (generated) Object.DestroyImmediate(generated);
+                if (prefabRoot)
+                    Object.DestroyImmediate(prefabRoot);
+                if (temporary)
+                    Object.DestroyImmediate(temporary);
+                if (generated)
+                    Object.DestroyImmediate(generated);
             }
         }
 

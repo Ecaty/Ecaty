@@ -8,8 +8,10 @@ namespace Ecaty
         {
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
             var material = new Material(shader);
-            var theme=EcatyTheme.Default;
-            var tinted=Color.Lerp(color,theme.ToolAccent,theme.ToolTintStrength);tinted.a=color.a;material.color=tinted;
+            var theme = EcatyTheme.Default;
+            var tinted = Color.Lerp(color, theme.ToolAccent, theme.ToolTintStrength);
+            tinted.a = color.a;
+            material.color = tinted;
             return material;
         }
 

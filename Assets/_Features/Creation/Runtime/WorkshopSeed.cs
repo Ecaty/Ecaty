@@ -15,9 +15,15 @@ namespace Ecaty
         private int opened;
         public Transform View => seed;
         public Vector3 FocusPosition => world.FindView(motionId).transform.position + Vector3.up * Lift;
-        public bool Highlighted { get; set; }
+        public bool Highlighted
+        {
+            get; set;
+        }
         public bool Visible { get; set; } = true;
-        public float Lift { get; set; }
+        public float Lift
+        {
+            get; set;
+        }
 
         public void Initialize(FlecsWorld owner)
         {
@@ -41,7 +47,8 @@ namespace Ecaty
 
         public void BindSession()
         {
-            if (session == world.Session) return;
+            if (session == world.Session)
+                return;
             session = world.Session;
             if (session.Lookup("WorldSeed") == 0)
                 session.SetManagedScript("WorkshopSeedAnchor", Resources.Load<TextAsset>("Workshop/Runtime/WorkshopLobby").text);
@@ -53,7 +60,8 @@ namespace Ecaty
 
         public bool ConsumeActivation()
         {
-            if (!session.TryRead(motionId, Request, out int count) || count == opened) return false;
+            if (!session.TryRead(motionId, Request, out int count) || count == opened)
+                return false;
             opened = count;
             return Visible;
         }
@@ -62,10 +70,12 @@ namespace Ecaty
 
         private void Sync()
         {
-            if (!world || !seed) return;
+            if (!world || !seed)
+                return;
             var pose = world.FindView(motionId);
             seed.gameObject.SetActive(Visible && pose != null);
-            if (!seed.gameObject.activeSelf) return;
+            if (!seed.gameObject.activeSelf)
+                return;
             seed.SetPositionAndRotation(pose.transform.position + Vector3.up * Lift, pose.transform.rotation);
             float scale = Highlighted ? 1.12f : 1f;
             seed.localScale = Vector3.Lerp(seed.localScale, Vector3.one * scale,

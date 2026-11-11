@@ -7,12 +7,12 @@ namespace Ecaty
     public sealed class GalleryPreviewEntry
     {
         public string Id;
-        public int Order,Width,Depth,Kind;
+        public int Order, Width, Depth, Kind;
         public bool Active;
-        public Transform Anchor,Content;
+        public Transform Anchor, Content;
         public GalleryMockPreview Preview;
         public JArray SavedFeatures;
-        public float TableScale=1;
+        public float TableScale = 1;
         public Bounds NaturalBounds;
     }
 }

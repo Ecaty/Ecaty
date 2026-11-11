@@ -37,7 +37,8 @@ namespace Ecaty.Editor
         private static void Start()
         {
             var experience = Object.FindAnyObjectByType<RuntimeExperience>();
-            if (!experience) throw new InvalidOperationException("Ecaty has no running experience.");
+            if (!experience)
+                throw new InvalidOperationException("Ecaty has no running experience.");
             Require(experience.Dock && experience.Dock.StartBellAndGate(), "Could not open the Bell & Gate example.");
         }
 
@@ -47,14 +48,16 @@ namespace Ecaty.Editor
         [MenuItem("Runtime/Runtime engine/Verify workshop chain")]
         public static void StartVerification()
         {
-            if (!CanVerify()) return;
+            if (!CanVerify())
+                return;
             SessionState.SetBool(Pending, true);
             EditorApplication.isPlaying = true;
         }
 
         private static void Require(bool condition, string message)
         {
-            if (!condition) throw new InvalidOperationException(message);
+            if (!condition)
+                throw new InvalidOperationException(message);
         }
 
         private static async Task Until(Func<bool> condition, string message)
@@ -94,13 +97,13 @@ namespace Ecaty.Editor
             await Until(() => Mathf.Abs(camera.orthographicSize - navigation.TargetZoom) < .01f,
                 "World framing did not settle.");
             foreach (float x in new[] { baseBounds.min.x, baseBounds.max.x })
-            foreach (float y in new[] { baseBounds.min.y, baseBounds.max.y })
-            foreach (float z in new[] { baseBounds.min.z, baseBounds.max.z })
-            {
-                Vector3 corner = camera.WorldToViewportPoint(new Vector3(x, y, z));
-                Require(corner.x > 0 && corner.x < 1 && corner.y > 0 && corner.y < 1,
-                    $"World framing clipped a base corner at {corner}.");
-            }
+                foreach (float y in new[] { baseBounds.min.y, baseBounds.max.y })
+                    foreach (float z in new[] { baseBounds.min.z, baseBounds.max.z })
+                    {
+                        Vector3 corner = camera.WorldToViewportPoint(new Vector3(x, y, z));
+                        Require(corner.x > 0 && corner.x < 1 && corner.y > 0 && corner.y < 1,
+                            $"World framing clipped a base corner at {corner}.");
+                    }
             navigation.ResetView();
             await FrameCount(3);
             float overview = navigation.TargetZoom;
@@ -261,7 +264,8 @@ namespace Ecaty.Editor
 
                 void Tap(Vector2 point, bool fastTap = false)
                 {
-                    if (!fastTap) experience.Workshop.RoutePointer(point, true, 10f);
+                    if (!fastTap)
+                        experience.Workshop.RoutePointer(point, true, 10f);
                     experience.Workshop.RoutePointer(point, false, 10.1f, pressedThisFrame: fastTap);
                 }
 
@@ -431,7 +435,8 @@ namespace Ecaty.Editor
 
         private static async void Verify()
         {
-            if (running) return;
+            if (running)
+                return;
             running = true;
             bool owned = SessionState.GetBool(Pending, false);
             SessionState.EraseBool(Pending);
@@ -574,9 +579,14 @@ namespace Ecaty.Editor
             catch (Exception error) { report["error"] = error.ToString(); Debug.LogException(error); }
             finally
             {
-                if (camera) camera.targetTexture = null;
-                if (canvas) Object.Destroy(canvas);
-                try { File.WriteAllText("Verification/workshop-chain-unity-checks.json", report.ToString()); }
+                if (camera)
+                    camera.targetTexture = null;
+                if (canvas)
+                    Object.Destroy(canvas);
+                try
+                {
+                    File.WriteAllText("Verification/workshop-chain-unity-checks.json", report.ToString());
+                }
                 finally
                 {
                     running = false;

@@ -22,57 +22,97 @@ namespace Ecaty.Editor
         {
             pending = new TaskCompletionSource<Bounds>(TaskCreationOptions.RunContinuationsAsynchronously);
             var task = pending.Task;
-            if (await Task.WhenAny(task, Task.Delay(40000)) != task) throw new TimeoutException("Late mesh sampling did not run.");
+            if (await Task.WhenAny(task, Task.Delay(40000)) != task)
+                throw new TimeoutException("Late mesh sampling did not run.");
             return await task;
         }
         private void LateUpdate()
         {
-            var request = pending; if (request == null) return; pending = null;
-            try { request.SetResult(Read()); } catch (Exception error) { request.SetException(error); }
+            var request = pending;
+            if (request == null)
+                return;
+            pending = null;
+            try
+            {
+                request.SetResult(Read());
+            }
+            catch (Exception error) { request.SetException(error); }
         }
     }
 
     public static class RuntimeSpatialVerification
     {
-        public static bool Running { get; private set; }
-        private static void Require(bool value, string error) { if (!value) throw new InvalidOperationException(error); }
+        public static bool Running
+        {
+            get; private set;
+        }
+        private static void Require(bool value, string error)
+        {
+            if (!value)
+                throw new InvalidOperationException(error);
+        }
         private static async Task Frames(int count)
         {
-            int until = Time.frameCount + count; var deadline = DateTime.UtcNow.AddSeconds(40);
-            while (Time.frameCount < until) { if (DateTime.UtcNow > deadline) throw new TimeoutException("Play frames stopped advancing."); await Task.Yield(); }
+            int until = Time.frameCount + count;
+            var deadline = DateTime.UtcNow.AddSeconds(40);
+            while (Time.frameCount < until)
+            {
+                if (DateTime.UtcNow > deadline)
+                    throw new TimeoutException("Play frames stopped advancing.");
+                await Task.Yield();
+            }
         }
         [InitializeOnLoadMethod]
-        private static void Initialize() => EditorApplication.playModeStateChanged += state => {
-            if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Ecaty.SpatialCheck", false)) Run();
+        private static void Initialize() => EditorApplication.playModeStateChanged += state =>
+        {
+            if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Ecaty.SpatialCheck", false))
+                Run();
         };
         [MenuItem("Runtime/Runtime engine/Verify spatial workflow")]
         public static void Start()
         {
-            if (Running) return;
-            if (EditorApplication.isPlaying) { Run(); return; }
-            SessionState.SetBool("Ecaty.SpatialCheck", true); EditorApplication.isPlaying = true;
+            if (Running)
+                return;
+            if (EditorApplication.isPlaying)
+            {
+                Run();
+                return;
+            }
+            SessionState.SetBool("Ecaty.SpatialCheck", true);
+            EditorApplication.isPlaying = true;
         }
         private static async void Run()
         {
-            if (Running) return; Running = true;
-            bool owned = SessionState.GetBool("Ecaty.SpatialCheck", false); SessionState.EraseBool("Ecaty.SpatialCheck");
-            var checks = new JArray(); var errors = new List<string>();
+            if (Running)
+                return;
+            Running = true;
+            bool owned = SessionState.GetBool("Ecaty.SpatialCheck", false);
+            SessionState.EraseBool("Ecaty.SpatialCheck");
+            var checks = new JArray();
+            var errors = new List<string>();
             var report = new JObject { ["testedUtc"] = DateTime.UtcNow.ToString("O"), ["passed"] = false, ["checks"] = checks };
             Application.LogCallback capture = (text, stack, type) => { if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) errors.Add(text); };
             Application.logMessageReceived += capture;
             GameObject root = null, ceiling = null;
             try
             {
-                Application.runInBackground = true; await Frames(3);
+                Application.runInBackground = true;
+                await Frames(3);
                 var foreignColliders = Object.FindObjectsByType<Collider>();
                 var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
-                root = world.gameObject; root.name = "Spatial workflow verification";
-                var clay = root.AddComponent<ClayCreation>(); clay.SaveAcceptedRecipes = false; var engine = root.AddComponent<DioramaRuntime>();
-                engine.Initialize(world, clay); engine.ReadDevices = false; engine.AutoStep = false;
+                root = world.gameObject;
+                root.name = "Spatial workflow verification";
+                var clay = root.AddComponent<ClayCreation>();
+                clay.SaveAcceptedRecipes = false;
+                var engine = root.AddComponent<DioramaRuntime>();
+                engine.Initialize(world, clay);
+                engine.ReadDevices = false;
+                engine.AutoStep = false;
                 void IsolateMotor()
                 {
                     foreach (var collider in foreignColliders)
-                        if (collider && collider.enabled) Physics.IgnoreCollision(engine.Motor, collider);
+                        if (collider && collider.enabled)
+                            Physics.IgnoreCollision(engine.Motor, collider);
                 }
                 var tools = EcatyAgentTools.Create(world, new AgentMainThread(), clay, engine);
                 Task<string> Call(string name, string field = null, string text = null) => tools.First(t => t.Name == name).ExecuteAsync(
@@ -83,7 +123,8 @@ namespace Ecaty.Editor
                 await Call("configure_actor", "config", Resources.Load<TextAsset>("Runtime/Examples/RuntimeCreatureControl").text);
                 await Frames(8);
                 var mud = clay.PresentationRoot.GetComponent<RuntimeMudRenderer>();
-                var snapshot = root.AddComponent<SpatialMeshSnapshot>(); snapshot.Read = () => BoundsOf(mud);
+                var snapshot = root.AddComponent<SpatialMeshSnapshot>();
+                snapshot.Read = () => BoundsOf(mud);
                 var restBounds = await snapshot.Take();
                 var restEar = clay.FindPart("ear_brush").localPosition;
                 await Call("apply_script", "code", "struct HoverParameters(height: f32, sway: f32)\nMotionTuning { HoverParameters: {1.8,0.25} }");
@@ -92,7 +133,11 @@ namespace Ecaty.Editor
                 IsolateMotor();
                 var code = Resources.Load<TextAsset>("Runtime/Behaviors/RuntimeSpatialBehavior").text;
                 await Call("apply_behavior", "code", code);
-                for (int i = 0; i < 200; i++) { engine.StepMotor(1f/60); await Frames(1); }
+                for (int i = 0; i < 200; i++)
+                {
+                    engine.StepMotor(1f / 60);
+                    await Frames(1);
+                }
                 Require(engine.Motor.transform.position.y > 1.55f, "Runtime feedback rule did not lift the actual collider.");
                 var state = JObject.Parse(world.Session.EntityJson("PhotoClay"))["components"];
                 Require(Mathf.Abs((float)state["ActorMotion"]["y"] - engine.Motor.transform.position.y) < .002f, "Motor readback is not actual movement.");
@@ -122,25 +167,39 @@ namespace Ecaty.Editor
                 // New source changes the motion law live, using the same capabilities.
                 ceiling = new GameObject("Spatial verification ceiling");
                 ceiling.transform.position = new Vector3(engine.Motor.transform.position.x, 4.8f, engine.Motor.transform.position.z);
-                ceiling.AddComponent<BoxCollider>().size = new Vector3(8,.2f,8); Physics.SyncTransforms();
+                ceiling.AddComponent<BoxCollider>().size = new Vector3(8, .2f, 8);
+                Physics.SyncTransforms();
                 await Call("apply_script", "code", "MotionTuning { HoverParameters: {3.6,0.25} }");
                 await Call("apply_behavior", "code", code.Replace("settings.sway * sin(t)", "-0.35").Replace("25 * sin(t * 3)", "45 * sin(t * 5)"));
                 float beforeX = engine.Motor.transform.position.x;
-                for (int i = 0; i < 140; i++) { engine.StepMotor(1f/60); await Frames(1); }
+                for (int i = 0; i < 140; i++)
+                {
+                    engine.StepMotor(1f / 60);
+                    await Frames(1);
+                }
                 state = JObject.Parse(world.Session.EntityJson("PhotoClay"))["components"];
                 Require(engine.Motor.transform.position.x < beforeX - .7f, "Hot replacement did not change the movement law.");
                 Require(engine.Motor.transform.position.y < 3.1f && (float)state["SpatialIntent"]["y"] > .4f && Mathf.Abs((float)state["ActorMotion"]["vy"]) < .1f,
                     "A ceiling did not distinguish requested ascent from actual blocked movement.");
                 report["ceilingHeight"] = engine.Motor.transform.position.y;
                 checks.Add("runtime source replacement changes direction and pose frequency; collision readback reports blocked ascent rather than echoing the command");
-                Object.DestroyImmediate(ceiling); ceiling = null;
-                for (int i = 0; i < 150; i++) { engine.StepMotor(1f/60); await Frames(1); }
+                Object.DestroyImmediate(ceiling);
+                ceiling = null;
+                for (int i = 0; i < 150; i++)
+                {
+                    engine.StepMotor(1f / 60);
+                    await Frames(1);
+                }
                 Require(engine.Motor.transform.position.y > 3.35f, "The same active rule did not resume ascent after removing the ceiling.");
 
                 await Call("apply_behavior", "code", "// Removed the motion and pose rules");
                 await Call("configure_actor", "config", "{\"driver\":\"idle\",\"motion\":\"ground\",\"gravityScale\":1}");
                 IsolateMotor();
-                for (int i = 0; i < 150; i++) { engine.StepMotor(1f/60); await Frames(1); }
+                for (int i = 0; i < 150; i++)
+                {
+                    engine.StepMotor(1f / 60);
+                    await Frames(1);
+                }
                 state = JObject.Parse(world.Session.EntityJson("PhotoClay"))["components"];
                 report["landedHeight"] = engine.Motor.transform.position.y;
                 report["landedGrounded"] = (bool)state["ActorMotion"]["grounded"];
@@ -156,20 +215,28 @@ namespace Ecaty.Editor
             catch (Exception error) { report["error"] = error.ToString(); Debug.LogException(error); }
             finally
             {
-                if (ceiling) Object.DestroyImmediate(ceiling);
-                if (root) Object.DestroyImmediate(root);
+                if (ceiling)
+                    Object.DestroyImmediate(ceiling);
+                if (root)
+                    Object.DestroyImmediate(root);
                 Application.logMessageReceived -= capture;
                 report["runtimeErrors"] = JArray.FromObject(errors);
-                File.WriteAllText(Path.GetFullPath(Path.Combine(Application.dataPath,"../Verification/runtime-spatial-checks.json")), report.ToString());
-                Running = false; if (owned) EditorApplication.isPlaying = false;
+                File.WriteAllText(Path.GetFullPath(Path.Combine(Application.dataPath, "../Verification/runtime-spatial-checks.json")), report.ToString());
+                Running = false;
+                if (owned)
+                    EditorApplication.isPlaying = false;
             }
         }
         private static Bounds BoundsOf(RuntimeMudRenderer mud)
         {
             var kind = typeof(MudBun.MudRendererBase).GetNestedType("GeneratedMeshType");
-            var method = typeof(MudBun.MudRendererBase).GetMethod("GenerateMesh", new[] { kind,typeof(bool),typeof(Mesh),typeof(bool),typeof(bool),typeof(bool),typeof(bool) });
-            var mesh = (Mesh)method.Invoke(mud, new object[] { Enum.Parse(kind,"Standard"),false,null,false,false,false,false });
-            try { Require(mesh && mesh.vertexCount > 0,"Runtime MudBun mesh readback was empty."); return mesh.bounds; }
+            var method = typeof(MudBun.MudRendererBase).GetMethod("GenerateMesh", new[] { kind, typeof(bool), typeof(Mesh), typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
+            var mesh = (Mesh)method.Invoke(mud, new object[] { Enum.Parse(kind, "Standard"), false, null, false, false, false, false });
+            try
+            {
+                Require(mesh && mesh.vertexCount > 0, "Runtime MudBun mesh readback was empty.");
+                return mesh.bounds;
+            }
             finally { if (mesh) Object.DestroyImmediate(mesh); }
         }
     }

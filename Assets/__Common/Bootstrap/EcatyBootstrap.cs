@@ -18,7 +18,8 @@ namespace Ecaty
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Start()
         {
-            if (Object.FindAnyObjectByType<FlecsWorld>()) return;
+            if (Object.FindAnyObjectByType<FlecsWorld>())
+                return;
             Application.runInBackground = true;
             var args = System.Environment.GetCommandLineArgs();
             bool smoke = System.Array.IndexOf(args, "-flecsSmoke") >= 0;
@@ -39,7 +40,8 @@ namespace Ecaty
             var cameraObject = new GameObject("World Camera");
             Object.DontDestroyOnLoad(cameraObject);
             var camera = cameraObject.AddComponent<Camera>();
-            if (!Object.FindAnyObjectByType<AudioListener>()) cameraObject.AddComponent<AudioListener>();
+            if (!Object.FindAnyObjectByType<AudioListener>())
+                cameraObject.AddComponent<AudioListener>();
             camera.transform.position = smoke ? new Vector3(0, 1, -10) : new Vector3(0, 7, -10);
             camera.transform.LookAt(new Vector3(0, .5f, 0));
             camera.orthographic = true;
@@ -55,9 +57,11 @@ namespace Ecaty
                     "Runtime · " + Application.platform);
                 if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-agentTraceBrowser") >= 0)
                     AgentTraceBrowser.Current?.OpenBrowser();
-                string localRoot=Application.isEditor?System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath,"../LocalData/AI")):System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath,"../LocalAI"));
-                int localAt=System.Array.IndexOf(args,"-localAiRoot");if(localAt>=0&&localAt+1<args.Length)localRoot=args[localAt+1];
-                var local=new LocalAiServices(localRoot);
+                string localRoot = Application.isEditor ? System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "../LocalData/AI")) : System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "../LocalAI"));
+                int localAt = System.Array.IndexOf(args, "-localAiRoot");
+                if (localAt >= 0 && localAt + 1 < args.Length)
+                    localRoot = args[localAt + 1];
+                var local = new LocalAiServices(localRoot);
                 var provider = new AgentProviderHub(new[] {
                     new AgentProviderRegistration("local","On device",()=>new LlamaCppProvider(local.LlamaEndpoint,local.StartLlamaAsync,local.StopLlama),"Private, offline AI. Uses this device's memory.",supportsPhotos:true,isLocal:true),
                     new AgentProviderRegistration("openrouter", "OpenRouter", () => new OpenRouterProvider("Ecaty", "cohere/north-mini-code:free"), "Free coding model · Account limits apply."),
@@ -70,17 +74,24 @@ namespace Ecaty
                 engine.Initialize(world, clay);
                 engine.InteractionCamera = camera;
                 var experience = world.gameObject.AddComponent<RuntimeExperience>();
-                experience.Camera = camera; experience.Initialize(world, clay, engine);
+                experience.Camera = camera;
+                experience.Initialize(world, clay, engine);
                 var capabilities = world.gameObject.AddComponent<CapabilityRuntime>();
                 capabilities.ViewCamera = camera;
-                capabilities.AudioBankProvider = () => System.IO.File.ReadAllBytes(System.IO.Path.Combine(Application.streamingAssetsPath,"Ecaty/Audio/GeneralUser-GS.sf2"));
+                capabilities.AudioBankProvider = () => System.IO.File.ReadAllBytes(System.IO.Path.Combine(Application.streamingAssetsPath, "Ecaty/Audio/GeneralUser-GS.sf2"));
                 capabilities.Assets = RuntimeComposition.Current.Capabilities;
-                capabilities.Initialize(world); UnityCapabilities.Register(capabilities); VendorCapabilities.Register(capabilities);
-                capabilities.TargetResolver = id => {
-                    foreach(var model in experience.Models.Values) {
-                        if(model.Creation.PresentationRoot && world.Session.Lookup(model.Creation.PresentationRoot.name)==id)
+                capabilities.Initialize(world);
+                UnityCapabilities.Register(capabilities);
+                VendorCapabilities.Register(capabilities);
+                capabilities.TargetResolver = id =>
+                {
+                    foreach (var model in experience.Models.Values)
+                    {
+                        if (model.Creation.PresentationRoot && world.Session.Lookup(model.Creation.PresentationRoot.name) == id)
                             return model.Actor.Motor ? model.Actor.Motor.transform : model.Creation.PresentationRoot.transform;
-                        foreach(var part in model.Creation.RuntimeNodes) if(world.Session.Lookup(part.Key)==id)return part.Value;
+                        foreach (var part in model.Creation.RuntimeNodes)
+                        if (world.Session.Lookup(part.Key) == id)
+                            return part.Value;
                     }
                     return null;
                 };
@@ -108,8 +119,10 @@ namespace Ecaty
                     world.gameObject.AddComponent<CrystalWorldGallery>().Initialize(world, experience, chat);
                 }
 #endif
-                chat.ConfigureSpeech(new WhisperSpeechToText(local.WhisperEndpoint,local.StartWhisperAsync));
-                int localTest=System.Array.IndexOf(args,"-localAiSmokeResult");if(localTest>=0&&localTest+1<args.Length)world.gameObject.AddComponent<LocalAiSmoke>().Initialize(local,world,args[localTest+1]);
+                chat.ConfigureSpeech(new WhisperSpeechToText(local.WhisperEndpoint, local.StartWhisperAsync));
+                int localTest = System.Array.IndexOf(args, "-localAiSmokeResult");
+                if (localTest >= 0 && localTest + 1 < args.Length)
+                    world.gameObject.AddComponent<LocalAiSmoke>().Initialize(local, world, args[localTest + 1]);
 #if UNITY_EDITOR
                 if (ClayCreation.Available)
                     chat.Controller.ConfigurePhotoPicker(ReferencePhotoPicker.Pick,

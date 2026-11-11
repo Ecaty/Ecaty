@@ -30,7 +30,10 @@ namespace Ecaty
         private int escapeFrame = -1;
         public bool ConsumedEscape => escapeFrame == Time.frameCount;
         public bool SettingsOpen => page == Page.Settings;
-        private enum Page { Closed, Settings, Seed, Confirm, Environment }
+        private enum Page
+        {
+            Closed, Settings, Seed, Confirm, Environment
+        }
         private Page page;
 
         public bool OwnsSeedPointer => menu && menu.IsOpen || seedPointerFrame == Time.frameCount;
@@ -69,14 +72,19 @@ namespace Ecaty
                 e.StopImmediatePropagation();
             });
             var settings = new Button(() => { if (page == Page.Settings) Close(); else ShowSettings(); })
-                { name = "workshopSettings", tooltip = "Settings", focusable = false };
+            {
+                name = "workshopSettings",
+                tooltip = "Settings",
+                focusable = false
+            };
             var glyph = new Label("\ue8b8") { pickingMode = PickingMode.Ignore, enableRichText = false };
             glyph.style.unityFontDefinition = FontDefinition.FromFont(Resources.Load<Font>("MaterialSymbolsRounded"));
             glyph.style.fontSize = 20;
             glyph.style.unityTextAlign = TextAnchor.MiddleCenter;
             settings.Add(glyph);
             chat.AttachAccountLauncher(settings, panel, backdrop);
-            if (settingsOnly) settings.style.display = DisplayStyle.None;
+            if (settingsOnly)
+                settings.style.display = DisplayStyle.None;
             Close();
         }
 
@@ -85,7 +93,8 @@ namespace Ecaty
             bool started = pressed && !seedWasDown;
             bool released = !pressed && seedWasDown;
             seedWasDown = pressed;
-            if (!seed) return;
+            if (!seed)
+                return;
             if (cancel || !seed.Visible || experience.Navigation && experience.Navigation.IsNavigating)
             {
                 seedPending = false;
@@ -105,7 +114,8 @@ namespace Ecaty
                 seedOrigin = point;
                 seedPending = seed.Highlighted;
             }
-            if (!seedPending) return;
+            if (!seedPending)
+                return;
             if (!available || (point - seedOrigin).sqrMagnitude > 81)
             {
                 seedPending = false;
@@ -115,7 +125,8 @@ namespace Ecaty
             if (released)
             {
                 seedPending = false;
-                if (!seed.Highlighted) return;
+                if (!seed.Highlighted)
+                    return;
                 ulong anchor = world.Session.Lookup("WorldSeed");
                 experience.SendPointer(anchor, point, 1);
                 experience.SendPointer(anchor, point, 0);
@@ -138,27 +149,43 @@ namespace Ecaty
                 seedPending = true;
                 pressedIcon = icon;
             }
-            if (!released || !seedPending) return;
+            if (!released || !seedPending)
+                return;
             seedPending = false;
             seedPointerFrame = Time.frameCount;
-            if (icon != pressedIcon || (point - seedOrigin).sqrMagnitude > 81) return;
-            if (icon.HasValue) Activate(icon.Value);
-            else if (page != Page.Seed && HitsSeed(point)) ShowSeed();
-            else Close();
+            if (icon != pressedIcon || (point - seedOrigin).sqrMagnitude > 81)
+                return;
+            if (icon.HasValue)
+                Activate(icon.Value);
+            else if (page != Page.Seed && HitsSeed(point))
+                ShowSeed();
+            else
+                Close();
         }
 
         private bool HitsSeed(Vector2 point)
         {
             var ray = experience.Camera.ScreenPointToRay(point);
-            if (!seed.Hit(ray, out float distance)) return false;
+            if (!seed.Hit(ray, out float distance))
+                return false;
             return !experience.TryWorldPoint(ray, out Vector3 hit) ||
                 (hit - ray.origin).sqrMagnitude >= distance * distance - .001f;
         }
 
         AgentUiPalette palette;
-        public void ApplyTheme(AgentUiPalette value){palette=value;palette?.Apply(panel);if(panel!=null)panel.style.backgroundColor=value.Surface;}
+        public void ApplyTheme(AgentUiPalette value)
+        {
+            palette = value;
+            palette?.Apply(panel);
+            if (panel != null)
+                panel.style.backgroundColor = value.Surface;
+        }
 
-        public void CloseSettings() { if (SettingsOpen) Close(); }
+        public void CloseSettings()
+        {
+            if (SettingsOpen)
+                Close();
+        }
 
         public void ShowSettings()
         {
@@ -170,12 +197,16 @@ namespace Ecaty
             title.AddToClassList("workshop-popover__title");
             panel.Add(title);
             var button = new Button(() => { Close(); chat.Controller.ShowAccounts(); })
-                { name = "workshopAI", text = "AI connection", focusable = false };
+            {
+                name = "workshopAI",
+                text = "AI connection",
+                focusable = false
+            };
             button.AddToClassList("workshop-popover__action");
             panel.Add(button);
             panel.style.display = DisplayStyle.Flex;
             backdrop.style.display = DisplayStyle.Flex;
-            ApplyTheme(palette??EcatyTheme.Default.UI);
+            ApplyTheme(palette ?? EcatyTheme.Default.UI);
         }
 
         private void ShowSeed()
@@ -183,7 +214,8 @@ namespace Ecaty
             Close();
             page = Page.Seed;
             var choices = new List<WorkshopIcon> { WorkshopIcon.NewWorld, WorkshopIcon.Bell, WorkshopIcon.Playground };
-            if (File.Exists(RuntimeExperience.SavePath)) choices.Insert(1, WorkshopIcon.OpenWorld);
+            if (File.Exists(RuntimeExperience.SavePath))
+                choices.Insert(1, WorkshopIcon.OpenWorld);
             if (HasWorld)
             {
                 choices.Add(WorkshopIcon.Environment);
@@ -194,7 +226,8 @@ namespace Ecaty
 
         private void Activate(WorkshopIcon icon)
         {
-            if (chat.Controller.IsBusy) return;
+            if (chat.Controller.IsBusy)
+                return;
             try
             {
                 switch (icon)
@@ -217,14 +250,16 @@ namespace Ecaty
                         ApplyLook(icon);
                         break;
                     default:
-                        if (!HasWorld) Open(icon);
+                        if (!HasWorld)
+                            Open(icon);
                         else if (page != Page.Confirm)
                         {
                             pending = icon;
                             page = Page.Confirm;
                             menu.Show(new[] { icon, WorkshopIcon.Confirm });
                         }
-                        else Open(pending);
+                        else
+                            Open(pending);
                         break;
                 }
             }
@@ -251,10 +286,18 @@ namespace Ecaty
         {
             switch (icon)
             {
-                case WorkshopIcon.NewWorld: StartBlankWorld(); break;
-                case WorkshopIcon.OpenWorld: StartSavedWorld(); break;
-                case WorkshopIcon.Bell: StartBellAndGate(); break;
-                case WorkshopIcon.Playground: StartCreaturePlayground(); break;
+                case WorkshopIcon.NewWorld:
+                    StartBlankWorld();
+                    break;
+                case WorkshopIcon.OpenWorld:
+                    StartSavedWorld();
+                    break;
+                case WorkshopIcon.Bell:
+                    StartBellAndGate();
+                    break;
+                case WorkshopIcon.Playground:
+                    StartCreaturePlayground();
+                    break;
             }
         }
 
@@ -266,7 +309,8 @@ namespace Ecaty
 
         private bool LoadWorld(string source, Action<RuntimeExperience> populate = null)
         {
-            if (chat.Controller.IsBusy) return false;
+            if (chat.Controller.IsBusy)
+                return false;
             experience.Load(source);
             seed.BindSession();
             world.SyncViews();
@@ -281,10 +325,13 @@ namespace Ecaty
 
         public void RecallSeed()
         {
-            if (HasWorld) seedRecalled = !seedRecalled;
+            if (HasWorld)
+                seedRecalled = !seedRecalled;
             RefreshSeed();
-            if (seed.Visible) experience.Navigation?.FrameSeed(seed.FocusPosition);
-            else experience.Navigation?.ResetView();
+            if (seed.Visible)
+                experience.Navigation?.FrameSeed(seed.FocusPosition);
+            else
+                experience.Navigation?.ResetView();
         }
 
         private void RefreshSeed()
@@ -298,15 +345,18 @@ namespace Ecaty
         {
             page = Page.Closed;
             seedPending = false;
-            if (menu) menu.Close();
+            if (menu)
+                menu.Close();
             panel.style.display = DisplayStyle.None;
             backdrop.style.display = DisplayStyle.None;
         }
 
         private void Update()
         {
-            if (!chat || world.Session == null || world.Session.IsDisposed) return;
-            if (seed) seed.BindSession();
+            if (!chat || world.Session == null || world.Session.IsDisposed)
+                return;
+            if (seed)
+                seed.BindSession();
             if (seed && seed.ConsumeActivation() && page == Page.Closed && !chat.Expanded)
                 ShowSeed();
 #if ECATY_CAP_ALINE && (UNITY_EDITOR || DEVELOPMENT_BUILD)
@@ -327,16 +377,19 @@ namespace Ecaty
                 else if (seed && !experience.WorkshopOwnsPointer && !experience.WorldDragActive)
                     RecallSeed();
             }
-            if (page != Page.Closed && chat.Expanded) Close();
+            if (page != Page.Closed && chat.Expanded)
+                Close();
             if (page == Page.Closed)
                 backdrop.style.display = chat.Expanded ? DisplayStyle.Flex : DisplayStyle.None;
-            if (seed) RefreshSeed();
+            if (seed)
+                RefreshSeed();
         }
 
 #if ECATY_CAP_ALINE && (UNITY_EDITOR || DEVELOPMENT_BUILD)
         private void LateUpdate()
         {
-            if (!diagnostics || !experience.Navigation) return;
+            if (!diagnostics || !experience.Navigation)
+                return;
             Vector3 point = experience.Navigation.Center;
             float size = Mathf.Clamp(experience.Camera.orthographicSize * .06f, .12f, 1.4f);
             Drawing.Draw.ingame.Line(point - Vector3.right * size, point + Vector3.right * size, new Color(1f, .47f, .38f));

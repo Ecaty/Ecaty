@@ -9,7 +9,10 @@ namespace Ecaty
     [CreateAssetMenu(menuName = "Runtime/Gallery Layout Profile", fileName = "GalleryLayoutProfile")]
     public sealed class GalleryLayoutProfile : ScriptableObject
     {
-        public enum GuideStyle { Particles, Ribbon, Orbit, Hidden, TravelingGlow, Dashes, GalaxyDust }
+        public enum GuideStyle
+        {
+            Particles, Ribbon, Orbit, Hidden, TravelingGlow, Dashes, GalaxyDust
+        }
 
 #if !UNITY_EDITOR || !ODIN_INSPECTOR
         [Header("Normalized world cells")]
@@ -49,11 +52,11 @@ namespace Ecaty
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(.1f,2)] public float GalaxyDensity=1;
+        [Range(.1f, 2)] public float GalaxyDensity = 1;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(.2f,5)] public float GalaxyDetail=1;
+        [Range(.2f, 5)] public float GalaxyDetail = 1;
 
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
@@ -74,11 +77,11 @@ namespace Ecaty
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(2,64)] public float RingGlowSharpness = 18;
+        [Range(2, 64)] public float RingGlowSharpness = 18;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(0,3)] public float RingGlowIntensity = 1.25f;
+        [Range(0, 3)] public float RingGlowIntensity = 1.25f;
 
 #if !UNITY_EDITOR || !ODIN_INSPECTOR
         [Header("Visibility and picking")]
@@ -87,19 +90,19 @@ namespace Ecaty
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Visibility", SdfIconType.Mouse, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(.005f,.5f)] public float OcclusionFadeCoverage=.08f;
+        [Range(.005f, .5f)] public float OcclusionFadeCoverage = .08f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
-        public int RingTravelSeed=1977;
+        public int RingTravelSeed = 1977;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Visibility", SdfIconType.Mouse, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(.98f,1)] public float MinimumPickOpacity = .98f;
+        [Range(.98f, 1)] public float MinimumPickOpacity = .98f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Visibility", SdfIconType.Mouse, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(.8f,2)] public float RingHitWidthInWorlds = 1;
+        [Range(.8f, 2)] public float RingHitWidthInWorlds = 1;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Visibility", SdfIconType.Mouse, TabLayouting = TabLayouting.Shrink)]
 #endif
@@ -148,28 +151,28 @@ namespace Ecaty
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Return", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Min(.5f)] public float ReturnSeconds=1.9f;
+        [Min(.5f)] public float ReturnSeconds = 1.9f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Return", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Min(.3f)] public float ReturnRevealSeconds=1.55f;
+        [Min(.3f)] public float ReturnRevealSeconds = 1.55f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Return", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
 #endif
         [UnityEngine.Serialization.FormerlySerializedAs("ReturnRecallStrength")]
-        [Range(0,1)] public float LoadedWorldStrength=.9f;
+        [Range(0, 1)] public float LoadedWorldStrength = .9f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Return", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Min(.2f)] public float GlassPassSeconds=.7f;
+        [Min(.2f)] public float GlassPassSeconds = .7f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Return", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(0,1)] public float GlassPassStrength=.55f;
+        [Range(0, 1)] public float GlassPassStrength = .55f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Visibility", SdfIconType.Mouse, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(.2f,.9f)] public float ApproachHighlightFade=.55f;
+        [Range(.2f, .9f)] public float ApproachHighlightFade = .55f;
 
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Camera", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
@@ -199,11 +202,11 @@ namespace Ecaty
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Camera", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(0,.25f)] public float ExitElasticZoom = .055f;
+        [Range(0, .25f)] public float ExitElasticZoom = .055f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Camera", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
 #endif
-        [Range(0,1)] public float ExitVignette = .3f;
+        [Range(0, 1)] public float ExitVignette = .3f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Camera", SdfIconType.Camera, TabLayouting = TabLayouting.Shrink)]
 #endif
@@ -268,23 +271,26 @@ namespace Ecaty
             if (UnityEditor.AssetDatabase.GetAssetPath(this) == GalleryConfigScript.AssetPath)
                 UnityEditor.EditorApplication.delayCall += () => { if (this) GalleryConfigScript.Export(this); };
 #endif
-            RingRotationSmoothTime=Positive(RingRotationSmoothTime,.18f,.02f);
-            MinimumPickOpacity=Mathf.Clamp(MinimumPickOpacity,.98f,1);
-            FocusSmoothTime = Positive(FocusSmoothTime,.65f,.1f);
-            FocusMaxSpeed = Positive(FocusMaxSpeed,10,1);
-            ZoomSmoothTime = Positive(ZoomSmoothTime,.48f,.1f);
-            SwapFadeTime = Positive(SwapFadeTime,.28f,.1f);
-            ExitBoundaryPause = Positive(ExitBoundaryPause,.08f,.02f);
-            ExitDistanceMultiplier = Positive(ExitDistanceMultiplier,2.2f,1.1f);
-            ExitAlignmentSeconds=Positive(ExitAlignmentSeconds,.45f,.1f);
-            VisibilityRefreshInterval=Positive(VisibilityRefreshInterval,.05f,.02f);
-            RingSurfaceSoftness = Mathf.Clamp(Positive(RingSurfaceSoftness,1.6f,.2f),.2f,3);
-            ReturnSeconds=Positive(ReturnSeconds,1.9f,.5f);
-            ReturnRevealSeconds=Positive(ReturnRevealSeconds,1.55f,.3f);
-            LoadedWorldStrength=Unit(LoadedWorldStrength,.9f);GlassPassSeconds=Positive(GlassPassSeconds,.7f,.2f);GlassPassStrength=Unit(GlassPassStrength,.55f);ApproachHighlightFade=Mathf.Clamp(Positive(ApproachHighlightFade,.55f,.2f),.2f,.9f);
-            GalaxyDensity=Mathf.Clamp(Positive(GalaxyDensity,1,.1f),.1f,2);
-            GalaxyDetail=Mathf.Clamp(Positive(GalaxyDetail,1,.2f),.2f,5);
-            FullTreeZoom = Mathf.Clamp(Positive(FullTreeZoom,.9f,.6f),.6f,1);
+            RingRotationSmoothTime = Positive(RingRotationSmoothTime, .18f, .02f);
+            MinimumPickOpacity = Mathf.Clamp(MinimumPickOpacity, .98f, 1);
+            FocusSmoothTime = Positive(FocusSmoothTime, .65f, .1f);
+            FocusMaxSpeed = Positive(FocusMaxSpeed, 10, 1);
+            ZoomSmoothTime = Positive(ZoomSmoothTime, .48f, .1f);
+            SwapFadeTime = Positive(SwapFadeTime, .28f, .1f);
+            ExitBoundaryPause = Positive(ExitBoundaryPause, .08f, .02f);
+            ExitDistanceMultiplier = Positive(ExitDistanceMultiplier, 2.2f, 1.1f);
+            ExitAlignmentSeconds = Positive(ExitAlignmentSeconds, .45f, .1f);
+            VisibilityRefreshInterval = Positive(VisibilityRefreshInterval, .05f, .02f);
+            RingSurfaceSoftness = Mathf.Clamp(Positive(RingSurfaceSoftness, 1.6f, .2f), .2f, 3);
+            ReturnSeconds = Positive(ReturnSeconds, 1.9f, .5f);
+            ReturnRevealSeconds = Positive(ReturnRevealSeconds, 1.55f, .3f);
+            LoadedWorldStrength = Unit(LoadedWorldStrength, .9f);
+            GlassPassSeconds = Positive(GlassPassSeconds, .7f, .2f);
+            GlassPassStrength = Unit(GlassPassStrength, .55f);
+            ApproachHighlightFade = Mathf.Clamp(Positive(ApproachHighlightFade, .55f, .2f), .2f, .9f);
+            GalaxyDensity = Mathf.Clamp(Positive(GalaxyDensity, 1, .1f), .1f, 2);
+            GalaxyDetail = Mathf.Clamp(Positive(GalaxyDetail, 1, .2f), .2f, 5);
+            FullTreeZoom = Mathf.Clamp(Positive(FullTreeZoom, .9f, .6f), .6f, 1);
             WorldDiameter = Positive(WorldDiameter, 1.65f, .1f);
             WorldSpacing = Positive(WorldSpacing, .38f, 0);
             LayerSpacing = Positive(LayerSpacing, 2, .1f);

@@ -81,10 +81,12 @@ namespace Ecaty
             float nearest = float.PositiveInfinity;
             foreach (var entry in entries)
             {
-                if (!entry.Surface) continue;
+                if (!entry.Surface)
+                    continue;
                 var bounds = entry.Surface.bounds;
                 bounds.Expand(.065f * ring.localScale.x);
-                if (!bounds.IntersectRay(ray, out float distance) || distance >= nearest) continue;
+                if (!bounds.IntersectRay(ray, out float distance) || distance >= nearest)
+                    continue;
                 nearest = distance;
                 hit = entry.Icon;
             }
@@ -99,7 +101,8 @@ namespace Ecaty
 
         private void LateUpdate()
         {
-            if (IsOpen) Layout();
+            if (IsOpen)
+                Layout();
         }
 
         private void Layout()

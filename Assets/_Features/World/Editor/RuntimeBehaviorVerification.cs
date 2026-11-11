@@ -14,14 +14,19 @@ namespace Ecaty.Editor
     public static class RuntimeBehaviorVerification
     {
         private static bool running;
-        [Serializable] private sealed class Report
+        [Serializable]
+        private sealed class Report
         {
             public bool passed;
             public string flecs, error;
             public List<string> checks = new List<string>();
             public string[] limits = { "Isolated real Unity objects; no live AI service call", "No phone or IL2CPP verification", "Behavior source reload only; full session saving is not implemented" };
         }
-        private static void Require(bool value, string message) { if (!value) throw new Exception(message); }
+        private static void Require(bool value, string message)
+        {
+            if (!value)
+                throw new Exception(message);
+        }
         private static FlecsWorld Current => UnityEngine.Object.FindAnyObjectByType<FlecsWorld>();
         private static string SavedPath => Path.GetFullPath(Path.Combine(Application.dataPath, "../Logs/Experiences/AgentBehavior.flecs"));
 
@@ -33,7 +38,11 @@ namespace Ecaty.Editor
             world.SyncViews();
         }
         [MenuItem("Runtime/Runtime Behavior/Stop behavior")]
-        public static void StopDemo() { Current.Session.SetManagedScript(EcatyAgentTools.BehaviorEntity, "// stopped\n"); Current.SyncViews(); }
+        public static void StopDemo()
+        {
+            Current.Session.SetManagedScript(EcatyAgentTools.BehaviorEntity, "// stopped\n");
+            Current.SyncViews();
+        }
         [MenuItem("Runtime/Runtime Behavior/Save behavior source")]
         public static void SaveSource()
         {
@@ -56,7 +65,8 @@ namespace Ecaty.Editor
         [MenuItem("Runtime/Runtime Behavior/Verify integration")]
         public static async void Start()
         {
-            if (running) return;
+            if (running)
+                return;
             running = true;
             var report = new Report { flecs = FlecsSession.Version };
             GameObject root = null;
@@ -78,8 +88,12 @@ namespace Ecaty.Editor
                 var inspect = tools.First(t => t.Name == "inspect_behavior");
                 var observe = tools.First(t => t.Name == "observe_over_time");
                 string code = Resources.Load<TextAsset>("Runtime/Behaviors/ReactiveBehavior").text;
-                await apply.ExecuteAsync(JsonConvert.SerializeObject(new { code }), CancellationToken.None);
-                world.Session.Tick(.25f); world.SyncViews();
+                await apply.ExecuteAsync(JsonConvert.SerializeObject(new
+                {
+                    code
+                }), CancellationToken.None);
+                world.Session.Tick(.25f);
+                world.SyncViews();
                 Require(Vector3.Distance(before, view.transform.localScale) > .01f, "Reactive Scale did not reach the Unity object");
                 var native = JObject.Parse(world.Session.EntityJson("scene.Sphere"))["components"];
                 Require(Math.Abs((float)native["Scale"]["x"] - (float)native["Presented"]["scale"]["x"]) < .0001f, "Presented does not acknowledge actual reactive scale");
@@ -88,7 +102,8 @@ namespace Ecaty.Editor
                 advance = () => { world.Session.Tick(.016f); world.SyncViews(); };
                 EditorApplication.update += advance;
                 var observed = JObject.Parse(await observe.ExecuteAsync("{\"path\":\"scene.Sphere\"}", CancellationToken.None));
-                EditorApplication.update -= advance; advance = null;
+                EditorApplication.update -= advance;
+                advance = null;
                 Require((long)observed["frames_advanced"] > 0 && ((JArray)observed["samples"]).Count == 3, "Temporal tool did not observe advancing frames");
                 float first = (float)observed["samples"][0]["entity"]["components"]["Presented"]["scale"]["x"];
                 float last = (float)observed["samples"][2]["entity"]["components"]["Presented"]["scale"]["x"];
@@ -99,15 +114,20 @@ namespace Ecaty.Editor
                 Require(source == code, "Tool source inspection differs from the active native module");
                 File.WriteAllText(saved, source);
                 string positionCode = "using flecs.script.math\nconst t = Clock[Clock].time\nscene { Sphere { Position: {1.5, sin(t * 3), 0} } }\n";
-                await apply.ExecuteAsync(JsonConvert.SerializeObject(new { code = positionCode }), CancellationToken.None);
-                world.Session.Tick(.25f); world.SyncViews();
+                await apply.ExecuteAsync(JsonConvert.SerializeObject(new
+                {
+                    code = positionCode
+                }), CancellationToken.None);
+                world.Session.Tick(.25f);
+                world.SyncViews();
                 Require(world.FindView(id) == view && Math.Abs(view.transform.localPosition.y) > .001f, "Hot replacement did not preserve the existing view or apply new logic");
                 report.checks.Add("Different Script algorithm hot-reloads while preserving the entity and Unity view");
 
                 world.Shutdown();
                 world.Initialize(0, Resources.Load<TextAsset>("Tests/Fixtures/VerificationWorld"));
                 world.Session.SetManagedScript(EcatyAgentTools.BehaviorEntity, File.ReadAllText(saved));
-                world.Session.Tick(.25f); world.SyncViews();
+                world.Session.Tick(.25f);
+                world.SyncViews();
                 world.Session.ReadViews(out var restored);
                 int count = world.ViewCount;
                 ulong restoredId = restored.Take(count).First(v => world.Session.EntityName(v.Entity) == "Sphere").Entity;
@@ -118,10 +138,14 @@ namespace Ecaty.Editor
             catch (Exception ex) { report.error = ex.ToString(); Debug.LogException(ex); }
             finally
             {
-                if (advance != null) EditorApplication.update -= advance;
-                if (world) world.Shutdown();
-                if (root) UnityEngine.Object.DestroyImmediate(root);
-                if (File.Exists(saved)) File.Delete(saved);
+                if (advance != null)
+                    EditorApplication.update -= advance;
+                if (world)
+                    world.Shutdown();
+                if (root)
+                    UnityEngine.Object.DestroyImmediate(root);
+                if (File.Exists(saved))
+                    File.Delete(saved);
                 string path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Verification/runtime-behavior-unity-checks.json"));
                 File.WriteAllText(path, JsonUtility.ToJson(report, true));
                 running = false;

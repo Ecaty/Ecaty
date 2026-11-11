@@ -42,7 +42,8 @@ namespace Ecaty
             s.Append("struct GalleryColor(r: f32, g: f32, b: f32, a: f32)\n");
             s.Append("struct ").Append(Component).Append('(').Append(string.Join(", ", fields.Select(f => f.Name + ": " + TypeName(f.FieldType)))).Append(")\n");
             s.Append(Entity).Append(" {\n  ").Append(Component).Append(": {\n");
-            for (int i = 0; i < fields.Length; i++) s.Append("    ").Append(fields[i].Name).Append(": ").Append(Value(fields[i].GetValue(profile))).Append(i < fields.Length - 1 ? ",\n" : "\n");
+            for (int i = 0; i < fields.Length; i++)
+                s.Append("    ").Append(fields[i].Name).Append(": ").Append(Value(fields[i].GetValue(profile))).Append(i < fields.Length - 1 ? ",\n" : "\n");
             s.Append("  }\n}\n");
             return s.ToString();
         }
@@ -52,7 +53,8 @@ namespace Ecaty
         {
             session.SetManagedScript(ScriptName, source);
             string json = session.ComponentJson(session.Lookup(Entity), Component);
-            if (string.IsNullOrEmpty(json)) throw new InvalidOperationException("Gallery config script did not produce " + Component + ".");
+            if (string.IsNullOrEmpty(json))
+                throw new InvalidOperationException("Gallery config script did not produce " + Component + ".");
             JsonUtility.FromJsonOverwrite(json, target);
         }
 
@@ -63,14 +65,20 @@ namespace Ecaty
         public static bool Export(GalleryLayoutProfile profile = null)
         {
             profile ??= EditorAsset;
-            if (!profile) return false;
+            if (!profile)
+                return false;
             string source = Generate(profile), full = System.IO.Path.GetFullPath(ScriptPath);
-            if (System.IO.File.Exists(full) && System.IO.File.ReadAllText(full) == source) return false;
+            if (System.IO.File.Exists(full) && System.IO.File.ReadAllText(full) == source)
+                return false;
             System.IO.File.WriteAllText(full, source);
             UnityEditor.AssetDatabase.ImportAsset(ScriptPath);
             return true;
         }
-        public static bool IsCurrent() { var p = EditorAsset; return p && System.IO.File.Exists(ScriptPath) && System.IO.File.ReadAllText(ScriptPath) == Generate(p); }
+        public static bool IsCurrent()
+        {
+            var p = EditorAsset;
+            return p && System.IO.File.Exists(ScriptPath) && System.IO.File.ReadAllText(ScriptPath) == Generate(p);
+        }
 #endif
     }
 }

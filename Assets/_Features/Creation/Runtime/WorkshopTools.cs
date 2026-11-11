@@ -75,13 +75,15 @@ namespace Ecaty
         public bool Place(string id, Vector3 point)
         {
             var item = kit.Items.FirstOrDefault(candidate => candidate.Id == id);
-            if (item == null || world.Session.Lookup(id) != 0) return false;
+            if (item == null || world.Session.Lookup(id) != 0)
+                return false;
             EnsureRules();
             if (item.Actor)
             {
                 var recipe = JObject.Parse(Resources.Load<TextAsset>("Runtime/Examples/RuntimeCreature").text);
                 foreach (var part in recipe["parts"])
-                    if (part["color"] != null) part["color"] = JArray.FromObject(item.Color);
+                    if (part["color"] != null)
+                        part["color"] = JArray.FromObject(item.Color);
                 var config = JObject.Parse(Resources.Load<TextAsset>("Runtime/Examples/RuntimeCreatureControl").text);
                 config["driver"] = "follow";
                 config["spawn"] = new JArray(point.x, 0, point.z);
@@ -90,7 +92,12 @@ namespace Ecaty
                 var actor = experience.Models[id].Actor;
                 actor.ReadDevices = false;
                 world.Session.SetComponentJson(actor.GoalPath, "MoveGoal",
-                    JsonConvert.SerializeObject(new { x = point.x, z = point.z, stopDistance = .24f }));
+                    JsonConvert.SerializeObject(new
+                    {
+                        x = point.x,
+                        z = point.z,
+                        stopDistance = .24f
+                    }));
             }
             else
             {
@@ -104,18 +111,22 @@ namespace Ecaty
         public bool Connect(string from, string to)
         {
             var wire = kit.Wires.FirstOrDefault(candidate => candidate.From == from && candidate.To == to);
-            if (wire == null || !Ready(wire)) return false;
+            if (wire == null || !Ready(wire))
+                return false;
             var former = Installed(wire.Instance);
-            if (former == wire) return true;
+            if (former == wire)
+                return true;
             experience.ApplyBehavior(wire.Id, wire.Source);
-            if (former != null && former.To != wire.To) StopActor(former.To);
+            if (former != null && former.To != wire.To)
+                StopActor(former.To);
             return true;
         }
 
         public bool Disconnect(string from)
         {
             var wire = kit.Wires.FirstOrDefault(w => w.From == from && Installed(w.Instance) == w);
-            if (wire == null) return false;
+            if (wire == null)
+                return false;
             RemoveWire(wire);
             return true;
         }
@@ -126,30 +137,44 @@ namespace Ecaty
                 if (candidate.Needs.Contains(wire.Instance) && Installed(candidate.Instance) == candidate)
                     RemoveWire(candidate);
             experience.RemoveBehavior(wire.Id);
-            if (world.Session.Lookup(wire.Instance) != 0) world.Session.DeleteEntity(wire.Instance);
+            if (world.Session.Lookup(wire.Instance) != 0)
+                world.Session.DeleteEntity(wire.Instance);
             StopActor(wire.To);
             if (wire.To == "ChainGate")
             {
                 var waiting = JObject.Parse(world.Session.ComponentJson(world.Session.Lookup("ChainWait"), "Position"));
                 world.Session.SetComponentJson("ChainGate", "Position", JsonConvert.SerializeObject(
-                    new { x = (float)waiting["x"], y = .4f, z = (float)waiting["z"] + 1.25f }));
+                    new
+                    {
+                        x = (float)waiting["x"],
+                        y = .4f,
+                        z = (float)waiting["z"] + 1.25f
+                    }));
             }
         }
 
         private void StopActor(string id)
         {
-            if (!experience.Models.TryGetValue(id, out var model) || !model.Actor.Motor) return;
+            if (!experience.Models.TryGetValue(id, out var model) || !model.Actor.Motor)
+                return;
             var point = model.Actor.Motor.transform.position;
             world.Session.SetComponentJson(model.Actor.GoalPath, "MoveGoal",
-                JsonConvert.SerializeObject(new { x = point.x, z = point.z, stopDistance = .24f }));
+                JsonConvert.SerializeObject(new
+                {
+                    x = point.x,
+                    z = point.z,
+                    stopDistance = .24f
+                }));
         }
 
         private Wire Installed(string instance)
         {
             ulong entity = world.Session.Lookup(instance);
-            if (entity == 0) return null;
+            if (entity == 0)
+                return null;
             string json = world.Session.ComponentJson(entity, "WorkshopConnection");
-            if (string.IsNullOrEmpty(json)) return null;
+            if (string.IsNullOrEmpty(json))
+                return null;
             var link = JObject.Parse(json);
             return kit.Wires.FirstOrDefault(w => w.Instance == instance && w.From == (string)link["source"] &&
                 w.To == (string)link["target"] && world.Session.Lookup("RuntimeBehaviors." + w.Id) != 0);
@@ -159,7 +184,8 @@ namespace Ecaty
         {
             if (world.Session.Lookup(wire.From) == 0 || world.Session.Lookup(wire.To) == 0 ||
                 !wire.Needs.All(path => kit.Wires.Any(w => w.Instance == path) ? Installed(path) != null :
-                    world.Session.Lookup(path) != 0)) return false;
+                    world.Session.Lookup(path) != 0))
+                return false;
             // A lure and crossing can each drive an actor, with a single goal writer per actor.
             var other = wire.Instance == "ChainBellLink" ? Installed("ChainCrossLink") :
                 wire.Instance == "ChainCrossLink" ? Installed("ChainBellLink") : null;
@@ -181,12 +207,15 @@ namespace Ecaty
         private void ApplyOutputs()
         {
             var activeSession = world.Session;
-            if (activeSession.Lookup("WorkshopOutput") == 0) return;
+            if (activeSession.Lookup("WorkshopOutput") == 0)
+                return;
             foreach (string type in OutputTypes)
             {
-                if (activeSession.Lookup(type) == 0) continue;
+                if (activeSession.Lookup(type) == 0)
+                    continue;
                 string changed = activeSession.QueryChanges("[in] " + type + ", [in] WorkshopOutput");
-                if (string.IsNullOrEmpty(changed)) continue;
+                if (string.IsNullOrEmpty(changed))
+                    continue;
                 foreach (var row in (JArray)JObject.Parse(changed)["results"])
                 {
                     var fields = row["fields"]["values"];
@@ -199,10 +228,12 @@ namespace Ecaty
 
         private void Update()
         {
-            if (kit == null || !camera) return;
+            if (kit == null || !camera)
+                return;
             ApplyOutputs();
             var pointer = Pointer.current;
-            if (pointer == null) return;
+            if (pointer == null)
+                return;
             RoutePointer(pointer.position.ReadValue(), pointer.press.isPressed, Time.unscaledTime,
                 Keyboard.current?.escapeKey.wasPressedThisFrame == true && !experience.EditingText,
                 pressedThisFrame: pointer.press.wasPressedThisFrame);
@@ -215,7 +246,8 @@ namespace Ecaty
                 if (pressedThisFrame && !pressed)
                     experience.Dock.StepSeedPointer(point, true, cancel);
                 experience.Dock.StepSeedPointer(point, pressed, cancel);
-                if (!experience.Dock.HasWorld) return;
+                if (!experience.Dock.HasWorld)
+                    return;
             }
             StepPointer(point, pressed, now, navigation.IsNavigating || experience.WorldDragActive ||
                 experience.SeedOwnsPointer || experience.CoversWorldPointer(point), cancel);
@@ -234,11 +266,23 @@ namespace Ecaty
 
             bool started = pressed && !wasDown, released = !pressed && wasDown;
             wasDown = pressed;
-            if (tray || ghost || linking) pointerClaimFrame = Time.frameCount;
-            if (cancel) { Close(); selected = null; emptyPress = false; }
+            if (tray || ghost || linking)
+                pointerClaimFrame = Time.frameCount;
+            if (cancel)
+            {
+                Close();
+                selected = null;
+                emptyPress = false;
+            }
             if (blocked)
             {
-                if (released) { linking = false; emptyPress = false; if (line) line.enabled = false; }
+                if (released)
+                {
+                    linking = false;
+                    emptyPress = false;
+                    if (line)
+                        line.enabled = false;
+                }
                 return;
             }
             var ray = camera.ScreenPointToRay(point);
@@ -249,8 +293,13 @@ namespace Ecaty
             if (tray)
             {
                 tray.transform.rotation = camera.transform.rotation;
-                if (!released) return;
-                if (trayOpening) { trayOpening = false; return; }
+                if (!released)
+                    return;
+                if (trayOpening)
+                {
+                    trayOpening = false;
+                    return;
+                }
                 var pick = previews.FirstOrDefault(pair => pair.Key.GetComponent<Renderer>().bounds.IntersectRay(ray));
                 if (pick.Key)
                 {
@@ -268,9 +317,14 @@ namespace Ecaty
                 if (onFloor)
                 {
                     ghost.transform.position = at + Vector3.up * .3f;
-                    if (released) { Place(placing.Id, at); Close(); }
+                    if (released)
+                    {
+                        Place(placing.Id, at);
+                        Close();
+                    }
                 }
-                else if (released) Close();
+                else if (released)
+                    Close();
                 return;
             }
 
@@ -280,12 +334,16 @@ namespace Ecaty
                 var target = Pick(ray);
                 if (released)
                 {
-                    if ((point - wireDown).sqrMagnitude < 64) Disconnect(selected);
-                    else Connect(selected, target);
+                    if ((point - wireDown).sqrMagnitude < 64)
+                        Disconnect(selected);
+                    else
+                        Connect(selected, target);
                     linking = false;
-                    if (line) line.enabled = false;
+                    if (line)
+                        line.enabled = false;
                 }
-                else DrawWire(port.transform.position, target != null && BoundsFor(target, out Bounds bounds) ? bounds.center :
+                else
+                    DrawWire(port.transform.position, target != null && BoundsFor(target, out Bounds bounds) ? bounds.center :
                     onFloor ? at + Vector3.up * .15f : ray.GetPoint(4));
                 return;
             }
@@ -302,7 +360,8 @@ namespace Ecaty
                 downAt = now;
                 emptyPress = onFloor && !experience.HitsWorldObject(ray);
             }
-            if (emptyPress && (point - down).sqrMagnitude > 81) emptyPress = false;
+            if (emptyPress && (point - down).sqrMagnitude > 81)
+                emptyPress = false;
             if (pressed && emptyPress && now - downAt >= .34f)
             {
                 emptyPress = false;
@@ -313,14 +372,16 @@ namespace Ecaty
             if (released)
             {
                 emptyPress = false;
-                if ((point - down).sqrMagnitude <= 81) selected = Pick(ray);
+                if ((point - down).sqrMagnitude <= 81)
+                    selected = Pick(ray);
             }
         }
 
         private void OpenTray(Vector3 at)
         {
             var items = kit.Items.Where(item => world.Session.Lookup(item.Id) == 0).ToArray();
-            if (items.Length == 0) return;
+            if (items.Length == 0)
+                return;
             trayOpening = true;
             tray = new GameObject("Workshop miniatures");
             tray.transform.SetParent(transform, false);
@@ -378,7 +439,8 @@ namespace Ecaty
             }
             var view = world.FindView(world.Session.Lookup(id));
             var renderer = view ? view.GetComponentInChildren<Renderer>() : null;
-            if (!renderer) return false;
+            if (!renderer)
+                return false;
             bounds = renderer.bounds;
             return true;
         }
@@ -406,7 +468,8 @@ namespace Ecaty
             if (selected == null || !BoundsFor(selected, out Bounds bounds) ||
                 !kit.Wires.Any(w => w.From == selected && Ready(w)))
             {
-                if (port) Destroy(port);
+                if (port)
+                    Destroy(port);
                 port = null;
                 return;
             }
@@ -437,20 +500,26 @@ namespace Ecaty
 
         private void Close()
         {
-            if (tray) Destroy(tray);
-            if (ghost) Destroy(ghost);
-            if (port) Destroy(port);
+            if (tray)
+                Destroy(tray);
+            if (ghost)
+                Destroy(ghost);
+            if (port)
+                Destroy(port);
             tray = ghost = port = null;
             previews.Clear();
             placing = null;
             linking = false;
-            if (line) line.enabled = false;
+            if (line)
+                line.enabled = false;
         }
 
         private void OnDestroy()
         {
             Close();
-            foreach (var material in materials) if (material) Destroy(material);
+            foreach (var material in materials)
+            if (material)
+                Destroy(material);
         }
     }
 }

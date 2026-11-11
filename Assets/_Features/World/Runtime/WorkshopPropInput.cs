@@ -16,7 +16,10 @@ namespace Ecaty
         private Vector2 lastScreen;
         private bool wasDown;
 
-        public bool IsGrabbing { get; private set; }
+        public bool IsGrabbing
+        {
+            get; private set;
+        }
 
         public ulong Resolve(FlecsWorld world, Camera camera, Vector2 screen, bool pressed, bool blocked,
             ulong target, float distance, float now)
@@ -62,9 +65,11 @@ namespace Ecaty
                     offset = position - ray.GetPoint(hit);
                 }
             }
-            if (held == 0) return target;
+            if (held == 0)
+                return target;
 
-            if (pressed && now - downAt >= .34f) IsGrabbing = true;
+            if (pressed && now - downAt >= .34f)
+                IsGrabbing = true;
             bool suppress = IsGrabbing;
             if (suppress && screen != lastScreen && plane.Raycast(ray, out float depth))
             {
@@ -72,7 +77,12 @@ namespace Ecaty
                 var point = ray.GetPoint(depth) + offset;
                 var path = session.EntityPath(held);
                 if (!string.IsNullOrEmpty(path))
-                    session.SetComponentJson(path, "Position", JsonConvert.SerializeObject(new { x = point.x, y = point.y, z = point.z }));
+                    session.SetComponentJson(path, "Position", JsonConvert.SerializeObject(new
+                    {
+                        x = point.x,
+                        y = point.y,
+                        z = point.z
+                    }));
             }
             if (!pressed)
             {

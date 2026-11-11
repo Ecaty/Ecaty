@@ -24,7 +24,10 @@ namespace Ecaty
         private const float DoubleClickWindow = .32f;
         private float previousClickTime = float.NegativeInfinity;
         private bool leftWasDown, middleWasDown, rightWasDown, ownsPointer;
-        private enum Gesture { Idle, PendingClick, Orbit, Zoom, Pan }
+        private enum Gesture
+        {
+            Idle, PendingClick, Orbit, Zoom, Pan
+        }
         private Gesture gesture;
 
         public Vector3 Center => pivot.position;
@@ -74,7 +77,8 @@ namespace Ecaty
 
         private void Update()
         {
-            if (!rig) return;
+            if (!rig)
+                return;
             bool live = brain.IsLiveChild(rig, true);
             bool reset = live && !experience.EditingText && Keyboard.current?.escapeKey.wasPressedThisFrame == true;
             var mouse = Mouse.current;
@@ -105,11 +109,17 @@ namespace Ecaty
             middleWasDown = middle;
             rightWasDown = right;
             ownsPointer = gesture == Gesture.Orbit || gesture == Gesture.Zoom || gesture == Gesture.Pan;
-            if (cancel) { gesture = Gesture.Idle; previousClickTime = float.NegativeInfinity; return; }
+            if (cancel)
+            {
+                gesture = Gesture.Idle;
+                previousClickTime = float.NegativeInfinity;
+                return;
+            }
 
             bool blocked = experience.CoversWorldPointer(point) || experience.WorkshopOwnsPointer || experience.WorldDragActive ||
                 experience.Dock && experience.Dock.OwnsSeedPointer;
-            if (blocked && leftStarted) previousClickTime = float.NegativeInfinity;
+            if (blocked && leftStarted)
+                previousClickTime = float.NegativeInfinity;
             if (gesture == Gesture.Idle && !blocked)
             {
                 origin = previous = point;
@@ -117,20 +127,39 @@ namespace Ecaty
                 {
                     if (!experience.Workshop || !experience.Workshop.IsOverPort(point))
                         gesture = Gesture.PendingClick;
-                    else previousClickTime = float.NegativeInfinity;
+                    else
+                        previousClickTime = float.NegativeInfinity;
                 }
                 else if (!left)
                 {
-                    if (rightStarted) { gesture = Gesture.Zoom; dragZoomAnchored = false; lastWheelTime = float.NegativeInfinity; previousClickTime = float.NegativeInfinity; }
-                    else if (middleStarted) { gesture = Gesture.Pan; previousClickTime = float.NegativeInfinity; }
-                    else if (Mathf.Abs(scroll) > .01f) { Scroll(point, scroll, now < 0 ? Time.unscaledTime : now); previousClickTime = float.NegativeInfinity; }
+                    if (rightStarted)
+                    {
+                        gesture = Gesture.Zoom;
+                        dragZoomAnchored = false;
+                        lastWheelTime = float.NegativeInfinity;
+                        previousClickTime = float.NegativeInfinity;
+                    }
+                    else if (middleStarted)
+                    {
+                        gesture = Gesture.Pan;
+                        previousClickTime = float.NegativeInfinity;
+                    }
+                    else if (Mathf.Abs(scroll) > .01f)
+                    {
+                        Scroll(point, scroll, now < 0 ? Time.unscaledTime : now);
+                        previousClickTime = float.NegativeInfinity;
+                    }
                 }
             }
 
             switch (gesture)
             {
                 case Gesture.PendingClick:
-                    if (blocked) { gesture = Gesture.Idle; previousClickTime = float.NegativeInfinity; }
+                    if (blocked)
+                    {
+                        gesture = Gesture.Idle;
+                        previousClickTime = float.NegativeInfinity;
+                    }
                     else if ((point - origin).sqrMagnitude > DragThreshold * DragThreshold)
                     {
                         previousClickTime = float.NegativeInfinity;
@@ -140,7 +169,8 @@ namespace Ecaty
                             ownsPointer = true;
                             Orbit(point - origin);
                         }
-                        else gesture = Gesture.Idle;
+                        else
+                            gesture = Gesture.Idle;
                     }
                     else if (!left)
                     {
@@ -158,12 +188,15 @@ namespace Ecaty
                     }
                     break;
                 case Gesture.Orbit:
-                    if (!left) gesture = Gesture.Idle;
-                    else Orbit(point - previous);
+                    if (!left)
+                        gesture = Gesture.Idle;
+                    else
+                        Orbit(point - previous);
                     break;
                 case Gesture.Zoom:
                     ownsPointer = true;
-                    if (!right) gesture = Gesture.Idle;
+                    if (!right)
+                        gesture = Gesture.Idle;
                     else if (Mathf.Abs(point.y - previous.y) > .01f)
                     {
                         if (!dragZoomAnchored)
@@ -176,8 +209,10 @@ namespace Ecaty
                     break;
                 case Gesture.Pan:
                     ownsPointer = true;
-                    if (!middle) gesture = Gesture.Idle;
-                    else Pan(previous, point);
+                    if (!middle)
+                        gesture = Gesture.Idle;
+                    else
+                        Pan(previous, point);
                     break;
             }
             previous = point;
@@ -186,7 +221,8 @@ namespace Ecaty
         private void SetPivotAt(Vector2 point)
         {
             if (!output.pixelRect.Contains(point) ||
-                !experience.TryWorldPoint(output.ScreenPointToRay(point), out Vector3 hit)) return;
+                !experience.TryWorldPoint(output.ScreenPointToRay(point), out Vector3 hit))
+                return;
             var viewport = output.ScreenToViewportPoint(point);
             pivot.position = hit;
             zoomFraming = new Vector2(viewport.x * 2 - 1, viewport.y * 2 - 1);
@@ -273,7 +309,8 @@ namespace Ecaty
         }
         private void OnDestroy()
         {
-            if (rigRoot) Destroy(rigRoot.gameObject);
+            if (rigRoot)
+                Destroy(rigRoot.gameObject);
         }
     }
 }

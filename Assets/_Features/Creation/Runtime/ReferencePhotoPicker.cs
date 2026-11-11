@@ -40,9 +40,11 @@ namespace Ecaty
             finally
             {
                 RenderTexture.active = previous;
-                if (target) RenderTexture.ReleaseTemporary(target);
+                if (target)
+                    RenderTexture.ReleaseTemporary(target);
                 UnityEngine.Object.Destroy(source);
-                if (scaled) UnityEngine.Object.Destroy(scaled);
+                if (scaled)
+                    UnityEngine.Object.Destroy(scaled);
             }
         }
     }

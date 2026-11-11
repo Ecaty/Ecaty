@@ -16,7 +16,8 @@ namespace Ecaty.Editor
         private static void Choose()
         {
             var panel = UnityEngine.Object.FindAnyObjectByType<AgentChatPanel>();
-            if (panel) panel.Controller.PickPhoto();
+            if (panel)
+                panel.Controller.PickPhoto();
         }
 
         [MenuItem("Runtime/Remove reference photo", true)]
@@ -30,7 +31,8 @@ namespace Ecaty.Editor
         private static void Remove()
         {
             var panel = UnityEngine.Object.FindAnyObjectByType<AgentChatPanel>();
-            if (panel) panel.Controller.RemovePhotoAttachment();
+            if (panel)
+                panel.Controller.RemovePhotoAttachment();
         }
     }
 }
