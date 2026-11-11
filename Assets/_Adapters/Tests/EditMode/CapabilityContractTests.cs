@@ -59,6 +59,17 @@ namespace Ecaty.Tests
             Assert.That(CapabilityCatalog.All.Where(d => d.Instance != null).Select(d => d.Info.Component), Does.Contain("CapBody").And.Contain("CapTerrain").And.Contain("CapPostProcessing"));
         }
         [Test]
+        public void CommittedSchemaExportIsCurrentAndLoads()
+        {
+            // Tools without Unity (Verification/*.py) load this file; it must match the [Capability] classes.
+            string text = System.IO.File.ReadAllText(CapabilityCatalog.ExportPath).Replace("\r\n", "\n");
+            Assert.That(text, Is.EqualTo(CapabilityCatalog.ExportText()), "Recompile in Unity or run Runtime > Runtime engine > Export capability schema");
+            using var probe = new FlecsSession(0);
+            probe.SetManagedScript("Contracts", UnityEngine.Resources.Load<UnityEngine.TextAsset>(CapabilityRuntime.SchemaModule).text);
+            probe.SetManagedScript("Configurations", text);
+            Assert.That(probe.Lookup("CapSpline"), Is.Not.EqualTo(0));
+        }
+        [Test]
         public void LegacySchemaSessionGainsOnlyMissingConfigurations()
         {
             using var legacy = new FlecsSession(0);

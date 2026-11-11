@@ -24,6 +24,7 @@ try:
  assert read(w,'MyTree')['NativeTreeResult']['status']==-1
  checks.append('Invalid tree definitions are reported as ECS result data')
  script(w,(root/'Packages/com.runtime.capabilities/Runtime/Capabilities/Resources/CapabilitySchema.flecs').read_text())
+ script(w,(root/'Packages/com.runtime.capabilities/Runtime/Capabilities/CapabilityConfigSchema.flecs').read_text())
  script(w,'A { CapBinding: {target:Value,enabled:true,revision:1} }\nB { CapBinding: {target:Value,enabled:true,revision:1}; (CapDependsOn,A) }')
  a=lookup(w,b'A');b=lookup(w,b'B');tick(w,.01);assert has(w,b,b'CapDirty') and ready(w,b)==0
  assert setjson(w,b'A',b'CapState',b'{"phase":1,"appliedRevision":1,"generation":1,"message":""}')==0

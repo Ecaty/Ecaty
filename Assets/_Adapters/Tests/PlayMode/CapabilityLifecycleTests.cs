@@ -72,10 +72,15 @@ namespace Ecaty.Tests
                         if (cycle == 0)
                             warmed = new HashSet<Object>(Resources.FindObjectsOfTypeAll<Object>());
                         else
-                            leaks.AddRange(Added(warmed, world).Select(o => adapter.Component + ": " + o));
+                        {
+                            var added = Added(warmed, world);
+                            // One line per adapter so every leaking adapter is visible in a truncated report.
+                            if (added.Count > 0)
+                                leaks.Add(adapter.Component + " +" + added.Count + ": " + string.Join(", ", added.GroupBy(o => o).Select(g => g.Count() + "x " + g.Key).Take(6)));
+                        }
                     }
                 }
-                Assert.That(leaks, Is.Empty, "Runtime objects remained after dispose");
+                Assert.That(leaks, Is.Empty, "Runtime objects remained after dispose:\n" + string.Join("\n", leaks));
             }
             finally
             {

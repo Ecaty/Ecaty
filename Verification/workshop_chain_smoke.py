@@ -74,6 +74,8 @@ try:
     put("EngineSchema", (resources / "Runtime/Schemas/EngineSchema.flecs").read_text())
     cap_schema = ROOT / "Packages/com.runtime.capabilities/Runtime/Capabilities/Resources/CapabilitySchema.flecs"
     put("CapabilitySchema", cap_schema.read_text())
+    # Configuration structs are generated from [Capability] classes and exported for tools without Unity.
+    put("CapabilityConfigSchema", (ROOT / "Packages/com.runtime.capabilities/Runtime/Capabilities/CapabilityConfigSchema.flecs").read_text())
     put("ActorFixtures", """
 ChainBunny { ActorMotion: {0,0,0,0,0,0,0,true} }
 ChainDuck { ActorMotion: {0,0,-0.6,0,0,0,0,true} }
