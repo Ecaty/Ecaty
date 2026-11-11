@@ -246,6 +246,13 @@ SecondText : TextStyle { Position: {8,0,0} }
     assert json.loads(c.string_at(diagnostics(w)).decode())["queryRebuilds"] >= 1
     query_destroy(w, handle)
     assert query_read(w, handle, None, ents, None, pair, 8, 8) == -1
+    # A fixed source entity that is deleted and recreated (new id) must not leave the query matching nothing.
+    assert managed(w, b"Sources", b"Model { Heat: {4, 0}; Position: {0,0,0} }") == 0
+    source = query_create(w, b"Heat, Position(Model)")
+    assert source > 0 and query_read(w, source, None, ents, None, pair, 8, 8) == 2
+    assert managed(w, b"Sources", b"") == 0
+    assert managed(w, b"Sources", b"Model { Heat: {6, 0}; Position: {0,0,0} }") == 0
+    assert query_read(w, source, None, ents, None, pair, 8, 8) == 2, "fixed source was not re-resolved"
     checks.append("stable query handles: no rebuild on unrelated reloads, rebuild on type redefinition, change detection")
 
     # Parse-once: repeated commands reuse the parse; a source change invalidates it.
