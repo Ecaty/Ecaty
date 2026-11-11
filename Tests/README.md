@@ -9,7 +9,7 @@ cd A:\Projects\Ecaty
 .\Tests\Run-Validator.cmd
 ```
 
-Other entry points: Run-Native.cmd, Run-EditMode.cmd, Run-PlayMode.cmd, Run-Resources.cmd, Run-PlayerScripts.cmd. Or `pwsh -NoProfile -File .\Tests\Run.ps1 -Suite Gallery`.
+Other entry points: Run-Extended.cmd (non-network feature verifiers and Python native smokes from Extended.json), Run-Native.cmd, Run-EditMode.cmd, Run-PlayMode.cmd, Run-Resources.cmd, Run-PlayerScripts.cmd. Or `pwsh -NoProfile -File .\Tests\Run.ps1 -Suite Gallery`.
 
 The shared Run.cmd prefers PowerShell 7 and falls back to Windows PowerShell; it allows this local runner in its own process without changing machine/user execution policy. Install the Unity CLI and ensure `unity` is on PATH (the normal WindowsApps installation is also detected). Each run writes runner.log, so a launcher failure remains readable after a window closes. Known Unity reload progress, including timed busy-title suffixes, is allowed up to five minutes; real prompts are not dismissed.
 

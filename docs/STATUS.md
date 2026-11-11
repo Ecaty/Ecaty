@@ -11,6 +11,7 @@ Current state and the exact next action only. Update after meaningful milestones
 - **Native motion:** ring turns and the tree clock are compiled systems + observers in Native/App; their four components are C++ contracts. REST starts only in Editor/development builds.
 - **Code/infra:** owned C# reformatted per `.editorconfig`; generated `Verification/*.json` are no longer tracked; merged `codex/*` branches deleted locally (remote deletion pending the user).
 - **Verification:** Run-All passed 2026-11-11 07:49 (Validator 147, Resources 68, PlayerScripts, EditMode 8, PlayMode 1, 120/120 gallery checks) with the rebuilt DLL.
+- **Test tooling (unverified in Unity):** `Run.ps1 -Suite Extended` / `Run-Extended.cmd` reads the registry `Tests/Extended.json`; runner Editor calls are named methods in `Assets/_Tests/Editor/RunnerSupport.cs`; Tools > Dev Console window; verifier inventory in docs/TESTING.md; docs proposal in docs/PROPOSAL-docs-index-and-trim.md (awaiting approval).
 - **Dev workflow:** every test run writes Tests/Results/latest.txt (stages, failing checks/tests). The user pushes; agents commit locally with descriptive messages and `feature/`/`fix/`/`chore/` branch names. Agents may quit/reopen Unity when nothing is unsaved (native DLL swaps). Live world over REST at http://127.0.0.1:27750 in Play mode.
 
 ## Next action

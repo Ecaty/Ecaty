@@ -1,4 +1,4 @@
-param([ValidateSet('Native','Gallery','EditMode','PlayMode','Resources','Validator','PlayerScripts','All')][string]$Suite='All')
+param([ValidateSet('Native','Gallery','EditMode','PlayMode','Resources','Validator','PlayerScripts','Extended','All')][string]$Suite='All')
 $ErrorActionPreference='Stop'
 $projectPath=Split-Path -Parent $PSScriptRoot
 $runDirectory=Join-Path $PSScriptRoot ('Results/'+[DateTime]::Now.ToString('yyyy-MM-dd_HH-mm-ss_fff'))
@@ -43,6 +43,48 @@ try {
         if($result.success -eq $false){throw ($result | ConvertTo-Json -Depth 10)}
         return $result
     }
+    # Extended: run one registered verifier (Tests/Extended.json) and return its pass/fail and report.
+    function Invoke-ExtendedVerifier($Entry,[string]$Directory) {
+        $started=[DateTime]::UtcNow
+        $reportPath=if($Entry.report){Join-Path $projectPath $Entry.report}else{$null}
+        $timeout=if($Entry.timeout){[int]$Entry.timeout}else{180}
+        $result=[pscustomobject]@{name=$Entry.name;passed=$false;error='';report=$null}
+        try {
+            if($Entry.kind -eq 'python'){
+                $python=(Get-Command python -ErrorAction SilentlyContinue),(Get-Command py -ErrorAction SilentlyContinue) | Where-Object {$_} | Select-Object -First 1
+                if(-not $python){throw 'Python not found on PATH.'}
+                $run=Invoke-UnityProcess $python.Source (@((Join-Path $projectPath $Entry.script))+@($Entry.args))
+                Set-Content -LiteralPath (Join-Path $Directory (($Entry.name -replace '[^A-Za-z0-9]+','-')+'.log')) -Value @($run.Output,$run.Error) -Encoding UTF8
+                if($run.Code -ne 0){$tail=(([string]$run.Error+' '+[string]$run.Output) -replace '\s+',' ').Trim();throw "Exit code $($run.Code): $($tail.Substring([Math]::Max(0,$tail.Length-300)))"}
+            } else {
+                $state=Invoke-Editor @('editor','status')
+                if($state.playMode -ne 'stopped'){Invoke-Editor @('editor.playmode','stop') | Out-Null;Wait-Editor}
+                # Verifiers that enter Play mode reload the domain; the CLI reply may be lost, so the report file is the source of truth.
+                try {Invoke-Editor @('script','eval',[string]$Entry.start) | Out-Null} catch {Write-Host "  start reply lost for $($Entry.name): $($_.Exception.Message.Substring(0,[Math]::Min(120,$_.Exception.Message.Length)))"}
+                $limit=[DateTime]::UtcNow.AddSeconds($timeout)
+                while(-not ((Test-Path -LiteralPath $reportPath) -and (Get-Item -LiteralPath $reportPath).LastWriteTimeUtc -gt $started)){
+                    if([DateTime]::UtcNow -gt $limit){throw "No report within $timeout seconds ($($Entry.report))."}
+                    Start-Sleep -Milliseconds 1000
+                }
+                Start-Sleep -Milliseconds 800
+            }
+            if($reportPath -and (Test-Path -LiteralPath $reportPath)){
+                $stamp=(Get-Item -LiteralPath $reportPath).LastWriteTimeUtc
+                if($Entry.kind -eq 'editor' -or $stamp -gt $started){
+                    Copy-Item -LiteralPath $reportPath -Destination (Join-Path $Directory (Split-Path -Leaf $reportPath)) -Force
+                    $result.report=Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+                    if($result.report.passed -ne $true){throw "Report says passed=$($result.report.passed)$(if($result.report.error){': '+(([string]$result.report.error -replace '\s+',' ').Substring(0,[Math]::Min(300,([string]$result.report.error).Length)))})."}
+                }
+            }
+            $result.passed=$true
+        } catch {$result.error=$_.Exception.Message}
+        finally {
+            if($Entry.kind -eq 'editor'){
+                try {Wait-Editor;if((Invoke-Editor @('editor','status')).playMode -ne 'stopped'){Invoke-Editor @('editor.playmode','stop') | Out-Null;Wait-Editor}} catch {Write-Host "  could not stop Play after $($Entry.name)"}
+            }
+        }
+        return $result
+    }
     Wait-Editor
     $deadline=[DateTime]::UtcNow.AddSeconds(90)
     do {
@@ -53,15 +95,15 @@ try {
     } while($true)
     $wasPlaying=$initial.playMode -eq 'playing'
     if($initial.playMode -eq 'paused'){throw 'Resume or stop paused Play mode before running tests.'}
-    $tickState=Invoke-Editor @('script','eval','return new {enabled=UnityEditor.SessionState.GetBool("Unity.Pipeline.AutoTick.Enabled",false),interval=UnityEditor.SessionState.GetInt("Unity.Pipeline.AutoTick.IntervalMs",16)};')
-    $saveInfo=Invoke-Editor @('script','eval','return System.IO.Path.Combine(UnityEngine.Application.persistentDataPath,"GalleryPrototype","tree-arrangement.json");')
+    $tickState=Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.AutoTickState();')
+    $saveInfo=Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.GallerySavePath();')
     $gallerySavePath=[string]$saveInfo.result;$hadGallerySave=Test-Path -LiteralPath $gallerySavePath
     [byte[]]$gallerySaveBytes=$null
     if($hadGallerySave){$gallerySaveBytes=[IO.File]::ReadAllBytes($gallerySavePath)}
     $saveBackedUp=$true
     try {
     if($wasPlaying){
-        Invoke-Editor @('script','eval','var g=UnityEngine.Object.FindAnyObjectByType<Ecaty.CrystalWorldGallery>();if(g){if(g.IsDragging)throw new System.InvalidOperationException("Finish or cancel the held world before running tests.");UnityEditor.SessionState.SetString("WorldTests.OriginalArrangement",g.CaptureArrangement());g.SaveArrangement();}return true;') | Out-Null
+        Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.CaptureGalleryArrangement();') | Out-Null
         $baselineStored=$true
     }
     Invoke-Editor @('editor','set_auto_tick') | Out-Null;$tickChanged=$true
@@ -96,6 +138,22 @@ try {
                 $currentContext.data=$result.result
                 $result.result | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath (Join-Path $runDirectory 'player-scripts.json') -Encoding UTF8
                 if(-not $result.result.passed){throw 'Player script compilation failed.'}
+                $currentContext.status='Passed'
+            } elseif($current -eq 'Extended'){
+                $directory=Join-Path $runDirectory 'Extended';New-Item -ItemType Directory -Path $directory -Force | Out-Null
+                $manifest=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Extended.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+                $state=Invoke-Editor @('editor','status')
+                if($state.playMode -ne 'stopped'){Invoke-Editor @('editor.playmode','stop') | Out-Null;Wait-Editor}
+                $outcomes=@()
+                foreach($entry in $manifest.verifiers){
+                    $outcome=Invoke-ExtendedVerifier $entry $directory;$outcomes+=$outcome
+                    Write-Host "  $($outcome.name): $(if($outcome.passed){'passed'}else{'FAILED'})"
+                    $currentContext.data=[pscustomobject]@{checks=@($outcomes | ForEach-Object {[pscustomobject]@{name=$_.name+$(if($_.error){': '+$_.error}else{''});passed=$_.passed}})}
+                    Write-RunReport $runDirectory $contexts
+                }
+                $outcomes | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $runDirectory 'extended.json') -Encoding UTF8
+                $failedNames=@($outcomes | Where-Object {-not $_.passed} | ForEach-Object {$_.name})
+                if($failedNames.Count){throw "Extended failed: $($failedNames -join ', ')."}
                 $currentContext.status='Passed'
             } elseif($current -eq 'Gallery'){
                 $state=Invoke-Editor @('editor','status')
@@ -135,7 +193,7 @@ try {
                 Wait-Editor;$state=Invoke-Editor @('editor','status')
                 if($wasPlaying -and $state.playMode -ne 'playing'){Invoke-Editor @('editor','set_auto_tick') | Out-Null;Invoke-Editor @('editor.playmode','start') | Out-Null;Wait-Editor}
                 elseif(-not $wasPlaying -and $state.playMode -ne 'stopped'){Invoke-Editor @('editor.playmode','stop') | Out-Null;Wait-Editor}
-                if($baselineStored){Invoke-Editor @('script','eval','var snapshot=UnityEditor.SessionState.GetString("WorldTests.OriginalArrangement","");var g=UnityEngine.Object.FindAnyObjectByType<Ecaty.CrystalWorldGallery>();if(g&&!string.IsNullOrEmpty(snapshot))g.RestoreArrangement(snapshot);UnityEditor.SessionState.EraseString("WorldTests.OriginalArrangement");return true;') | Out-Null}
+                if($baselineStored){Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.RestoreGalleryArrangement();') | Out-Null}
                 Invoke-Editor @('editor','set_auto_tick','--','--enabled',([string]$tickState.result.enabled).ToLowerInvariant(),'--interval-ms',([string]$tickState.result.interval)) | Out-Null
             }
         } finally {
