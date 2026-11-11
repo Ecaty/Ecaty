@@ -1,0 +1,55 @@
+name: Native
+
+# Builds the native Flecs library (Native/Core + Native/App) and runs the Python native smokes.
+# No Unity involved; Unity suites still run locally (Tests/Run-All.cmd, Run-Extended.cmd).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Native/**'
+      - 'Verification/*.py'
+      - 'Assets/**/*.flecs'
+      - '.github/workflows/native.yml'
+  pull_request:
+    paths:
+      - 'Native/**'
+      - 'Verification/*.py'
+      - 'Assets/**/*.flecs'
+      - '.github/workflows/native.yml'
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build flecs_unity.dll
+        shell: pwsh
+        run: ./Native/Build.ps1
+      - name: Native smokes
+        shell: pwsh
+        run: |
+          $failed = @()
+          $smokes = @(
+            @{ script = 'Verification/native_smoke.py'; args = @(); report = 'Verification/native-checks.json' },
+            @{ script = 'Verification/capability_native_smoke.py'; args = @('Assets/Plugins/Flecs/x86_64/flecs_unity.dll'); report = 'Verification/capability-native-checks.json' },
+            @{ script = 'Verification/runtime_engine_smoke.py'; args = @(); report = 'Verification/runtime-engine-native-checks.json' },
+            @{ script = 'Verification/runtime_behavior_smoke.py'; args = @(); report = 'Verification/runtime-behavior-native-checks.json' },
+            @{ script = 'Verification/workshop_chain_smoke.py'; args = @(); report = '' }
+          )
+          foreach ($smoke in $smokes) {
+            Write-Host "::group::$($smoke.script)"
+            python $smoke.script @($smoke.args)
+            $ok = $LASTEXITCODE -eq 0
+            if ($ok -and $smoke.report) { $ok = (Get-Content $smoke.report -Raw | ConvertFrom-Json).passed -eq $true }
+            if (-not $ok) { $failed += $smoke.script }
+            Write-Host '::endgroup::'
+          }
+          if ($failed.Count -gt 0) { throw "Failed: $($failed -join ', ')" }
