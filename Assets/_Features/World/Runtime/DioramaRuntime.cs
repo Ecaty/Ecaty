@@ -300,10 +300,6 @@ namespace Ecaty
                     // With no walking clips, use the plugin's procedural replanting mode.
                     legs.GlueMode = LegsAnimator.EGlueMode.Idle;
                     legs.LegAnimatingSettings.RefreshDefaultCurves();
-                    // The default (1) blocks a step until the opposite leg's glue transition reaches exactly 1, but the idle
-                    // slide-in only approaches 1 (SmoothDamp) and can park at ~0.998: then one leg never steps again, depending
-                    // on frame timing. Allow the opposite leg to lift once a landing is practically complete.
-                    legs.LegAnimatingSettings.AllowDetachBefore = .95f;
                     foreach (JArray chain in next["legs"])
                     {
                         legs.Legs_AddNewLeg();
