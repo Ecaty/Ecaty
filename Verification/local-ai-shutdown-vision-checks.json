@@ -1,9 +1,0 @@
-{
-  "passed": true,
-  "mode": "vision",
-  "requestWasPending": true,
-  "ownedProcessesAtStop": 1,
-  "ownedProcessesExited": true,
-  "seconds": 0.484,
-  "checkedAt": "2026-11-07T07:31:34.1530289+00:00"
-}

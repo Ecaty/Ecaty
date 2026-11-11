@@ -192,3 +192,6 @@ InitTestScene*.unity*
 
 /Assets/Plugins/Sirenix/
 /Assets/Plugins/Sirenix.meta
+
+# Generated verification reports stay local (see Tests/Results/latest.txt for the current run)
+/Verification/*.json

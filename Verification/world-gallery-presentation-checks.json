@@ -1,4 +1,0 @@
-{
-  "passed": false,
-  "error": "System.InvalidOperationException: Escape did not close Settings.\r\n  at Script.Require (System.Boolean value, System.String message) [0x00009] in eval.cs:9 \r\n  at Script+<<Initialize>>d__0.MoveNext () [0x005f0] in eval.cs:55 "
-}

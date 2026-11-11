@@ -1,8 +1,0 @@
-{
-  "passed": true,
-  "checks": [
-    "built Unity player serves native Flecs REST while Update runs",
-    "remote Script creates a live entity; queries and reflection work",
-    "runtime edit/delete and statistics; no player exceptions"
-  ]
-}

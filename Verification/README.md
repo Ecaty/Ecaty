@@ -1,9 +1,7 @@
 # Verification
 
-Run the native check from the Unity project root after building the native plugin:
+Feature verifiers (Editor menus under Runtime > Verification) and Python native smokes write JSON reports here. Reports are local only (ignored by Git): they are evidence for one run, not certification of current code. The regression suites are in Tests/ — read Tests/Results/latest.txt for the latest run.
 
-`python Verification/native_smoke.py`
-
-The Unity verification entry points are `Ecaty.Editor.Verification.RunAll` and `BuildPlayer`. See `docs/DEVELOPMENT.md` for the live Editor workflow and Windows player arguments.
-
-The four `*-checks.json` reports are the actual setup baseline from 2026-11-01. They cover native behavior, Unity object state, advancing player frames and live player REST changes. Test logs and player builds are ignored; no visual inspection, exhaustive Flecs feature coverage or other platform support is implied.
+- `native_smoke.py`, `capability_native_smoke.py`, `runtime_engine_smoke.py`, `runtime_behavior_smoke.py`, `workshop_chain_smoke.py`: native ABI checks against the built DLL (`python Verification/<name>.py`).
+- `player_rest_smoke.py`: REST edits against a running development player (port 27750).
+- `bench_flecs.py <path-to-flecs_unity.dll>`: bridge/Script micro-benchmarks used by docs/FLECS-ARCHITECTURE-AUDIT.md.

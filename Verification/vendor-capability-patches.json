@@ -1,9 +1,0 @@
-{
-  "changed": [],
-  "vendorSourceRedistributed": false,
-  "notes": [
-    "Broccoli integer caches use transient EntityId hashes, not persistent IDs.",
-    "UniStorm legacy VR flag uses XRSettings.",
-    "Obsolete Built-in PostProcessing editor is excluded; URP Volumes remain available."
-  ]
-}
