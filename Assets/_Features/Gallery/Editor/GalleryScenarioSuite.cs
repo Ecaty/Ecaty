@@ -450,6 +450,8 @@ namespace Ecaty.Editor
                 var topProperties = new MaterialPropertyBlock();
                 topShell.GetPropertyBlock(topProperties);
                 Check(Mathf.Abs(topProperties.GetFloat("_Opacity") - g.Profile.SphereOpacity) < .001f && top.Find("New world seed") != null, "Top invitation uses identical glass and a baked seed");
+                Check(top.GetComponent<SphereCollider>().isTrigger && System.Linq.Enumerable.All(g.Items, i => i.Hit.isTrigger),
+                    "Gallery pick volumes are triggers and never block motors or physics in an open world");
                 var theme = g.Theme;
                 Color oldRing = theme.Ring;
                 try

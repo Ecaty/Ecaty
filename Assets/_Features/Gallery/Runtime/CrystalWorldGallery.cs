@@ -282,7 +282,11 @@ namespace Ecaty
                 materials.Add(m);
                 r.sharedMaterial = m;
             }
-            invitation.gameObject.AddComponent<SphereCollider>().radius = F("diameter") * .5f;
+            // Pick volumes are queried with Collider.Raycast only. As triggers they never block actor motors or physics
+            // in a world that shares the scene with the gallery.
+            var invitationHit = invitation.gameObject.AddComponent<SphereCollider>();
+            invitationHit.radius = F("diameter") * .5f;
+            invitationHit.isTrigger = true;
             cameraTarget = new GameObject("Native gallery camera target").transform;
             cameraTarget.SetParent(transform, false);
             cameraRig = new GameObject("Gallery Cinemachine orbit").transform;
@@ -364,6 +368,7 @@ namespace Ecaty
                 c.enabled = false;
             var item = new Item { Entry = e, Animator = animator, Shell = art.Sphere(e.Anchor, F("diameter"), "Single world shell") };
             item.Hit = e.Anchor.gameObject.AddComponent<SphereCollider>();
+            item.Hit.isTrigger = true; // pick volume only (see the invitation)
             item.Hit.radius = F("diameter") * .5f;
             item.Renderers = e.Content.GetComponentsInChildren<Renderer>(true);
             item.Colors = item.Renderers.Select(r => r.sharedMaterials.Select(m => m.color).ToArray()).ToArray();
