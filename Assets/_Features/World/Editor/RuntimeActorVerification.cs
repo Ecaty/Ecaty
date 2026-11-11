@@ -125,13 +125,11 @@ namespace Ecaty.Editor
                 chatRenderer.RegisterUIReloadCallback(getUI);
                 chatRenderer.UnregisterUIReloadCallback(getUI);
                 var launcher = ui.Q<Button>("workshopSettings");
-                for (int wait = 0; wait < 120 && !(launcher != null && launcher.resolvedStyle.width >= 80); wait++)
-                    await Frames(1);
-                Require(launcher != null && launcher.resolvedStyle.width >= 80 &&
+                // In gallery mode WorkshopDock hides the launcher (display none), so only the glass style is asserted, not layout width.
+                Require(launcher != null && launcher.ClassListContains("agent-chat__launcher") &&
                     System.Linq.Enumerable.Any(launcher.resolvedStyle.backdropFilter),
                     "The glass settings launcher style did not resolve: found=" + (launcher != null) +
-                    " width=" + launcher?.resolvedStyle.width + " backdropFilters=" +
-                    (launcher == null ? 0 : System.Linq.Enumerable.Count(launcher.resolvedStyle.backdropFilter)) +
+                    " backdropFilters=" + (launcher == null ? 0 : System.Linq.Enumerable.Count(launcher.resolvedStyle.backdropFilter)) +
                     " classes=" + (launcher == null ? "" : string.Join(" ", launcher.GetClasses())));
                 Require(ui.Q<Button>("chatLauncher") == null && ui.Q<TextField>("messageInput") == null,
                     "A standalone chat is still exposed.");
