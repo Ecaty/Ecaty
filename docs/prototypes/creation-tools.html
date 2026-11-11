@@ -1,0 +1,511 @@
+<title>Ecaty Creation Tools</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=block">
+<style>
+/* Layout: the bench scene fills the left; a quiet comparison panel sits on the right (stacks under it on phones).
+   Single deliberate dark look: it mirrors the product's teal-slate workshop. */
+:root {
+  --bg: #121c1f;          /* room */
+  --surface: #1a292e;     /* product UI surface */
+  --raised: #293b40;
+  --text: #dbe8e3;
+  --muted: #a1baba;
+  --accent: #cce0ca;      /* sage tool accent */
+  --select: #e6cf99;      /* warm sand selection */
+  --glass: #b8d4d6;
+  --ring: #91aaa0;
+  --line: rgba(140,179,171,.25);
+  --wet: #8cd6ff;
+  --warm: #ffd38a;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--body); line-height: 1.5; }
+.page { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; padding-block: 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1320px; margin: 0 auto; }
+@media (max-width: 900px) { .page { grid-template-columns: minmax(0, 1fr); } }
+
+.stage { --t: clamp(26px, 5.6cqw, 44px); --ts: clamp(22px, 4.6cqw, 36px); container-type: inline-size;
+  position: relative; width: 100%; aspect-ratio: 800 / 520; border-radius: 18px; overflow: hidden;
+  background: var(--surface); box-shadow: 0 0 0 1px var(--line); touch-action: none; user-select: none; }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+.overlay > * { pointer-events: auto; }
+
+.ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1;
+  letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+.token { position: absolute; width: var(--t); height: var(--t); margin: calc(var(--t) / -2) 0 0 calc(var(--t) / -2); border-radius: 50%; border: 0;
+  display: grid; place-items: center; cursor: pointer; color: #18282c;
+  background: radial-gradient(circle at 35% 30%, #f4fbf8, var(--glass) 55%, #8fb3b3);
+  box-shadow: 0 6px 14px rgba(0,0,0,.35), inset 0 -3px 6px rgba(0,0,0,.18);
+  transition: transform .18s ease, box-shadow .18s ease; animation: pop .22s ease-out both; }
+.token:hover { transform: scale(1.12); }
+.token:focus-visible { outline: 3px solid var(--select); outline-offset: 3px; }
+.token.small { width: var(--ts); height: var(--ts); margin: calc(var(--ts) / -2) 0 0 calc(var(--ts) / -2); }
+.token .ms { font-size: calc(var(--t) * .5); }
+.token.small .ms { font-size: calc(var(--ts) * .52); }
+.token.on { background: radial-gradient(circle at 35% 30%, #fff8e6, var(--select) 60%, #b79b5f); }
+.token.danger { color: #5a2222; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.drawer { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; flex-direction: column;
+  align-items: center; gap: 8px; animation: rise .25s ease-out both; }
+.drawer .row { display: flex; gap: 10px; padding: 8px 12px; border-radius: 999px; background: rgba(26,41,46,.82);
+  box-shadow: 0 0 0 1px var(--line); backdrop-filter: blur(6px); }
+.drawer .token { position: relative; margin: 0; }
+@keyframes rise { from { transform: translate(-50%, 30px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+.corner { position: absolute; display: flex; gap: 8px; }
+.corner .token { position: relative; margin: 0; }
+.chat { position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; display: flex; align-items: center; gap: 6px;
+  width: min(360px, 70%); padding: 5px 6px 5px 14px; border-radius: 999px; background: rgba(26,41,46,.9);
+  box-shadow: 0 0 0 1px var(--line); }
+.chat input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--text); font: inherit; font-size: 14px; outline: none; }
+.chat button { border: 0; background: transparent; color: var(--muted); cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; }
+.chat button:hover, .chat button:focus-visible { color: var(--accent); background: var(--raised); outline: none; }
+.dial { position: absolute; right: 64px; top: 22px; width: 120px; accent-color: var(--select); }
+.toast { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px;
+  background: rgba(41,59,64,.95); color: var(--text); font-size: 13px; box-shadow: 0 0 0 1px var(--line); animation: pop .2s ease-out both; }
+
+/* scene animation */
+.obj { cursor: grab; }
+.obj .body { transform-box: fill-box; transform-origin: 50% 100%; }
+.a-spin .body { animation: spin 2.4s ease-in-out infinite; }
+.a-bob .body { animation: bob 1.8s ease-in-out infinite; }
+.a-wander .body { animation: wander 4s ease-in-out infinite; }
+.ringing .body { animation: ring .5s ease-in-out 2; }
+.reacting .body { animation: hop .45s ease-out 2; }
+@keyframes spin { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes wander { 0%,100% { transform: translateX(-14px); } 50% { transform: translateX(14px); } }
+@keyframes ring { 0%,100% { transform: rotate(0); } 25% { transform: rotate(14deg); } 75% { transform: rotate(-14deg); } }
+@keyframes hop { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-18px); } }
+.drop { animation: fall 1s linear infinite; }
+@keyframes fall { from { transform: translateY(-6px); opacity: 1; } to { transform: translateY(14px); opacity: 0; } }
+.port { cursor: pointer; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; } }
+
+/* side panel */
+.panel { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.panel h1 { font-family: var(--display); font-weight: 600; font-size: 28px; line-height: 1.15; margin: 0; text-wrap: balance; }
+.panel p { margin: 0; color: var(--muted); font-size: 14px; }
+.how { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 13px; color: var(--muted); margin: 0; }
+.how dt { color: var(--text); font-weight: 500; }
+.how dd { margin: 0; }
+fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+legend { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; padding: 0; }
+.seg { display: flex; flex-direction: column; gap: 6px; }
+.seg label { display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px; border-radius: 12px; cursor: pointer;
+  background: var(--surface); box-shadow: 0 0 0 1px var(--line); font-size: 13px; color: var(--muted); }
+.seg label b { display: block; color: var(--text); font-weight: 600; font-size: 14px; }
+.seg input { accent-color: var(--select); margin-top: 3px; }
+.seg label:has(input:checked) { box-shadow: 0 0 0 1.5px var(--select); }
+.questions { margin: 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+.note { font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+</style>
+
+<div class="page">
+  <main>
+    <div class="stage" id="stage">
+      <svg id="scene" viewBox="0 0 800 520" aria-label="Workshop bench">
+        <defs>
+          <radialGradient id="sky" cx="50%" cy="10%" r="90%">
+            <stop id="skyA" offset="0" stop-color="#2b4248"/>
+            <stop id="skyB" offset="1" stop-color="#132024"/>
+          </radialGradient>
+          <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#4c5f57"/><stop offset="1" stop-color="#33433e"/>
+          </linearGradient>
+          <radialGradient id="glaze" cx="35%" cy="25%" r="60%">
+            <stop offset="0" stop-color="#ffffff" stop-opacity=".75"/><stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stop-color="currentColor" stop-opacity=".35"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="800" height="520" fill="url(#sky)"/>
+        <circle id="sun" cx="640" cy="90" r="18" fill="#f3e1a8" opacity=".85"/>
+        <ellipse cx="400" cy="352" rx="300" ry="120" fill="#24302d"/>
+        <ellipse id="ground" cx="400" cy="330" rx="300" ry="120" fill="url(#base)"/>
+        <ellipse cx="400" cy="330" rx="300" ry="120" fill="none" stroke="var(--ring)" stroke-opacity=".35"/>
+        <g id="world"></g>
+        <rect id="night" width="800" height="520" fill="#0a1216" opacity="0" pointer-events="none"/>
+      </svg>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </main>
+
+  <aside class="panel">
+    <div>
+      <h1>Creation tools</h1>
+    </div>
+    <p>A clickable stand-in for the 3D bench. The game view stays wordless; the labels live only in this panel.</p>
+    <dl class="how">
+      <dt>Tap ground</dt><dd>open the tray of miniatures</dd>
+      <dt>Tap object</dt><dd>select it and reveal its tools</dd>
+      <dt>Drag</dt><dd>move an object</dd>
+      <dt>Tap bell</dt><dd>ring it; linked or reacting objects respond</dd>
+      <dt>Sun</dt><dd>world look and time of day</dd>
+    </dl>
+
+    <fieldset>
+      <legend>Where tools appear</legend>
+      <div class="seg">
+        <label><input type="radio" name="present" id="present-arc" value="arc" checked><span><b>Arc around the object</b>A few tools fan out above the selection.</span></label>
+        <label><input type="radio" name="present" id="present-drawer" value="drawer"><span><b>Drawer at the base</b>Tools slide up from the bench edge.</span></label>
+        <label><input type="radio" name="present" id="present-hold" value="hold"><span><b>Only on hold</b>Tap just selects; press and hold opens the arc.</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Giving life</legend>
+      <div class="seg">
+        <label><input type="radio" name="relate" id="relate-wires" value="wires" checked><span><b>Wires between objects</b>Link a cause to a reaction, like today's ports.</span></label>
+        <label><input type="radio" name="relate" id="relate-recipes" value="recipes"><span><b>Recipe shelf</b>Spin, bob, wander or react to the bell.</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Influence</legend>
+      <div class="seg">
+        <label><input type="radio" name="influence" id="influence-source" value="source" checked><span><b>Source objects</b>A rain cloud or lamp whose halo is its reach.</span></label>
+        <label><input type="radio" name="influence" id="influence-paint" value="paint"><span><b>Painted areas</b>A soft bubble on the ground with no object.</span></label>
+      </div>
+    </fieldset>
+
+    <div>
+      <legend style="display:block">Questions for you</legend>
+      <ol class="questions">
+        <li>Which placement feels best with mouse and touch?</li>
+        <li>Wires or recipes as the default way to give life?</li>
+        <li>Influence as objects you place, or areas you paint?</li>
+        <li>Is the sun token with a time dial enough for environment?</li>
+      </ol>
+    </div>
+    <p class="note">In the app these are 3D tokens on the bench, themed by the world's recipe. The chat line is the optional AI path; here it only understands "rain", "lamp" and "spin".</p>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const scene = document.getElementById("scene"), world = document.getElementById("world"), overlay = document.getElementById("overlay");
+  const C = { x: 400, y: 330, rx: 300, ry: 120 };
+  const KITS = [
+    { kind: "cube", icon: "deployed_code", name: "Block" },
+    { kind: "bell", icon: "notifications", name: "Bell" },
+    { kind: "critter", icon: "pets", name: "Creature" },
+    { kind: "tree", icon: "park", name: "Tree" },
+    { kind: "rain", icon: "rainy", name: "Rain" },
+    { kind: "lamp", icon: "lightbulb", name: "Lamp" }
+  ];
+  const COLORS = { cube: "#c98f6b", bell: "#e2c25f", critter: "#7fb2c9", tree: "#6f9c6a", rain: "#8cd6ff", lamp: "#ffd38a" };
+  const SWATCHES = [
+    { theme: "paper", color: "#e9dcc3", icon: "description", name: "Paper garden" },
+    { theme: "glazed", color: "#7fb2c9", icon: "water_drop", name: "Glazed toy" },
+    { theme: "plain", color: "#c98f6b", icon: "circle", name: "Clay" },
+    { theme: "plain", color: "#9db4a3", icon: "circle", name: "Sage" }
+  ];
+  const RECIPES = [
+    { anim: "spin", icon: "sync", name: "Spin" },
+    { anim: "bob", icon: "waves", name: "Bob" },
+    { anim: "wander", icon: "directions_walk", name: "Wander" },
+    { anim: "react", icon: "notifications_active", name: "React to bell" },
+    { anim: null, icon: "pause", name: "Still" }
+  ];
+  const LOOKS = {
+    day: ["#2b4248", "#132024", .85, "#f3e1a8"],
+    warm: ["#4a3d2d", "#1d1a16", .9, "#ffc874"],
+    twilight: ["#3b3352", "#141522", .6, "#e3b7d9"],
+    rain: ["#2e3b44", "#151c21", .25, "#c9d6dd"]
+  };
+
+  let id = 1;
+  const state = {
+    objects: [
+      { id: id++, kind: "bell", x: 300, y: 320, scale: 1, color: COLORS.bell, theme: "glazed", anim: null },
+      { id: id++, kind: "critter", x: 455, y: 350, scale: 1, color: COLORS.critter, theme: "plain", anim: null },
+      { id: id++, kind: "tree", x: 560, y: 300, scale: 1.1, color: COLORS.tree, theme: "paper", anim: null },
+      { id: id++, kind: "rain", x: 610, y: 365, scale: 1, color: COLORS.rain, theme: "plain", anim: null, r: 70 }
+    ],
+    wires: [],
+    selected: null, panel: null, tray: null, linking: false, held: false,
+    look: "day", time: .5,
+    present: "arc", relate: "wires", influence: "source"
+  };
+  const history = [];
+  const snap = () => { history.push(JSON.stringify({ o: state.objects, w: state.wires, l: state.look, t: state.time })); if (history.length > 40) history.shift(); };
+  const undo = () => { const s = history.pop(); if (!s) return; const v = JSON.parse(s); state.objects = v.o; state.wires = v.w; state.look = v.l; state.time = v.t; state.selected = null; state.panel = null; state.tray = null; render(); };
+
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const byId = i => state.objects.find(o => o.id === i);
+  const onGround = (x, y) => ((x - C.x) / C.rx) ** 2 + ((y - C.y) / C.ry) ** 2 <= 1;
+  const isInfluence = o => o.kind === "rain" || o.kind === "lamp";
+  const pct = (x, y) => ({ left: (x / 800 * 100) + "%", top: (y / 520 * 100) + "%" });
+  const toSvg = e => { const p = scene.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(scene.getScreenCTM().inverse()); };
+  const inside = (o, v) => ((o.x - v.x) / (v.r * 1.15)) ** 2 + ((o.y - v.y) / (v.r * .45)) ** 2 <= 1;
+
+  function shade(hex, f) { const n = parseInt(hex.slice(1), 16); const c = [n >> 16, n >> 8 & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(v * f)))); return "#" + c.map(v => v.toString(16).padStart(2, "0")).join(""); }
+
+  function drawBody(o, g) {
+    const c = o.color, stroke = o.theme === "paper" ? { stroke: shade(c, .6), "stroke-width": 1.5, "stroke-dasharray": "3 2" } : {};
+    if (o.kind === "cube") {
+      el("polygon", { points: "-24,-20 0,-32 24,-20 0,-8", fill: shade(c, 1.15), ...stroke }, g);
+      el("polygon", { points: "-24,-20 0,-8 0,14 -24,2", fill: shade(c, .85), ...stroke }, g);
+      el("polygon", { points: "24,-20 0,-8 0,14 24,2", fill: shade(c, .65), ...stroke }, g);
+    } else if (o.kind === "bell") {
+      el("path", { d: "M-20,0 C-18,-8 -16,-34 0,-38 C16,-34 18,-8 20,0 Z", fill: c, ...stroke }, g);
+      el("rect", { x: -3, y: -44, width: 6, height: 7, rx: 2, fill: shade(c, .7) }, g);
+      el("circle", { cx: 0, cy: 2, r: 4, fill: shade(c, .55) }, g);
+    } else if (o.kind === "critter") {
+      el("ellipse", { cx: 0, cy: -16, rx: 18, ry: 16, fill: c, ...stroke }, g);
+      el("circle", { cx: -6, cy: -20, r: 3, fill: "#13202a" }, g);
+      el("circle", { cx: 6, cy: -20, r: 3, fill: "#13202a" }, g);
+      el("ellipse", { cx: -9, cy: 0, rx: 5, ry: 3, fill: shade(c, .7) }, g);
+      el("ellipse", { cx: 9, cy: 0, rx: 5, ry: 3, fill: shade(c, .7) }, g);
+    } else if (o.kind === "tree") {
+      el("rect", { x: -4, y: -18, width: 8, height: 18, fill: "#7a5a43" }, g);
+      el("circle", { cx: 0, cy: -34, r: 18, fill: c, ...stroke }, g);
+      el("circle", { cx: -12, cy: -24, r: 11, fill: shade(c, .85), ...stroke }, g);
+      el("circle", { cx: 12, cy: -25, r: 12, fill: shade(c, 1.1), ...stroke }, g);
+    } else if (o.kind === "rain") {
+      const y = -80;
+      el("ellipse", { cx: -12, cy: y, rx: 18, ry: 12, fill: "#d9e6ec" }, g);
+      el("ellipse", { cx: 10, cy: y - 6, rx: 20, ry: 15, fill: "#e7f0f3" }, g);
+      el("ellipse", { cx: 2, cy: y + 4, rx: 26, ry: 10, fill: "#cfdde4" }, g);
+      for (let i = -2; i <= 2; i++) el("line", { x1: i * 9, y1: y + 18, x2: i * 9 - 2, y2: y + 28, stroke: c, "stroke-width": 2, "stroke-linecap": "round", class: "drop", style: `animation-delay:${(i + 2) * .18}s` }, g);
+    } else if (o.kind === "lamp") {
+      el("rect", { x: -2, y: -46, width: 4, height: 46, fill: "#4b4f4c" }, g);
+      el("circle", { cx: 0, cy: -50, r: 9, fill: c }, g);
+      el("ellipse", { cx: 0, cy: 0, rx: 9, ry: 3, fill: "#3b3f3c" }, g);
+    }
+    if (o.theme === "glazed" && o.kind !== "rain") el("ellipse", { cx: -6, cy: o.kind === "tree" ? -38 : -22, rx: 10, ry: 7, fill: "url(#glaze)" }, g);
+  }
+
+  function render() {
+    world.textContent = "";
+    const look = LOOKS[state.look];
+    document.getElementById("skyA").setAttribute("stop-color", look[0]);
+    document.getElementById("skyB").setAttribute("stop-color", look[1]);
+    const sun = document.getElementById("sun");
+    sun.setAttribute("fill", look[3]);
+    sun.setAttribute("cy", 150 - Math.sin(state.time * Math.PI) * 110);
+    sun.setAttribute("cx", 160 + state.time * 480);
+    sun.setAttribute("opacity", look[2] * (.35 + .65 * Math.sin(state.time * Math.PI)));
+    document.getElementById("night").setAttribute("opacity", (1 - Math.sin(state.time * Math.PI)) * .45);
+
+    const volumes = state.objects.filter(isInfluence);
+    // volumes and halos first, on the ground
+    for (const v of volumes) {
+      const color = v.kind === "rain" ? "var(--wet)" : "var(--warm)";
+      const g = el("g", { style: `color:${color}` }, world);
+      el("ellipse", { cx: v.x, cy: v.y, rx: v.r * 1.15, ry: v.r * .45, fill: "url(#halo)" }, g);
+      if (state.influence === "paint") el("ellipse", { cx: v.x, cy: v.y, rx: v.r * 1.15, ry: v.r * .45, fill: "none", stroke: color, "stroke-opacity": .6, "stroke-dasharray": "6 5" }, g);
+    }
+    // wires
+    for (const w of state.wires) {
+      const a = byId(w.from), b = byId(w.to); if (!a || !b) continue;
+      const mx = (a.x + b.x) / 2, my = Math.max(a.y, b.y) + 26;
+      el("path", { d: `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`, fill: "none", stroke: "var(--accent)", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-opacity": .8 }, world);
+    }
+    // objects, back to front
+    for (const o of [...state.objects].sort((p, q) => p.y - q.y)) {
+      if (isInfluence(o) && state.influence === "paint") {
+        const g = el("g", { class: "obj", "data-id": o.id, transform: `translate(${o.x},${o.y})` }, world);
+        el("circle", { r: 14, cy: -2, fill: o.kind === "rain" ? "var(--wet)" : "var(--warm)", "fill-opacity": .25 }, g);
+        const t = el("text", { y: 6, "text-anchor": "middle", class: "ms", fill: o.kind === "rain" ? "var(--wet)" : "var(--warm)", "font-size": 20 }, g);
+        t.textContent = o.kind === "rain" ? "rainy" : "light_mode";
+        if (state.selected === o.id) el("ellipse", { cx: 0, cy: 0, rx: o.r * 1.15, ry: o.r * .45, fill: "none", stroke: "var(--select)", "stroke-width": 2 }, g);
+        continue;
+      }
+      const g = el("g", { class: "obj" + (o.anim && o.anim !== "react" ? " a-" + o.anim : ""), "data-id": o.id, transform: `translate(${o.x},${o.y})` }, world);
+      el("ellipse", { cx: 0, cy: 2, rx: 22 * o.scale, ry: 7 * o.scale, fill: "#000", "fill-opacity": .25 }, g);
+      if (state.selected === o.id) el("ellipse", { cx: 0, cy: 2, rx: 30 * o.scale, ry: 10 * o.scale, fill: "none", stroke: "var(--select)", "stroke-width": 2.5 }, g);
+      const body = el("g", { class: "body", transform: `scale(${o.scale})` }, g);
+      drawBody(o, body);
+      // influence effects on ordinary objects
+      if (!isInfluence(o)) {
+        if (volumes.some(v => v.kind === "rain" && inside(o, v))) el("circle", { cx: 16 * o.scale, cy: -40 * o.scale, r: 3.5, fill: "var(--wet)", class: "drop" }, g);
+        if (volumes.some(v => v.kind === "lamp" && inside(o, v))) el("circle", { cx: 0, cy: -20 * o.scale, r: 30 * o.scale, fill: "var(--warm)", "fill-opacity": .12 }, g);
+      }
+      if (state.linking && state.selected !== o.id && !isInfluence(o)) el("circle", { cx: 0, cy: -48 * o.scale, r: 7, fill: "var(--accent)", class: "port", "data-port": o.id }, g);
+    }
+    renderOverlay();
+  }
+
+  function token(icon, name, x, y, onClick, extra = "") {
+    const b = document.createElement("button");
+    b.className = "token " + extra; b.type = "button"; b.title = name; b.setAttribute("aria-label", name);
+    b.innerHTML = `<span class="ms" aria-hidden="true">${icon}</span>`;
+    if (x != null) Object.assign(b.style, pct(x, y));
+    b.addEventListener("click", e => { e.stopPropagation(); onClick(); });
+    b.addEventListener("pointerdown", e => e.stopPropagation());
+    return b;
+  }
+  function arc(items, cx, cy, radius, from = 200, to = 340) {
+    const n = items.length, out = [];
+    items.forEach((it, i) => {
+      const a = (n === 1 ? (from + to) / 2 : from + (to - from) * i / (n - 1)) * Math.PI / 180;
+      out.push(token(it.icon, it.name, cx + Math.cos(a) * radius, cy + Math.sin(a) * radius * .8, it.do, it.cls || ""));
+    });
+    return out;
+  }
+
+  function toolsFor(o) {
+    const list = [];
+    if (isInfluence(o)) {
+      list.push({ icon: "zoom_out_map", name: "Grow reach", do: () => { snap(); o.r = Math.min(150, o.r + 18); render(); } });
+      list.push({ icon: "zoom_in_map", name: "Shrink reach", do: () => { snap(); o.r = Math.max(30, o.r - 18); render(); } });
+    } else {
+      list.push({ icon: "open_in_full", name: "Shape", cls: state.panel === "shape" ? "on" : "", do: () => openPanel("shape") });
+      list.push({ icon: "brush", name: "Style", cls: state.panel === "style" ? "on" : "", do: () => openPanel("style") });
+      list.push({ icon: "key", name: "Give life", cls: state.panel === "life" ? "on" : "", do: () => openPanel("life") });
+    }
+    list.push({ icon: "delete", name: "Remove", cls: "danger", do: () => { snap(); state.objects = state.objects.filter(x => x !== o); state.wires = state.wires.filter(w => w.from !== o.id && w.to !== o.id); state.selected = null; state.panel = null; render(); } });
+    return list;
+  }
+  function panelItems(o) {
+    if (state.panel === "shape") return [
+      { icon: "remove", name: "Smaller", do: () => { snap(); o.scale = Math.max(.5, +(o.scale - .15).toFixed(2)); render(); } },
+      { icon: "add", name: "Larger", do: () => { snap(); o.scale = Math.min(2, +(o.scale + .15).toFixed(2)); render(); } }
+    ];
+    if (state.panel === "style") return SWATCHES.map(s => ({ icon: s.icon, name: s.name, do: () => { snap(); o.theme = s.theme; o.color = s.color; render(); } }));
+    if (state.panel === "life") {
+      if (state.relate === "recipes") return RECIPES.map(r => ({ icon: r.icon, name: r.name, cls: o.anim === r.anim ? "on" : "", do: () => { snap(); o.anim = r.anim; render(); } }));
+      return [{ icon: "link", name: "Link to another object", cls: state.linking ? "on" : "", do: () => { state.linking = !state.linking; render(); } },
+              { icon: "link_off", name: "Remove links", do: () => { snap(); state.wires = state.wires.filter(w => w.from !== o.id && w.to !== o.id); render(); } }];
+    }
+    return [];
+  }
+  function openPanel(p) { state.panel = state.panel === p ? null : p; state.linking = false; render(); }
+
+  function renderOverlay() {
+    overlay.textContent = "";
+    // corners: undo, environment
+    const tl = document.createElement("div"); tl.className = "corner"; tl.style.left = "14px"; tl.style.top = "14px";
+    tl.appendChild(token("undo", "Undo", null, null, undo, "small"));
+    overlay.appendChild(tl);
+    const tr = document.createElement("div"); tr.className = "corner"; tr.style.right = "14px"; tr.style.top = "14px";
+    tr.appendChild(token(state.look === "rain" ? "rainy" : state.look === "twilight" ? "dark_mode" : "wb_sunny", "World look", null, null, () => { state.panel = state.panel === "env" ? null : "env"; state.selected = null; state.tray = null; render(); }, "small" + (state.panel === "env" ? " on" : "")));
+    overlay.appendChild(tr);
+    if (state.panel === "env") {
+      const looks = [["day", "wb_sunny", "Clear"], ["warm", "wb_incandescent", "Warm"], ["twilight", "dark_mode", "Twilight"], ["rain", "rainy", "Overcast"]];
+      looks.forEach(([k, icon, name], i) => overlay.appendChild(token(icon, name, 760 - i * 50, 95, () => { snap(); state.look = k; render(); }, "small" + (state.look === k ? " on" : ""))));
+      const dial = document.createElement("input");
+      dial.type = "range"; dial.min = "0"; dial.max = "1"; dial.step = "0.01"; dial.value = String(state.time);
+      dial.className = "dial"; dial.id = "time-dial"; dial.setAttribute("aria-label", "Time of day"); dial.style.top = "128px"; dial.style.right = "28px";
+      dial.addEventListener("input", () => { state.time = +dial.value; render(); document.getElementById("time-dial")?.focus(); });
+      dial.addEventListener("pointerdown", e => e.stopPropagation());
+      overlay.appendChild(dial);
+    }
+
+    // add tray
+    if (state.tray) {
+      const items = KITS.map(k => ({ icon: k.icon, name: k.name, do: () => place(k.kind) }));
+      if (state.present === "drawer") overlay.appendChild(drawer([items]));
+      else arc(items, state.tray.x, state.tray.y, 92, 195, 345).forEach(b => overlay.appendChild(b));
+    }
+
+    // object tools
+    const o = byId(state.selected);
+    const showTools = o && (state.present !== "hold" || state.held);
+    if (showTools) {
+      const tools = toolsFor(o), sub = panelItems(o);
+      if (state.present === "drawer") overlay.appendChild(drawer(sub.length ? [sub, tools] : [tools]));
+      else {
+        const top = o.y - (isInfluence(o) && state.influence === "source" ? 90 : 40) * o.scale;
+        arc(tools, o.x, top, 70).forEach(b => overlay.appendChild(b));
+        if (sub.length) arc(sub, o.x, top, 128, 205, 335).forEach(b => { b.classList.add("small"); overlay.appendChild(b); });
+      }
+    }
+
+    // chat line (hidden while a drawer uses the bottom edge)
+    const drawerOpen = state.present === "drawer" && (state.tray || showTools);
+    if (!drawerOpen) {
+      const chat = document.createElement("form"); chat.className = "chat";
+      chat.innerHTML = `<input id="chat-input" aria-label="Ask" autocomplete="off"><button type="button" aria-label="Speak" title="Speak"><span class="ms">mic</span></button><button type="submit" aria-label="Send" title="Send"><span class="ms">arrow_upward</span></button>`;
+      chat.addEventListener("pointerdown", e => e.stopPropagation());
+      chat.addEventListener("submit", e => { e.preventDefault(); ask(chat.querySelector("input").value); });
+      overlay.appendChild(chat);
+    }
+    if (state.toast) { const t = document.createElement("div"); t.className = "toast"; t.textContent = state.toast; overlay.appendChild(t); }
+  }
+  function drawer(rows) {
+    const d = document.createElement("div"); d.className = "drawer";
+    for (const r of rows) { const row = document.createElement("div"); row.className = "row"; r.forEach(it => row.appendChild(token(it.icon, it.name, null, null, it.do, it.cls || ""))); d.appendChild(row); }
+    d.addEventListener("pointerdown", e => e.stopPropagation());
+    return d;
+  }
+
+  function place(kind) {
+    snap();
+    const o = { id: id++, kind, x: state.tray.x, y: state.tray.y, scale: 1, color: COLORS[kind], theme: "plain", anim: null };
+    if (isInfluence(o)) o.r = 70;
+    state.objects.push(o); state.tray = null; state.selected = o.id; state.panel = null; state.held = false;
+    render();
+  }
+  function ringBell(b) {
+    const targets = new Set(state.wires.filter(w => w.from === b.id).map(w => w.to));
+    state.objects.forEach(o => { if (o.anim === "react") targets.add(o.id); });
+    const flash = (oid, cls) => { const g = world.querySelector(`[data-id="${oid}"]`); if (!g) return; g.classList.remove(cls); void g.getBoundingClientRect(); g.classList.add(cls); setTimeout(() => g.classList.remove(cls), 1000); };
+    flash(b.id, "ringing"); targets.forEach(t => setTimeout(() => flash(t, "reacting"), 180));
+  }
+  let toastTimer;
+  function toast(msg) { state.toast = msg; render(); clearTimeout(toastTimer); toastTimer = setTimeout(() => { state.toast = null; render(); }, 2200); }
+  function ask(text) {
+    const t = text.toLowerCase();
+    if (/rain|lamp|light/.test(t)) { state.tray = { x: 360 + Math.random() * 120, y: 320 + Math.random() * 40 }; place(/rain/.test(t) ? "rain" : "lamp"); toast(/rain/.test(t) ? "Added a rain cloud" : "Added a lamp"); }
+    else if (/spin/.test(t) && byId(state.selected)) { snap(); byId(state.selected).anim = "spin"; toast("It spins now"); }
+    else toast("In the app, the agent composes supported capabilities");
+  }
+
+  // pointer: tap selects/opens tray, drag moves, hold reveals tools (hold variant)
+  let press = null;
+  scene.addEventListener("pointerdown", e => {
+    const p = toSvg(e), portEl = e.target.closest("[data-port]"), objEl = e.target.closest(".obj");
+    if (portEl) { snap(); const to = +portEl.dataset.port; if (!state.wires.some(w => w.from === state.selected && w.to === to)) state.wires.push({ from: state.selected, to }); state.linking = false; render(); return; }
+    press = { x: p.x, y: p.y, id: objEl ? +objEl.dataset.id : null, moved: false, snapped: false };
+    if (press.id != null) {
+      scene.setPointerCapture(e.pointerId);
+      press.timer = setTimeout(() => { if (press && !press.moved && state.present === "hold") { state.selected = press.id; state.held = true; state.tray = null; render(); press.handled = true; } }, 450);
+    }
+  });
+  scene.addEventListener("pointermove", e => {
+    if (!press || press.id == null) return;
+    const p = toSvg(e), o = byId(press.id); if (!o) return;
+    if (!press.moved && Math.hypot(p.x - press.x, p.y - press.y) < 6) return;
+    if (!onGround(p.x, p.y)) return;
+    if (!press.snapped) { snap(); press.snapped = true; }
+    press.moved = true; clearTimeout(press.timer);
+    o.x = p.x; o.y = p.y; render();
+  });
+  scene.addEventListener("pointerup", e => {
+    if (!press) return; clearTimeout(press.timer);
+    const p = press; press = null;
+    if (p.moved || p.handled) return;
+    if (p.id != null) {
+      const o = byId(p.id);
+      if (state.selected !== o.id) { state.selected = o.id; state.panel = null; state.linking = false; state.held = false; state.tray = null; render(); }
+      if (o.kind === "bell") ringBell(o);
+      return;
+    }
+    if (state.selected !== null || state.panel) { state.selected = null; state.panel = null; state.linking = false; state.held = false; state.tray = null; render(); return; }
+    if (onGround(p.x, p.y)) { state.tray = state.tray ? null : { x: p.x, y: p.y }; render(); }
+  });
+
+  for (const name of ["present", "relate", "influence"]) {
+    document.querySelectorAll(`input[name="${name}"]`).forEach(r => r.addEventListener("change", () => {
+      state[name] = r.value; state.panel = null; state.linking = false; state.held = false; state.tray = null; render();
+    }));
+  }
+  // start in a working state: the critter selected with tools open
+  state.selected = 2; state.wires.push({ from: 1, to: 2 });
+  render();
+})();
+</script>
