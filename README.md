@@ -11,7 +11,7 @@ Developer tools: [Flecs Explorer](https://www.flecs.dev/explorer/?host=localhost
 
 OpenRouter sign-in and a real free-model tool loop are verified: the model inspected the demo, changed the cube to blue at twice its scale, and Ecaty checked the actual objects/readback. ChatGPT/Gemini protocols pass synthetic-service checks; their live eligibility still needs account-specific testing. The current runtime test adds a ground motor and procedural creature bindings; phone targets, voice, scanning and multiplayer remain future work.
 
-New chat/account: start with [AGENTS.md](AGENTS.md). [PROJECT](docs/PROJECT.md) records decisions; [DEVELOPMENT](docs/DEVELOPMENT.md) covers builds/workflow; [AI-INTEGRATION](docs/AI-INTEGRATION.md) covers sign-in/tools; [STATUS](docs/STATUS.md) records actual verification and limits.
+New chat/account: start with [AGENTS.md](AGENTS.md); [docs/README.md](docs/README.md) indexes every doc. [PROJECT](docs/PROJECT.md) records decisions; [DEVELOPMENT](docs/DEVELOPMENT.md) covers builds/workflow; [AI-INTEGRATION](docs/AI-INTEGRATION.md) covers sign-in/tools; [STATUS](docs/STATUS.md) records actual verification and limits.
 
 Browser logger: **Runtime > Agent Trace (Browser)**, or account > **Trace** in a development app. Offline without Unity: run Tools/TraceViewer/Open-TraceViewer.ps1 and import a JSONL log. [Workflow, phone setup and limits](docs/BROWSER-TRACE.md).
 

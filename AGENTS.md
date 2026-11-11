@@ -2,9 +2,9 @@
 
 ## One-word continuation
 
-When the user says only "resume", "continue" or equivalent in this project, do not ask them to paste an earlier chat or identify an account. Read docs/STATUS.md and docs/BACKLOG.md (plus PROJECT/DEVELOPMENT when changing code), inspect parent/submodule Git status, then continue the current task, respecting any pending design choice or approval boundary. Preserve local changes and user saves. Do not reset the checkout, assume an older test still certifies new code, or publish without current authorization. Update STATUS (current state + exact next action) after meaningful milestones; no per-session dated checkpoints. docs/history/ is archive only — read it only when the current docs lack something.
+When the user says only "resume", "continue" or equivalent in this project, do not ask them to paste an earlier chat or identify an account. Read docs/STATUS.md and docs/BACKLOG.md (plus docs/PROJECT-STRUCTURE.md when changing code; other docs per area, see docs/README.md), inspect parent/submodule Git status, then continue the current task, respecting any pending design choice or approval boundary. Preserve local changes and user saves. Do not reset the checkout, assume an older test still certifies new code, or publish without current authorization. Update STATUS (current state + exact next action) after meaningful milestones; no per-session dated checkpoints. docs/history/ is archive only — read it only when the current docs lack something.
 
-Read `docs/PROJECT.md`, then `docs/DEVELOPMENT.md`, then `docs/STATUS.md` before changing code. Read `docs/AI-INTEGRATION.md` for ChatGPT account or agent work. These versioned files are the handoff; no previous chat or specific account is required.
+By default read only this file, `docs/STATUS.md`, `docs/BACKLOG.md` and `docs/PROJECT-STRUCTURE.md` before changing code. Read the rest on demand by area using the index in `docs/README.md` (for example `docs/DEVELOPMENT.md` for builds and workflow, `docs/PROJECT.md` for decisions, `docs/AI-INTEGRATION.md` for ChatGPT account or agent work, `docs/TESTING.md` for tests). These versioned files are the handoff; no previous chat or specific account is required.
 
 ## Working efficiently (save AI usage)
 
