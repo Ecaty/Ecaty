@@ -63,6 +63,30 @@ namespace Ecaty.Editor
             if (!condition)
                 throw new InvalidOperationException(message);
         }
+        // Colliders in front of (+x) or overlapping the motor capsule, with their hierarchy paths.
+        private static JArray Blockers(CharacterController motor)
+        {
+            var result = new JArray();
+            var t = motor.transform;
+            float half = Mathf.Max(0, motor.height * .5f - motor.radius);
+            var center = t.TransformPoint(motor.center);
+            var a = center + Vector3.up * half;
+            var b = center - Vector3.up * half;
+            foreach (var hit in Physics.CapsuleCastAll(a, b, motor.radius * .95f, Vector3.right, 1.5f, ~0, QueryTriggerInteraction.Ignore))
+                if (hit.collider.transform != t)
+                    result.Add(HierarchyPath(hit.collider.transform) + " @" + hit.distance.ToString("F2") + " layer " + hit.collider.gameObject.layer);
+            foreach (var overlap in Physics.OverlapCapsule(a, b, motor.radius, ~0, QueryTriggerInteraction.Ignore))
+                if (overlap.transform != t)
+                    result.Add("overlap " + HierarchyPath(overlap.transform) + " layer " + overlap.gameObject.layer);
+            return result;
+        }
+        private static string HierarchyPath(Transform t)
+        {
+            string path = t.name;
+            for (var parent = t.parent; parent; parent = parent.parent)
+                path = parent.name + "/" + path;
+            return path;
+        }
         private static async Task Frames(int count)
         {
             int first = Time.frameCount;
@@ -218,10 +242,27 @@ namespace Ecaty.Editor
                 int leftRay = 0, rightRay = 0, sampled = 0;
                 float realFrames = 0, gameFrames = 0, minRight = 1, maxRight = 0;
                 int movingFrames = 0, leftAsksDetach = 0, rightAsksDetach = 0;
+                var motorTrace = new JArray();
                 for (int i = 0; i < 140; i++)
                 {
                     engine.StepMotor(1f / 60);
                     await Frames(1);
+                    if (i % 10 == 0)
+                    {
+                        var components = JObject.Parse(world.Session.EntityJson("PhotoClay"))["components"];
+                        motorTrace.Add(new JObject
+                        {
+                            ["frame"] = i,
+                            ["x"] = engine.Motor.transform.position.x,
+                            ["y"] = engine.Motor.transform.position.y,
+                            ["mode"] = components["ActorControl"]?["mode"],
+                            ["intentX"] = components["MoveIntent"]?["x"],
+                            ["vx"] = components["ActorMotion"]?["vx"],
+                            ["grounded"] = engine.Motor.isGrounded,
+                            ["flags"] = engine.Motor.collisionFlags.ToString(),
+                            ["playerMotion"] = JObject.Parse(world.Session.EntityJson("Input"))["components"]["PlayerMotion"]
+                        });
+                    }
                     if (i < 30)
                         continue;
                     bool leftSwing = gaitProbe.LeftPhase > .01f && gaitProbe.LeftPhase < .98f;
@@ -271,6 +312,8 @@ namespace Ecaty.Editor
                     ["rightPhaseRange"] = new JArray(minRight, maxRight),
                     ["legSides"] = new JArray(legs.Legs[0].Side.ToString(), legs.Legs[1].Side.ToString()),
                     ["motorStartX"] = start.x,
+                    ["motorTrace"] = motorTrace,
+                    ["blockers"] = Blockers(engine.Motor),
                     ["motorEndX"] = engine.Motor.transform.position.x,
                     ["isMovingFrames"] = movingFrames,
                     ["askingDetachFrames"] = new JArray(leftAsksDetach, rightAsksDetach),
