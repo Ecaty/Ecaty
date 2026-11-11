@@ -430,7 +430,7 @@ namespace Ecaty
                     pair.Value.Actor.ResetActor(); pair.Value.Creation.ResetModel();
                     if (pair.Key != ClayCreation.RootName) { pair.Value.Host.SetActive(false); Destroy(pair.Value.Host); models.Remove(pair.Key); }
                 }
-                world.Initialize((ushort)world.restPort);
+                world.Initialize(world.EffectiveRestPort);
                 if (data["clock"] is JObject clock) world.Session.SetComponentJson("Clock", "Clock", clock.ToString(Formatting.None));
                 foreach (var entry in orderedSources) world.Session.SetManagedScript((string)entry["path"], (string)entry["code"]);
                 InstallFoundation();

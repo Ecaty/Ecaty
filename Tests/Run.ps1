@@ -147,6 +147,22 @@ try {
 } finally {
     foreach($context in $contexts){if($context.status -eq 'Queued'){$context.status='Skipped';$context.error='Not run because an earlier stage failed.'}}
     Write-RunReport $runDirectory $contexts
+    # Compact, agent-readable summary of the newest run: one line per stage plus failing check names only.
+    try {
+        $lines=@("Run: $(Split-Path -Leaf $runDirectory)  Suite: $Suite  Result: $(if($failure){'FAILED'}else{'PASSED'})")
+        foreach($context in $contexts){
+            $detail=''
+            $d=$context.data
+            if($d -and $d.checks){$bad=@($d.checks | Where-Object {-not $_.passed});$detail="$(@($d.checks).Count) checks, $($bad.Count) failed";foreach($b in $bad){$detail+="`n    FAIL: $($b.name)"}}
+            elseif($d -and $d.summary){$detail="$($d.summary.total) tests, $($d.summary.failed) failed"}
+            elseif($d -and $null -ne $d.validations){$detail="$($d.validations) validations"}
+            $line="  $($context.name): $($context.status)"+$(if($detail){" ($detail)"}else{''})
+            if($context.error){$flat=(($context.error -replace '\s+',' ').Trim());$line+="`n    ERROR: "+$flat.Substring(0,[Math]::Min(400,$flat.Length))}
+            $lines+=$line
+        }
+        $lines+="Report: $runDirectory/index.html"
+        Set-Content -LiteralPath (Join-Path $PSScriptRoot 'Results/latest.txt') -Value $lines -Encoding UTF8
+    } catch { Write-Host "latest.txt not written: $($_.Exception.Message)" }
     Write-Host "Report: $runDirectory/index.html"
     Stop-Transcript | Out-Null
 }

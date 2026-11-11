@@ -1,9 +1,9 @@
 [
   {
-    "key": "Gallery/Config/GalleryLayout",
-    "path": "Assets/_Features/Gallery/Gallery.asset",
-    "guid": "69f1f5dffc2077048ab6c5d1973d30e6",
-    "composition": "Gallery"
+    "key": "Gallery/Config/GalleryConfig",
+    "path": "Assets/_Features/Gallery/GalleryConfig.flecs",
+    "guid": "e8c86c56fd5220a48bfb1d13dde3854b",
+    "composition": "GalleryConfig"
   },
   {
     "key": "Shared/Config/Theme",

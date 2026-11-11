@@ -14,8 +14,8 @@ namespace Ecaty
         public IReadOnlyList<Band> Bands=>bands;
         public GalleryTreeArt(GalleryLayoutProfile profile)
         {
-            orbit=profile.LayerMaterial?new Material(profile.LayerMaterial):new Material(Resources.Load<Shader>("Gallery/Shaders/GalleryOrbit"));
-            crystal=profile.WorldSphereMaterial?new Material(profile.WorldSphereMaterial):new Material(Resources.Load<Shader>("Gallery/Shaders/GalleryCrystal"));
+            orbit=new Material(Resources.Load<Shader>("Gallery/Shaders/GalleryOrbit"));
+            crystal=new Material(Resources.Load<Shader>("Gallery/Shaders/GalleryCrystal"));
         }
         public Renderer Sphere(Transform parent,float diameter,string name)
         {

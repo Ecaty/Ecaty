@@ -65,23 +65,39 @@ namespace Ecaty
         public Transform DragGhost=>ghost;
         public static string SavePath=>Path.Combine(Application.persistentDataPath,"GalleryPrototype","tree-arrangement.json");
         float F(string key)=>(float)config[key];
-        readonly Dictionary<string,JObject> frameComponents=new(); int readFrame=-1,nativeReads;
+        readonly Dictionary<(string,string),JObject> frameComponents=new(); readonly Dictionary<string,ulong> entityIds=new(); int readFrame=-1,nativeReads;
         public int NativeReadsThisFrame=>nativeReads;
         static readonly Unity.Profiling.ProfilerMarker NativeReadMarker=new("Ecaty.Gallery.NativeRead");
         static readonly Unity.Profiling.ProfilerMarker AppearanceMarker=new("Ecaty.Gallery.Appearance");
+        ulong Entity(string id,bool refresh=false){if(refresh||!entityIds.TryGetValue(id,out var e)){e=world.Session.Lookup(id);if(e!=0)entityIds[id]=e;}return e;}
+        // Reads one component (small JSON) instead of the whole entity with type info; ~15x cheaper per call (docs/FLECS-ARCHITECTURE-AUDIT.md).
         JObject Read(string id,string type)
         {
             if(readFrame!=Time.frameCount){readFrame=Time.frameCount;frameComponents.Clear();nativeReads=0;}
-            if(!frameComponents.TryGetValue(id,out var components)){
-                using(NativeReadMarker.Auto())components=(JObject)JObject.Parse(world.Session.EntityJson(id))["components"];
-                frameComponents[id]=components;nativeReads++;
+            if(!frameComponents.TryGetValue((id,type),out var component)){
+                using(NativeReadMarker.Auto()){
+                    string json=world.Session.ComponentJson(Entity(id),type);
+                    if(json==null)json=world.Session.ComponentJson(Entity(id,true),type);
+                    component=json==null?null:JObject.Parse(json);
+                }
+                frameComponents[(id,type)]=component;nativeReads++;
             }
-            return components[type] as JObject;
+            return component;
+        }
+        // Typed binary read for per-frame scalars (single-f32 or leading-f32 structs); falls back to JSON if absent.
+        struct Float2{public float a,b;}
+        float ReadFloat(string id,string type,string field)
+        {
+            using(NativeReadMarker.Auto()){
+                ulong e=Entity(id);
+                try{if(type=="GalleryMotion"){if(world.Session.TryRead<Float2>(e,type,out var v2))return v2.a;}else if(world.Session.TryRead<float>(e,type,out var v))return v;}catch(System.InvalidOperationException){}
+            }
+            return (float)Read(id,type)[field];
         }
         void Write(string id,string type,JObject value)
         {
             world.Session.SetComponentJson(id,type,value.ToString(Newtonsoft.Json.Formatting.None));
-            if(readFrame==Time.frameCount&&frameComponents.TryGetValue(id,out var components))components[type]=value.DeepClone();
+            frameComponents.Remove((id,type)); // next read returns native truth (same rounding as persisted values)
         }
         void WriteView()=>Write("GalleryTreeSettings","GalleryView",view);
         void WriteFocus()=>Write("GalleryTreeSettings","GalleryFocus",focus);
@@ -90,7 +106,7 @@ namespace Ecaty
         public void Initialize(FlecsWorld source,RuntimeExperience runtime,AgentChatPanel agent)
         {
             world=source;experience=runtime;chat=agent;output=runtime.Camera;
-            profile=RuntimeComposition.Current.Gallery;if(!profile)throw new InvalidOperationException("Gallery profile missing.");
+            profile=ScriptableObject.CreateInstance<GalleryLayoutProfile>();profile.hideFlags=HideFlags.HideAndDontSave;LoadConfig(true);
             world.Session.SetManagedScript("GalleryTreeSchema",Resources.Load<TextAsset>("Gallery/Runtime/WorldGalleryTree").text);
             world.Session.SetManagedScript("GalleryTreeRules",Resources.Load<TextAsset>("Gallery/Runtime/WorldGalleryTreeMotion").text);
             world.Session.SetManagedScript("GalleryNavigation",Resources.Load<TextAsset>("Gallery/Runtime/WorldGalleryNavigation").text);
@@ -139,6 +155,20 @@ namespace Ecaty
             foreach(var r in item.Renderers){r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;r.forceRenderingOff=true;}item.Shell.forceRenderingOff=true;
             items.Add(item);byId.Add(id,item);Write(id,"GalleryVisibility",new JObject{["covered"]=0,["opacity"]=1,["pickable"]=true});
         }
+        // Gallery values come from Flecs Script (GalleryConfig.flecs). In the Editor that script is generated live from Gallery.asset.
+        string configSignature;
+        void LoadConfig(bool force=false)
+        {
+            string source;
+#if UNITY_EDITOR
+            var asset=GalleryConfigScript.EditorAsset;string signature=asset?JsonUtility.ToJson(asset):null;
+            if(!force&&signature==configSignature)return;configSignature=signature;
+            source=asset?GalleryConfigScript.Generate(asset):null;
+            if(source==null)
+#endif
+            source=RuntimeComposition.Current.GalleryConfig?RuntimeComposition.Current.GalleryConfig.text:throw new InvalidOperationException("Gallery config script missing.");
+            GalleryConfigScript.Load(world.Session,source,profile);
+        }
         void ApplyProfile(bool force=false)
         {
             string signature=JsonUtility.ToJson(profile)+JsonUtility.ToJson(Theme);if(!force&&signature==profileSignature)return;profileSignature=signature;
@@ -183,21 +213,25 @@ namespace Ecaty
         }
         void SetPaused(bool pause)
         {
-            foreach(var item in items)if(item.Animator)item.Animator.InterpolationSpeed=pause?0:F("response");
-            bool lockPose=IsDragging||InsideWorld||Creating||entryArmed||Returning;bool justLocked=lockPose&&!presentationFrozen;presentationFrozen=lockPose;
+            // Only a held pose freezes layout interpolation. Focus and ring turns pause idle motion but must let swaps/insertions finish moving.
+            bool lockPose=IsDragging||InsideWorld||Creating||entryArmed||Returning;foreach(var item in items)if(item.Animator)item.Animator.InterpolationSpeed=lockPose?0:F("response");bool justLocked=lockPose&&!presentationFrozen;presentationFrozen=lockPose;
             if(justLocked)for(int i=1;i<=layers.Count;i++){var intent=Read("GalleryTreeLayer"+i,"GalleryLayerIntent");intent["angle"]=-layers[i-1].transform.localEulerAngles.y*Mathf.Deg2Rad;intent["started"]=time;Write("GalleryTreeLayer"+i,"GalleryLayerIntent",intent);}
             activity=Read("GalleryTreeSettings","GalleryTreeActivity");float rate=pause?0:1;if(Mathf.Approximately((float)activity["rate"],rate))return;
-            for(int i=1;i<=6;i++){string id="GalleryTreeLayer"+i;var intent=Read(id,"GalleryLayerIntent");intent["angle"]=justLocked&&i<=layers.Count?-layers[i-1].transform.localEulerAngles.y*Mathf.Deg2Rad:(float)Read(id,"GalleryLayerState")["turn"];intent["started"]=time;Write(id,"GalleryLayerIntent",intent);}
+            for(int i=1;i<=6;i++){string id="GalleryTreeLayer"+i;var intent=Read(id,"GalleryLayerIntent");intent["angle"]=justLocked&&i<=layers.Count?-layers[i-1].transform.localEulerAngles.y*Mathf.Deg2Rad:ReadFloat(id,"GalleryLayerState","turn");intent["started"]=time;Write(id,"GalleryLayerIntent",intent);}
             activity["elapsed"]=motionTime;activity["started"]=time;activity["rate"]=rate;Write("GalleryTreeSettings","GalleryTreeActivity",activity);
         }
         void Update()
         {
             if(!initialized||!world||world.Session==null||world.Session.IsDisposed)return;
-            time=(float)Read("GalleryAnimation","GalleryMotion")["time"];motionTime=(float)Read("GalleryTreeSettings","GalleryTreeMotion")["time"];
-            if(!IsDragging&&Time.unscaledTime>=nextRead){nextRead=Time.unscaledTime+.1f;ApplyProfile();ReadState();Arrange();}
+            time=ReadFloat("GalleryAnimation","GalleryMotion","time");motionTime=ReadFloat("GalleryTreeSettings","GalleryTreeMotion","time");
+            if(!IsDragging&&Time.unscaledTime>=nextRead){nextRead=Time.unscaledTime+.1f;
+#if UNITY_EDITOR
+                LoadConfig();ApplyProfile(); // live Inspector tuning; players apply the config once at startup
+#endif
+                ReadState();Arrange();}
             SetPaused(IsDragging||InsideWorld||Creating||entryArmed||Returning||FocusedGallery||middleWas);
             if(!IsDragging)for(int i=0;i<layers.Count;i++)if(layers[i].gameObject.activeSelf){
-                float goal=-(float)Read("GalleryTreeLayer"+(i+1),"GalleryLayerState")["turn"]*Mathf.Rad2Deg;
+                float goal=-ReadFloat("GalleryTreeLayer"+(i+1),"GalleryLayerState","turn")*Mathf.Rad2Deg;
                 float blend=1-Mathf.Exp(-Time.unscaledDeltaTime/Mathf.Max(.02f,profile.RingRotationSmoothTime));
                 if(!presentationFrozen)layers[i].transform.localRotation=Quaternion.Euler(0,Mathf.LerpAngle(layers[i].transform.localEulerAngles.y,goal,blend),0);
             }
@@ -231,7 +265,7 @@ namespace Ecaty
                 currentZoom=immediate?(float)view["zoom"]:Mathf.SmoothDamp(currentZoom,(float)view["zoom"],ref zoomVelocity,profile.ZoomSmoothTime,100,Time.unscaledDeltaTime);
                 var anchor=Read("GalleryTreeSettings","GalleryCameraAnchor");
                 if((bool)anchor["active"]&&!entryArmed) {
-                    Write("GalleryTreeSettings","GalleryCameraMeasure",new JObject{["zoom"]=currentZoom});frameComponents.Remove("GalleryTreeSettings");
+                    Write("GalleryTreeSettings","GalleryCameraMeasure",new JObject{["zoom"]=currentZoom});foreach(var key in frameComponents.Keys.Where(k=>k.Item1=="GalleryTreeSettings").ToArray())frameComponents.Remove(key);
                     float t=(float)Read("GalleryTreeSettings","GalleryRecenterState")["weight"];float ease=t*t*t*(t*(t*6-15)+10);
                     currentCenter=Vector3.Lerp(new Vector3((float)anchor["x"],(float)anchor["y"],(float)anchor["z"]),new Vector3(0,(float)anchor["centerY"],0),ease);centerVelocity=Vector3.zero;
                 } else currentCenter=immediate?target:Vector3.SmoothDamp(currentCenter,target,ref centerVelocity,profile.FocusSmoothTime,profile.FocusMaxSpeed,Time.unscaledDeltaTime);
@@ -265,7 +299,7 @@ namespace Ecaty
         void OnApplicationQuit(){if(initialized&&world&&world.Session!=null&&!world.Session.IsDisposed)SaveArrangement();}
         void OnDestroy()
         {
-            if(disposed)return;disposed=true;ClearGhost();exitFeedback?.Dispose();stage?.Dispose();experiences?.Dispose();art?.Dispose();foreach(var item in items)item.Entry.Preview?.Dispose();foreach(var m in materials)if(m)Destroy(m);if(uiDocument)Destroy(uiDocument.gameObject);if(uiPanel)Destroy(uiPanel);
+            if(disposed)return;disposed=true;if(profile)Destroy(profile);ClearGhost();exitFeedback?.Dispose();stage?.Dispose();experiences?.Dispose();art?.Dispose();foreach(var item in items)item.Entry.Preview?.Dispose();foreach(var m in materials)if(m)Destroy(m);if(uiDocument)Destroy(uiDocument.gameObject);if(uiPanel)Destroy(uiPanel);
         }
     }
 }

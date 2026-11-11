@@ -5,7 +5,7 @@ namespace Ecaty
 {
     public sealed partial class CrystalWorldGallery
     {
-        public EcatyTheme Theme=>profile.Theme?profile.Theme:EcatyTheme.Default;
+        public EcatyTheme Theme=>RuntimeComposition.Current.Theme?RuntimeComposition.Current.Theme:EcatyTheme.Default;
         bool N(string key)=>(bool?)navigation?[key]==true;
         bool entryArmed {get=>N("approach");set{if(navigation==null)return;navigation["approach"]=value;WriteNavigation();}}
         public bool Returning=>N("returning");

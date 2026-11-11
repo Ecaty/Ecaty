@@ -1,13 +1,13 @@
 {
-  "entryViewportError": 5.066395E-07,
+  "entryViewportError": 8.34997E-07,
   "realWorldCameraError": 0.0,
-  "exitProjectionError": 2.10734243E-07,
+  "exitProjectionError": 1.33280039E-07,
   "ringDepth": {
     "expectedLayer": 1,
     "actualLayer": 1,
-    "sphereLayer": 2,
-    "spherePick": "GalleryOrbit",
-    "expectedSphere": "GalleryOrbit"
+    "sphereLayer": 3,
+    "spherePick": "GalleryAquarium",
+    "expectedSphere": "GalleryAquarium"
   },
   "editingCameraError": 0.0,
   "passed": true,
@@ -70,6 +70,10 @@
     },
     {
       "name": "Unrelated places stay unchanged",
+      "passed": true
+    },
+    {
+      "name": "Swapped worlds settle in each other's places",
       "passed": true
     },
     {
@@ -189,6 +193,14 @@
       "passed": true
     },
     {
+      "name": "Shipped GalleryConfig.flecs matches Gallery.asset",
+      "passed": true
+    },
+    {
+      "name": "Designer asset edits reach the runtime profile through Flecs Script",
+      "passed": true
+    },
+    {
       "name": "Designer profile updates effective native configuration",
       "passed": true
     },
@@ -234,6 +246,14 @@
     },
     {
       "name": "Initial zoom-out does not immediately recenter on the tree",
+      "passed": true
+    },
+    {
+      "name": "Focused gallery has a swap pair",
+      "passed": true
+    },
+    {
+      "name": "Swap completes while zoomed onto a world instead of hanging mid-way",
       "passed": true
     },
     {
@@ -473,74 +493,74 @@
       "passed": true
     }
   ],
-  "frames": 1516,
-  "artifactDirectory": "A:\\Projects\\Ecaty\\Tests\\Results\\2026-11-09_21-20-12_769\\Gallery",
+  "frames": 1818,
+  "artifactDirectory": "A:\\Projects\\Ecaty\\Tests\\Results\\2026-11-11_01-34-16_945\\Gallery",
   "images": [
     {
       "name": "01-gallery",
       "file": "01-gallery.png",
-      "frame": 61,
-      "time": 14.090826
+      "frame": 42,
+      "time": 15.59678
     },
     {
       "name": "02-held-ghost",
       "file": "02-held-ghost.png",
-      "frame": 91,
-      "time": 14.569829
+      "frame": 62,
+      "time": 16.1357441
     },
     {
       "name": "03-swap-preview",
       "file": "03-swap-preview.png",
-      "frame": 130,
-      "time": 15.09272
+      "frame": 94,
+      "time": 16.6854916
     },
     {
       "name": "04-inside-world",
       "file": "04-inside-world.png",
-      "frame": 237,
-      "time": 16.7319756
+      "frame": 218,
+      "time": 18.525
     },
     {
       "name": "08-native-world",
       "file": "08-native-world.png",
-      "frame": 458,
-      "time": 20.075016
+      "frame": 489,
+      "time": 21.8527832
     },
     {
       "name": "09-saved-world-gallery",
       "file": "09-saved-world-gallery.png",
-      "frame": 606,
-      "time": 22.6184578
+      "frame": 659,
+      "time": 24.2975311
     },
     {
       "name": "05-exit-feedback",
       "file": "05-exit-feedback.png",
-      "frame": 938,
-      "time": 27.5785789
+      "frame": 1155,
+      "time": 31.1274929
     },
     {
       "name": "10-return-reveal",
       "file": "10-return-reveal.png",
-      "frame": 1020,
-      "time": 28.7735214
+      "frame": 1265,
+      "time": 32.3244324
     },
     {
       "name": "11-return-recall",
       "file": "11-return-recall.png",
-      "frame": 1124,
-      "time": 30.519783
+      "frame": 1373,
+      "time": 34.0193024
     },
     {
       "name": "06-top-view",
       "file": "06-top-view.png",
-      "frame": 1206,
-      "time": 31.7966881
+      "frame": 1464,
+      "time": 35.3084755
     },
     {
       "name": "07-final-gallery",
       "file": "07-final-gallery.png",
-      "frame": 1553,
-      "time": 36.7778931
+      "frame": 1847,
+      "time": 40.2469368
     }
   ],
   "captureErrors": []

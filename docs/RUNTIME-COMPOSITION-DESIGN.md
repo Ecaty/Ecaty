@@ -44,7 +44,7 @@ Native intent owns return phases, target/recall identity and reveal progression.
 ## Sources checked
 
 - Official Flecs Script documentation: https://www.flecs.dev/flecs/FlecsScript.html
-- Actual pinned bridge/native code and the existing FLECS-4.2-AUDIT, RUNTIME-CAPABILITIES and RUNTIME-STACK documents.
+- Actual pinned bridge/native code and the existing FLECS-ARCHITECTURE-AUDIT, RUNTIME-CAPABILITIES and RUNTIME-STACK documents.
 - Codex supports independent chats/threads and parallel workflows: https://developers.openai.com/blog/run-long-horizon-tasks-with-codex
 
 No new chats, subagents, networking, package purchases or uploads were started for this proposal.

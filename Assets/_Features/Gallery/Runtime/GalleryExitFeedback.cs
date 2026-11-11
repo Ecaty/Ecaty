@@ -20,7 +20,7 @@ namespace Ecaty
         {
             Value=spring.Step(Mathf.Clamp01(target),1/(Mathf.PI*6),deltaTime,.85f);
             GlassAmount=Mathf.Sin(Mathf.Clamp01(glassProgress)*Mathf.PI)*profile.GlassPassStrength;renderer.enabled=Value*profile.ExitVignette>.001f||GlassAmount>.001f;if(!renderer.enabled)return;
-            float height=2*Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f)*.06f;overlay.localScale=new Vector3(height*camera.aspect,height,1);material.SetFloat("_GlassProgress",glassProgress);material.SetFloat("_GlassStrength",profile.GlassPassStrength);material.SetColor("_GlassTint",(profile.Theme?profile.Theme:EcatyTheme.Default).Glass.linear);material.SetFloat("_Strength",Value*profile.ExitVignette);material.SetColor("_Tint",(profile.Theme?profile.Theme:EcatyTheme.Default).Background.linear);
+            float height=2*Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f)*.06f;overlay.localScale=new Vector3(height*camera.aspect,height,1);material.SetFloat("_GlassProgress",glassProgress);material.SetFloat("_GlassStrength",profile.GlassPassStrength);material.SetColor("_GlassTint",(RuntimeComposition.Current.Theme?RuntimeComposition.Current.Theme:EcatyTheme.Default).Glass.linear);material.SetFloat("_Strength",Value*profile.ExitVignette);material.SetColor("_Tint",(RuntimeComposition.Current.Theme?RuntimeComposition.Current.Theme:EcatyTheme.Default).Background.linear);
         }
         public void Dispose(){if(overlay)UnityEngine.Object.Destroy(overlay.gameObject);if(material)UnityEngine.Object.Destroy(material);}
     }

@@ -19,10 +19,8 @@ MonoBehaviour:
   MatchGuideWidthToWorld: 0
   LayerGuideWidth: 1
   LayerOpacity: 1
-  LayerMaterial: {fileID: 0}
   GalaxyDensity: 1
   GalaxyDetail: 5
-  ParticleMaterial: {fileID: 0}
   ParticleSize: 0.025
   ParticlesPerLayer: 180
   RingTravelSpeed: 0.4
@@ -33,12 +31,10 @@ MonoBehaviour:
   MinimumPickOpacity: 0.98
   RingHitWidthInWorlds: 1
   VisibilityRefreshInterval: 0.05
-  WorldSphereMaterial: {fileID: 0}
   WorldSphereOpacity: 0.72
   SphereOpacity: 0.2
   RearWorldFade: 0.98
   Frosted: 1
-  Theme: {fileID: 11400000, guid: ea35aaaf244af924bbc488e943f99c63, type: 2}
   RingTint: {r: 0.57, g: 0.67, b: 0.63, a: 1}
   RingClearanceFeather: 0.35
   RingSurfaceSoftness: 1.6

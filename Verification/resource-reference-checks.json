@@ -3,7 +3,7 @@
   "count": 68,
   "checks": [
     {
-      "resource": "Gallery/Config/GalleryLayout",
+      "resource": "Gallery/Config/GalleryConfig",
       "passed": true
     },
     {

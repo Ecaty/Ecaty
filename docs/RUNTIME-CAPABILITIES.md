@@ -71,4 +71,4 @@ To extend: define a small reflected configuration/command/result contract; imple
 
 MicroSplat and TVE are excluded. No Jolt, separate Detour, FastNoise, STK or meshoptimizer was added. MudBun baking, road texture/vegetation exclusion masks, general multi-modifier terrain, full spatial UX and multiplayer remain separate work.
 
-The host supplies audio-bank bytes through CapabilityRuntime.AudioBankProvider. Runtime.Capabilities depends on the bridge, not on application code/assets. Capability verification selects its own startup flag and must not enable WorkshopChainVerification (which launches a different self-test). Configs live under World/Config and are referenced by RuntimeComposition.
+The host supplies audio-bank bytes through CapabilityRuntime.AudioBankProvider. Runtime.Capabilities depends on the bridge, not on application code/assets. Capability verification selects its own startup flag and must not enable WorkshopChainVerification (which launches a different self-test). Capability assets are referenced by RuntimeComposition (Assets/_Adapters/Adapters.asset).

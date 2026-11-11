@@ -2,9 +2,18 @@
 
 ## One-word continuation
 
-When the user says only "resume", "continue" or equivalent in this project, do not ask them to paste an earlier chat or identify an account. Read docs/PROJECT.md, docs/DEVELOPMENT.md, the latest section of docs/STATUS.md, docs/RESUME.md and docs/BACKLOG.md. Inspect current parent/submodule Git status, then continue the latest authorized task from the checkpoint, respecting any pending design choice or approval boundary. The newest dated checkpoint supersedes older historical implementation/test summaries. Preserve local changes and user saves. Do not reset the checkout, assume an older test still certifies new code, or publish without current authorization. Keep RESUME and STATUS current when the task changes or meaningful work completes; include unresolved failures, verification evidence and the exact next action. This workflow must depend on repository files, not chat history, account memory or credentials.
+When the user says only "resume", "continue" or equivalent in this project, do not ask them to paste an earlier chat or identify an account. Read docs/STATUS.md and docs/BACKLOG.md (plus PROJECT/DEVELOPMENT when changing code), inspect parent/submodule Git status, then continue the current task, respecting any pending design choice or approval boundary. Preserve local changes and user saves. Do not reset the checkout, assume an older test still certifies new code, or publish without current authorization. Update STATUS (current state + exact next action) after meaningful milestones; no per-session dated checkpoints. docs/history/ is archive only — read it only when the current docs lack something.
 
-Read `docs/PROJECT.md`, then `docs/DEVELOPMENT.md`, then `docs/STATUS.md` before changing code. Read `docs/AI-INTEGRATION.md` for ChatGPT account or agent work. These versioned files are the handoff; no previous chat or specific ChatGPT account is required.
+Read `docs/PROJECT.md`, then `docs/DEVELOPMENT.md`, then `docs/STATUS.md` before changing code. Read `docs/AI-INTEGRATION.md` for ChatGPT account or agent work. These versioned files are the handoff; no previous chat or specific account is required.
+
+## Working efficiently (save AI usage)
+
+- Test results: read `Tests/Results/latest.txt` (written by every Tests/*.cmd run) instead of large JSON, HTML or logs.
+- The user usually runs tests and git push; tell them which runner to run. Agents may run tests themselves when the user is away.
+- Delegate mechanical work (bulk edits, doc condensing, searches) to cheaper subagent models; keep architecture and native design on the strongest model.
+- For new features, first propose the cheapest mockup (sketch, HTML prototype, config toggle) before implementing.
+- Prefer tuning through config assets in the Inspector over code changes for values.
+- Inspect the live world in Play mode through Flecs REST at http://127.0.0.1:27750 (e.g. `/query?expr=...`, `/entity/<path>`) or the Explorer (flecs.dev/explorer/?host=localhost:27750) instead of writing one-off verification code.
 
 - Flecs in native C++ owns the application's runtime entities, data and behavior. Unity presents the world. Do not substitute a second C# ECS.
 - Preserve the stable C ABI between native code and Unity. Never pass C++ objects or owned strings directly to C#.

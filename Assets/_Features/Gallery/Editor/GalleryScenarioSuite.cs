@@ -46,6 +46,7 @@ public static class GalleryScenarioSuite
             g.StepPointer(pb,true);Check(g.SwapTargetId==b.Entry.Id,"Destination identifies swap pair");await Task.Delay(180);artifacts.Capture(g,"03-swap-preview");g.StepPointer(pb,false);await Task.Delay(500);
             Check(a.Entry.Order==orders[b.Entry.Id]&&b.Entry.Order==orders[a.Entry.Id],"Only the two orders swap");Check(g.Items.Where(i=>i!=a&&i!=b).All(i=>i.Entry.Order==orders[i.Entry.Id]),"Unrelated orders stay unchanged");
             Check(g.Items.Where(i=>i!=a&&i!=b&&i.Entry.Active).All(i=>Vector3.Distance(locals[i.Entry.Id],i.Entry.Anchor.localPosition)<.01f),"Unrelated places stay unchanged");
+            for(int t=0;t<40&&(Vector3.Distance(a.Entry.Anchor.localPosition,locals[b.Entry.Id])>.01f||Vector3.Distance(b.Entry.Anchor.localPosition,locals[a.Entry.Id])>.01f);t++)await Task.Delay(100);Check(Vector3.Distance(a.Entry.Anchor.localPosition,locals[b.Entry.Id])<.01f&&Vector3.Distance(b.Entry.Anchor.localPosition,locals[a.Entry.Id])<.01f,"Swapped worlds settle in each other's places");
             g.Swap(a.Entry.Id,b.Entry.Id);await Task.Delay(300);
             pa=Point(a);g.StepPointer(pa,true);g.StepPointer(pa+Vector2.right*20,true);g.CancelDrag();g.StepPointer(pa,false);Check(!g.IsDragging&&!(bool)Read("GalleryTreeSettings","GalleryDrag")["active"],"Cancel removes native drag and ghost");
             camera=g.ViewCamera.transform.position;g.SetVisible(a.Entry.Id,false);await Task.Delay(150);
@@ -72,7 +73,10 @@ public static class GalleryScenarioSuite
             var reuse=g.ReuseWorldObject(created,"Object1",secondReal);Check(g.Experiences.Features(secondReal).Any(o=>(string)o["name"]==reuse),"Another world reuses the saved object definition");
             Check(g.EnterWorld(created),"Saved first world can reopen after unloading");Check(JToken.DeepEquals(nativeObject,Read(contentPath,"Position")),"Unloaded world reconstructs its latest authored placement");
             g.ReturnToGallery();g.RestoreArrangement(snapshot);await Task.Delay(150);Check(g.Items.Count==30&&world.Session.Lookup(created)==0,"Snapshot reconstruction releases test-owned creation");
-            float oldGap=g.Profile.LayerSpacing;try{g.Profile.LayerSpacing=oldGap+.15f;await Task.Delay(300);Check(Mathf.Abs((float)Read("GalleryTreeSettings","GalleryTreeConfig")["layerGap"]-(oldGap+.15f))<.001f,"Designer profile updates effective native configuration");}finally{g.Profile.LayerSpacing=oldGap;await Task.Delay(250);}
+            Check(GalleryConfigScript.IsCurrent(),"Shipped GalleryConfig.flecs matches Gallery.asset");
+            var designer=GalleryConfigScript.EditorAsset;float oldGap=designer.LayerSpacing;try{designer.LayerSpacing=oldGap+.15f;await Task.Delay(300);
+                Check(Mathf.Abs(g.Profile.LayerSpacing-(oldGap+.15f))<.001f&&Mathf.Abs((float)Read(GalleryConfigScript.Entity,GalleryConfigScript.Component)["LayerSpacing"]-(oldGap+.15f))<.001f,"Designer asset edits reach the runtime profile through Flecs Script");
+                Check(Mathf.Abs((float)Read("GalleryTreeSettings","GalleryTreeConfig")["layerGap"]-(oldGap+.15f))<.001f,"Designer profile updates effective native configuration");}finally{designer.LayerSpacing=oldGap;await Task.Delay(250);}
             // Actual production pointer/wheel route; inspect authoritative native state and rendered transforms.
             g.RestoreArrangement(snapshot);await Task.Delay(200);
             var eligible=g.Items.Where(i=>i.Entry.Active&&Point(i).x>25&&Point(i).x<g.ViewCamera.pixelWidth-25&&Point(i).y>25&&Point(i).y<g.ViewCamera.pixelHeight-25&&g.Pick(Point(i))==i).ToArray();
@@ -98,6 +102,10 @@ public static class GalleryScenarioSuite
             g.StepPointer(Point(targetB),false,scroll:-wheel);Check(!g.Returning,"One outward wheel changes zoom without starting an automatic pullback");
             Check((float)Read("GalleryTreeSettings","GalleryView")["zoom"]>g.Profile.FullTreeZoom,"A small wheel gesture does not jump to full-tree framing");
             await Task.Delay(160);Check(Vector3.Distance(g.OrbitCenter,closeCenter)<1,"Initial zoom-out does not immediately recenter on the tree");
+            {var pair=g.Items.Where(i=>i.Entry.Active&&i!=targetA&&i!=targetB).Take(2).ToArray();Check(pair.Length==2&&!string.IsNullOrEmpty((string)Read("GalleryTreeSettings","GalleryTreeNavigation")["target"]),"Focused gallery has a swap pair");
+            if(pair.Length==2){var sa=pair[0];var sb=pair[1];Vector3 la=sa.Entry.Anchor.localPosition,lb=sb.Entry.Anchor.localPosition;g.Swap(sa.Entry.Id,sb.Entry.Id);
+            for(int t=0;t<40&&(Vector3.Distance(sa.Entry.Anchor.localPosition,lb)>.01f||Vector3.Distance(sb.Entry.Anchor.localPosition,la)>.01f);t++)await Task.Delay(100);Check(Vector3.Distance(sa.Entry.Anchor.localPosition,lb)<.01f&&Vector3.Distance(sb.Entry.Anchor.localPosition,la)<.01f,"Swap completes while zoomed onto a world instead of hanging mid-way");
+            g.Swap(sa.Entry.Id,sb.Entry.Id);for(int t=0;t<40&&Vector3.Distance(sa.Entry.Anchor.localPosition,la)>.01f;t++)await Task.Delay(100);}}
             g.StepPointer(Vector2.zero,false,scroll:-wheel*100);for(int i=0;i<12;i++)g.StepPointer(Vector2.zero,false,scroll:-wheel*4);await Task.Delay(1800);
             Check(Mathf.Abs(g.OrbitCenter.x)<.03f&&Mathf.Abs(g.OrbitCenter.z)<.03f,"Camera reaches the tree center at maximum explicit zoom-out");
             bool FullyVisible(CrystalWorldGallery.Item item){float radius=diameter*.5f;for(int x=-1;x<=1;x+=2)for(int y=-1;y<=1;y+=2)for(int z=-1;z<=1;z+=2){var point=g.ViewCamera.WorldToViewportPoint(item.Entry.Anchor.position+new Vector3(x,y,z)*radius);if(point.z<=0||point.x<0||point.x>1||point.y<0||point.y>1)return false;}return true;}

@@ -13,7 +13,7 @@ cd A:\Projects\Ecaty
 
 Open this checkout in Unity first and wait for compilation. Uses PowerShell 7 when available, with Windows PowerShell 5.1 fallback, and the Unity CLI. The scripts target this project, preserve its initial Play/tick state, reject compilation errors and fail on failed assertions or zero tests. They never open a second Editor. See [Tests/README](../Tests/README.md) for all entry points.
 
-All runs Odin Validator, the asset/reference audit, Windows player-script compilation, Ecaty EditMode tests (including isolated native Flecs checks), PlayMode tests and gallery scenarios. Native, EditMode, PlayMode, Resources, Validator, PlayerScripts and Gallery each have a separate Run-*.cmd. Historical Verification feature/build/provider scripts remain separate; All does not invoke providers or build players. `Tools/Test-Ecaty.ps1` forwards to the same runner for compatibility.
+All runs Odin Validator, the asset/reference audit, Windows player-script compilation, Ecaty EditMode tests (including isolated native Flecs checks), PlayMode tests and gallery scenarios. Native, EditMode, PlayMode, Resources, Validator, PlayerScripts and Gallery each have a separate Run-*.cmd. Historical Verification feature/build/provider scripts remain separate; All does not invoke providers or build players.
 
 - **Runtime > Tests > Gallery scenarios** runs the same compiled scenarios and creates artifacts; starts/stops Play mode only as needed.
 - **Window > General > Test Runner** exposes the registered EditMode and PlayMode tests.

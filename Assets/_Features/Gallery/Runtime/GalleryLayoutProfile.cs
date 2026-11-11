@@ -49,20 +49,12 @@ namespace Ecaty
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
-        public Material LayerMaterial;
-#if UNITY_EDITOR && ODIN_INSPECTOR
-        [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
-#endif
         [Range(.1f,2)] public float GalaxyDensity=1;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
         [Range(.2f,5)] public float GalaxyDetail=1;
 
-#if UNITY_EDITOR && ODIN_INSPECTOR
-        [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
-#endif
-        public Material ParticleMaterial;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Rings", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
@@ -119,10 +111,6 @@ namespace Ecaty
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Spheres", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
-        public Material WorldSphereMaterial;
-#if UNITY_EDITOR && ODIN_INSPECTOR
-        [TabGroup("Gallery", "Spheres", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
-#endif
         [Range(0, 1)] public float WorldSphereOpacity = .72f;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Spheres", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
@@ -136,10 +124,6 @@ namespace Ecaty
         [TabGroup("Gallery", "Spheres", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
         public bool Frosted = true;
-#if UNITY_EDITOR && ODIN_INSPECTOR
-        [TabGroup("Gallery", "Spheres", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
-#endif
-        public EcatyTheme Theme;
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Gallery", "Spheres", SdfIconType.Circle, TabLayouting = TabLayouting.Shrink)]
 #endif
@@ -279,6 +263,11 @@ namespace Ecaty
 
         void OnValidate()
         {
+#if UNITY_EDITOR
+            // Keep the shipped Flecs Script (GalleryConfig.flecs) in step with this authoring asset.
+            if (UnityEditor.AssetDatabase.GetAssetPath(this) == GalleryConfigScript.AssetPath)
+                UnityEditor.EditorApplication.delayCall += () => { if (this) GalleryConfigScript.Export(this); };
+#endif
             RingRotationSmoothTime=Positive(RingRotationSmoothTime,.18f,.02f);
             MinimumPickOpacity=Mathf.Clamp(MinimumPickOpacity,.98f,1);
             FocusSmoothTime = Positive(FocusSmoothTime,.65f,.1f);
