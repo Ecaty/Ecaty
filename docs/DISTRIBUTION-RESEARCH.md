@@ -1,0 +1,87 @@
+# Distribution research: moderation, licensing, multiplayer, stores
+
+Checked 2026-11-11 (all links accessed that day). This is an engineering summary, not legal advice or store approval. It extends [DISTRIBUTION](DISTRIBUTION.md). Items marked *(unverified)* come from secondary sources or could not be read at the primary page.
+
+## Short answers
+
+1. **Moderation and licensing.** While everything stays local, moderation is light. You need guardrails on AI output, an in-app report button for AI output (Google Play, Apple) and consent before photos or voice go to a cloud AI. Public sharing or remixing is a large step up. It brings report, hide and block, takedown, a DMCA agent, ToS with a user content licence, and EU DSA and UK Online Safety Act duties. **Biggest licensing finding:** the Asset Store EULA forbids monetizing an Asset in a product whose *primary purpose is to create user-generated content* without express authorization. Get written permission from Unity and each plugin vendor before selling a creation-focused game built on MudBun, FImpossible, Boing, Flexalon, Feel, UniStorm or Crest. A Unity Pro licence does not cover this.
+2. **SpacetimeDB.** It is useful later for accounts, world storage, sharing and lists, with Flecs worlds stored as snapshot or delta blobs. It is not a drop-in replication layer for a native Flecs world. Unity only gets a C# SDK, and mirroring every entity into tables would duplicate the world. Do not prototype it now. When sharing is authorized, run a one-day spike that stores and loads a world blob.
+3. **Stores.** No store found forbids an optional AI agent that edits the world through a shipped interpreter. Each store requires disclosure plus moderation plumbing. **Apple does allow interpreters.** It forbids downloaded code that changes the app's features (2.5.2), and section 4.7 explicitly permits "software not embedded in the binary" under conditions such as a filter, reporting, age gating and no native API exposure. Flecs Script with no JIT and no downloaded native code fits best when presented as user content run by an embedded interpreter. Review is still case by case. **Gemini API cannot be used** in an app likely to be used by under-18s.
+
+## 1. Moderation
+
+| Topic | Required | Good practice / options |
+|---|---|---|
+| AI-generated content (local or cloud) | Steam: describe guardrails for Live-Generated AI in the Content Survey. Google Play: prevent restricted content, and let users report or flag AI output without leaving the app. Apple 1.2: AI content creation apps need a filter, reporting, blocking and contact info. | Keep the bounded tool and Script surface, use a prompt-side safety classifier, and add a "report this result" action on the AI reply or object. Log locally only what the user opts into. |
+| Player UGC, local only | Nothing beyond the above while nothing leaves the device. | Ship local-only first. It is the cheapest correct option. |
+| Shared or remixed UGC | Notice-and-action for hosted content (EU DSA Art. 16; micro and small enterprises are exempt from most online-platform duties under Art. 19). UK OSA: illegal-content and children's access/risk assessments for user-to-user services with UK users; no small-service exemption found. US: DMCA designated agent registered with the Copyright Office, plus a takedown process. Apple 4.7.1/1.2 and Google Play: filter, report, block. | Report, hide pending review, block user, curated "featured" only. Use AI-assisted triage of thumbnails and Script, with humans deciding on removals. Record lineage with `(MadeBy)`/`(RemixOf)` so takedowns can cascade to remixes. |
+| Photos of real people and places | Cloud upload: disclosure and explicit consent (Apple 5.1.2(i), Nov 2025 third-party AI rule; GDPR lawful basis). Recording indicator and consent (Apple 2.5.14). | Process locally by default, never keep the photo after modelling, and do not share photo-derived creations of real people publicly (or require a "I have rights to this image" confirmation). |
+| Chat between players | Only with multiplayer. It brings report, block and age-gating duties on all stores. | Avoid free text chat. Use emotes or presets, or no chat. |
+| Age ratings | IARC questionnaire on Google Play (and others). Answer Yes to user interaction and UGC once sharing exists. Apple's new tiers are 4+/9+/13+/16+/18+, and the questionnaire was due Jan 31, 2026. PEGI and ESRB ratings do not cover online or user content. | Target 13+ for the AI build. Avoid a "made for kids" designation: Families/COPPA rules plus Gemini's under-18 ban would block cloud AI. IARC wording on generative AI was not found *(unverified)*. |
+
+## 1b. Licensing
+
+| Area | Finding | Consequence |
+|---|---|---|
+| Asset Store EULA, [as-terms](https://unity.com/legal/as-terms), updated 2024-12-04 | 2.2.1(a): Assets are allowed only inside a product with substantial original content, and an Asset may not be a substantial portion of it. 2.2.1(d): monetizing within the product is allowed. 2.2.1.1(b): end users may not redistribute Assets. 2.2.1.1(c): no monetizing an Asset in a product whose primary purpose is UGC creation, without express authorization. 2.2.1.1(g): no use as AI or ML inputs or training without consent. Seats: editor and scripting assets are per seat, two machines each (2.3.2/2.4). | Ask Unity and each vendor in writing before commercial release, describing the creation, sharing and export features. Check whether 2.2.1.1(g) affects AI that inspects plugin-made content; it is probably aimed at training, but ask. |
+| Exporting creations (glTF/STL/3D print) | The EULA does not address runtime-generated output. A MudBun mesh made by the player is likely output, not the Asset. Exporting shipped plugin meshes, textures, shaders or sounds would be redistribution. | Export only geometry and colours generated from the player's recipe, never plugin source assets. Include this in the vendor questions. |
+| Plugins with own licences | Crest's GitHub edition is MIT ([licence](https://github.com/wave-harmonic/crest/blob/master/LICENSE)). The Asset Store editions follow the EULA. MudBun, Feel, Flexalon, FImpossible, Boing and UniStorm were not individually checked. | Read each package's bundled licence file and record it in a notices list. |
+| Unity Runtime | Already covered in [DISTRIBUTION](DISTRIBUTION.md#unity-and-the-engine-question): creator, platform and UGC uses may need written authorization regardless of plan. | Same written-clarification step. |
+| Fonts and SoundFonts | Material Symbols: Apache-2.0, ship the licence ([Google](https://developers.google.com/fonts/docs/material_symbols)). GeneralUser GS is free for software use; the licence is in `Assets/StreamingAssets/Ecaty/Audio/`. Its author is not fully sure of every sample's origin ([Debian discussion](https://lists.debian.org/debian-legal/2023/03/msg00001.html)). | Generate a third-party notices file in the player build. Treat GeneralUser GS as a small residual risk. |
+| Cloud AI terms | Anthropic: the customer owns outputs and Anthropic does not train on them ([commercial terms](https://www.anthropic.com/legal/commercial-terms)). OpenAI: API data is not used for training by default ([business data](https://openai.com/business-data/)); output-ownership wording *(unverified)*. Gemini API ([terms](https://aistudio.google.com/docs/terms), effective 2026-03-23): users must be 18+, and API clients may not be "directed towards or ... likely to be accessed by" under-18s. EEA, CH and UK users require paid services. Free tier data is used for training and may be human-reviewed. | Gemini is unsuitable for a 13+ cozy game. Prefer local AI or providers whose terms allow teen apps with safeguards. Sign up for each provider's DPA. Users logging in with their own account do not shift store or privacy duties away from us. |
+| Local models | llama.cpp and whisper.cpp: MIT. Most Qwen3/Qwen2.5 sizes: Apache-2.0 ([Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B/blob/main/LICENSE)). Qwen2.5-3B and 72B use other licences ([blog](https://qwenlm.github.io/blog/qwen2.5-llm)). | Check the licence file of every bundled weight, quantization and projector. The installer already saves them. |
+| Player uploads and remixes | Typical pattern: the player keeps ownership and grants a non-exclusive, worldwide, royalty-free licence to host, display and let others remix with credit. Takedown via report or DMCA. The Roblox terms were not read at source *(unverified)*. | Write ToS before sharing ships. Credit is stored as `(MadeBy)`/`(RemixOf)`. A remix of removed content is hidden too. |
+
+## 2. SpacetimeDB vs alternatives
+
+| Option | Authority, and where Flecs runs | Fit / cost / licence |
+|---|---|---|
+| [SpacetimeDB](https://spacetimedb.com/) v2.x | The database is the server: reducers (Rust, C#, TS, C++ modules) are authoritative, and clients get subscribed row diffs. Flecs would stay on the client for presentation and prediction. Running Flecs inside a C++ module is *unverified*: modules are sandboxed (WASM, as I understand it). | Good for accounts, world blobs, sharing and permissions. Mirroring entities duplicates the world and puts the sync bridge in C# (Unity SDK is C# only), which goes against native-owns-data. BSL 1.1 ([licence](https://github.com/clockworklabs/SpacetimeDB/blob/master/LICENSE.txt)): free production use for one instance, no "Database Service" offering; converts to AGPLv3 with a linking exception by 2031. Self-hostable. Maincloud: free tier, then $25 and $250/month ([pricing](https://spacetimedb.com/pricing)). Production use: BitCraft. |
+| Custom authoritative Flecs server (C++) | The same native Flecs runs headless on the server, and clients replicate selected components. Edits travel as commands such as Script patches. | Best architectural fit and no data duplication, but we build replication ourselves. Flecs has no built-in networking. A community example ([devlog](https://www.rick.me.uk/posts/2026/01/devlog-flecs-city-part-3-ecs-replication/)) uses replicable-component tags, dirty-flag observers, serialization and ENet. |
+| Nakama ([docs](https://heroiclabs.com/docs/nakama/server-framework/introduction/)) | Accounts, storage, social and authoritative matches in Go, Lua or TS. Flecs would run on the client or behind a Go/cgo bridge. | Mature backend features, open source (licence *unverified*). Overlaps with SpacetimeDB's storage role. |
+| Unity Netcode (GameObjects/Entities) + UGS Relay/Lobby | C# GameObject or Unity-ECS state, which is a second state owner. | Relay: first 50 CCU free, then $0.16/CCU ([UGS pricing](https://unity.com/products/gaming-services/pricing)). Poor fit for Flecs-owned data. |
+| Photon Fusion / Quantum | Fusion is Unity object state; Quantum is its own deterministic C# ECS. | 100 CCU free tier, pricing *(unverified)*. Quantum would replace Flecs, which is ruled out. |
+
+**Recommendation.** The first shared feature is asynchronous: upload a world, browse it, visit or remix. That needs storage, accounts and moderation, not real-time netcode. Spike either SpacetimeDB or Nakama with world blobs when sharing is authorized. Real-time co-creation later points to a custom headless Flecs server with command replication. SpacetimeDB reducers carrying edit commands, which clients apply to their local Flecs world, are a possible middle path.
+
+## 3. Stores and AI
+
+| Store | AI creation + runtime assistant | Key requirements |
+|---|---|---|
+| Steam | Allowed with disclosure. | Content Survey: Pre-Generated and Live-Generated, with guardrails described ([survey](https://partner.steamgames.com/doc/gettingstarted/contentsurvey)). External AI services must be managed for players and paid through Steam-supported methods. Bring-your-own key or account is not addressed, so ask Valve. The January 2026 narrowing of disclosure to player-facing AI and the overlay report button are *(unverified, press)*. Local inference avoids the external-service issue. |
+| Epic Games Store | No AI-specific rule found. | Ordinary content and IP rules. Epic's own pages were not rechecked *(unverified)*. |
+| itch.io | Allowed. | AI disclosure tags, and no mass-produced uploads; see [DISTRIBUTION](DISTRIBUTION.md#itchio-checked-2026-11-07). |
+| Google Play | Allowed. | [AI-Generated Content](https://support.google.com/googleplay/android-developer/answer/13985936): prevent restricted content and provide in-app reporting. [Device and Network Abuse](https://support.google.com/googleplay/android-developer/answer/9888379): no downloaded dex, JAR or .so; interpreter code with indirect API access is allowed. Flecs Script fits. Data safety form. The Families policy applies if kids are targeted. |
+| Apple App Store | Allowed in principle; review is case by case. | [Guidelines](https://developer.apple.com/app-store/review/guidelines/): 2.5.2 forbids downloaded code that changes features. 4.7 permits non-embedded software: 4.7.1 filter and report, 4.7.2 no native API exposure without permission, 4.7.3 consent per data share, 4.7.4 an index, 4.7.5 age gating. 1.2 names AI content creation apps (filter, report, block, contact). 5.1.2(i) requires disclosure and consent for third-party AI. 2.5.14 covers recording. No JIT: Flecs Script is interpreted, which fits. Describe it in review notes as a bounded, shipped interpreter acting on user data. |
+
+**Privacy (all stores).** Treat photos and voice as personal data. They are not biometric unless used to identify someone. Process locally by default. Before any cloud upload, show the provider name and get consent, and sign the provider's DPA (plus SCCs for transfers outside the EU). Do not keep raw recordings. Write a privacy policy and fill in Apple's privacy labels and Google's data safety form. The amended COPPA rule has been in force since 2026-04-22 ([summary](https://www.hunton.com/privacy-and-cybersecurity-law-blog/coppa-rule-amendment-compliance-deadline-approaches)). Avoid under-13 targeting, or plan verified parental consent.
+
+## Recipes vs plugin content
+
+- **Shared worlds are recipes.** They are Flecs Script, our own data, with no Unity code or plugin assets inside. Sharing or remixing them redistributes nothing of Unity's or a vendor's. This keeps the Unity "platform" concern low; many Unity games share level files this way.
+- **The plugin clause is about purpose, not files.** EULA 2.2.1.1(c) asks whether the product is mainly for creating content with the Asset. MudBun still builds every creation inside the app, whatever the file format.
+- **Mesh export is the exception.** glTF and STL exports contain MudBun-generated geometry. This is likely the player's output, but it is the one case where plugin-made data leaves the app, so include it in the vendor questions.
+
+## Fallbacks (stay optimistic, keep options open)
+
+1. **A vendor says yes.** Keep a copy of the written reply.
+2. **A vendor asks for a fee.** Pay it, or negotiate an extended licence.
+3. **A vendor says no.** Replace the plugin behind its capability adapter. Each plugin is already an import-gated module under `com.runtime.capabilities`, so recipes and Flecs data stay the same. MudBun is the costliest to replace; it would need our own SDF meshing, which is native C++ and could be shared across engines.
+4. **Unity refuses the use (unlikely for local creation).** Move presentation to another engine such as Godot (MIT licence, C++ GDExtension). Flecs, the C ABI, recipes, saves and the AI tools carry over. Unity adapters and plugin-based visuals must be rewritten. This is the reason Flecs owns the data and Unity only presents it.
+
+## Open risks
+
+- Asset Store 2.2.1.1(c) "primary purpose is UGC": vendors or Unity may refuse, or ask for extra licences.
+- Unity Runtime "platform" wording for sharing and export (already open in DISTRIBUTION).
+- Steam treatment of bring-your-own AI accounts.
+- Apple review interpretation of AI-written Script under 2.5.2 versus 4.7.
+- UK OSA scope for a small sharing service; DSA thresholds once public sharing exists.
+- GeneralUser GS sample provenance; per-model weight licences.
+
+## Next steps
+
+1. Email Unity and each plugin vendor with a one-page description: creation game, local recipes, future sharing and remix, glTF/STL export of player geometry. Ask for written authorization or a quote.
+2. Add a third-party notices file to the player build (fonts, SoundFont, llama.cpp/whisper.cpp, model weights, Crest MIT if used).
+3. Before any store submission: an AI output report button, consent screens per cloud provider, a privacy policy, and age target 13+ without kids targeting. Drop Gemini, or restrict it to adult or desktop builds.
+4. Ask Valve about bring-your-own AI accounts; ship local AI as the default path.
+5. Before sharing: ToS with a user content licence, DMCA agent, report, hide and block, an OSA/DSA checklist, and a SpacetimeDB or Nakama world-blob spike.

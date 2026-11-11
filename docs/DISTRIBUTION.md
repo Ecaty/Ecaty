@@ -2,6 +2,8 @@
 
 Checked 2026-11-06. Engineering assessment, not store approval or a legal opinion. Recheck the applicable terms before release; model location does not remove publisher responsibility.
 
+Moderation, plugin/AI licensing, SpacetimeDB/multiplayer options and store AI rules (2026-11-11): [DISTRIBUTION-RESEARCH](DISTRIBUTION-RESEARCH.md).
+
 ## Stores
 
 | Destination | Finding and consequence |
