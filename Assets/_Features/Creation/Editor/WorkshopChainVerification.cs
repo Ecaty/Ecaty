@@ -446,6 +446,7 @@ namespace Ecaty.Editor
             Camera camera = null;
             try
             {
+                using var inputFocus = InputFocusScope.Begin();
                 await Until(() => Object.FindAnyObjectByType<RuntimeExperience>() != null, "Runtime did not start.");
                 var experience = Object.FindAnyObjectByType<RuntimeExperience>();
                 var world = experience.GetComponent<FlecsWorld>();
