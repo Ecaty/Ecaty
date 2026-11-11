@@ -56,6 +56,19 @@ Checked 2026-11-11 (all links accessed that day). This is an engineering summary
 
 **Privacy (all stores).** Treat photos and voice as personal data. They are not biometric unless used to identify someone. Process locally by default. Before any cloud upload, show the provider name and get consent, and sign the provider's DPA (plus SCCs for transfers outside the EU). Do not keep raw recordings. Write a privacy policy and fill in Apple's privacy labels and Google's data safety form. The amended COPPA rule has been in force since 2026-04-22 ([summary](https://www.hunton.com/privacy-and-cybersecurity-law-blog/coppa-rule-amendment-compliance-deadline-approaches)). Avoid under-13 targeting, or plan verified parental consent.
 
+## Recipes vs plugin content
+
+- **Shared worlds are recipes.** They are Flecs Script, our own data, with no Unity code or plugin assets inside. Sharing or remixing them redistributes nothing of Unity's or a vendor's. This keeps the Unity "platform" concern low; many Unity games share level files this way.
+- **The plugin clause is about purpose, not files.** EULA 2.2.1.1(c) asks whether the product is mainly for creating content with the Asset. MudBun still builds every creation inside the app, whatever the file format.
+- **Mesh export is the exception.** glTF and STL exports contain MudBun-generated geometry. This is likely the player's output, but it is the one case where plugin-made data leaves the app, so include it in the vendor questions.
+
+## Fallbacks (stay optimistic, keep options open)
+
+1. **A vendor says yes.** Keep a copy of the written reply.
+2. **A vendor asks for a fee.** Pay it, or negotiate an extended licence.
+3. **A vendor says no.** Replace the plugin behind its capability adapter. Each plugin is already an import-gated module under `com.runtime.capabilities`, so recipes and Flecs data stay the same. MudBun is the costliest to replace; it would need our own SDF meshing, which is native C++ and could be shared across engines.
+4. **Unity refuses the use (unlikely for local creation).** Move presentation to another engine such as Godot (MIT licence, C++ GDExtension). Flecs, the C ABI, recipes, saves and the AI tools carry over. Unity adapters and plugin-based visuals must be rewritten. This is the reason Flecs owns the data and Unity only presents it.
+
 ## Open risks
 
 - Asset Store 2.2.1.1(c) "primary purpose is UGC": vendors or Unity may refuse, or ask for extra licences.
