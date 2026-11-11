@@ -155,7 +155,7 @@ try {
             $detail=''
             $d=$context.data
             if($d -and $d.checks){$bad=@($d.checks | Where-Object {-not $_.passed});$detail="$(@($d.checks).Count) checks, $($bad.Count) failed";foreach($b in $bad){$detail+="`n    FAIL: $($b.name)"}}
-            elseif($d -and $d.summary){$detail="$($d.summary.total) tests, $($d.summary.failed) failed"}
+            elseif($d -and $d.summary){$detail="$($d.summary.total) tests, $($d.summary.failed) failed";foreach($b in @($d.results | Where-Object {$_.Status -eq 'Failed'})){$msg=(([string]$b.Message) -replace '\s+',' ').Trim();$detail+="`n    FAIL: $($b.FullName): "+$msg.Substring(0,[Math]::Min(200,$msg.Length))}}
             elseif($d -and $null -ne $d.validations){$detail="$($d.validations) validations"}
             $line="  $($context.name): $($context.status)"+$(if($detail){" ($detail)"}else{''})
             if($context.error){$flat=(($context.error -replace '\s+',' ').Trim());$line+="`n    ERROR: "+$flat.Substring(0,[Math]::Min(400,$flat.Length))}

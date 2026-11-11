@@ -8,13 +8,11 @@ Current state and the exact next action only. Update after meaningful milestones
 - **Gallery:** layered crystal world-tree with focus/orbit/zoom, top-down exit without automatic pullback, zoom-driven recentering, angular ring drag, return through the entry portal with near-to-far reveal and recall rim, galaxy-dust rings, persistent loaded-world marker, glass-crossing cue, swap/insert. Swap-while-zoomed hang fixed (CrystalWorldGallery.SetPaused) and play-verified by the user.
 - **Gallery config:** values ship as Flecs Script `Assets/_Features/Gallery/GalleryConfig.flecs`, generated from the Editor-only authoring asset `Gallery.asset` (on edit, on build, or Runtime > Gallery > Export config). Runtime and Editor both load through Flecs into a runtime profile copy; Inspector edits apply live in Play. Validator fails if the file is stale.
 - **Bridge:** gallery reads one component per call (not whole entities) and typed reads for per-frame scalars: native-read time 2.27 → ~0.74 ms/frame. See docs/FLECS-ARCHITECTURE-AUDIT.md.
-- **Verification:** Run-All passed 2026-11-11 01:31 (Validator 147, Resources 68, PlayerScripts, EditMode 8, PlayMode 1, 120/120 gallery checks).
-- **Dev workflow:** every test run writes Tests/Results/latest.txt — read that, not the large JSON/logs. The user usually runs tests and does git push; agents prepare changes. Live world over REST at http://127.0.0.1:27750 in Play mode.
-
-## In progress
-
-- BACKLOG 3: native/runtime split — phase 1 (bridge) partly done; next: REST gating, remaining GC sources, ring motion as a native system.
+- **Native motion:** ring turns and the tree clock are compiled systems + observers in Native/App; their four components are C++ contracts. REST starts only in Editor/development builds.
+- **Code/infra:** owned C# reformatted per `.editorconfig`; generated `Verification/*.json` are no longer tracked; merged `codex/*` branches deleted locally (remote deletion pending the user).
+- **Verification:** Run-All passed 2026-11-11 07:49 (Validator 147, Resources 68, PlayerScripts, EditMode 8, PlayMode 1, 120/120 gallery checks) with the rebuilt DLL.
+- **Dev workflow:** every test run writes Tests/Results/latest.txt (stages, failing checks/tests). The user pushes; agents commit locally with descriptive messages and `feature/`/`fix/`/`chore/` branch names. Agents may quit/reopen Unity when nothing is unsaved (native DLL swaps). Live world over REST at http://127.0.0.1:27750 in Play mode.
 
 ## Next action
 
-See docs/BACKLOG.md item 3 and the plan in docs/PLAN-2026-11.md. Nothing committed yet (user commits/pushes).
+docs/PLAN-2026-11.md: remaining GC per frame (item 2), Theme → Flecs Script (3), Extended suite (I2), typed capability configs (I4). Product items 10–11 need the user's choice of which flow to mock up first.

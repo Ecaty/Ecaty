@@ -35,6 +35,9 @@ Editor/Mono numbers; IL2CPP players are faster in absolute terms but the JSON:bi
 - Gallery `Read()` fetches one component (`ComponentJson`) instead of the whole entity with type info; per-frame scalars (clock time, ring turns) use typed `TryRead<T>`. Measured (warm, Editor): `Ecaty.Gallery.NativeRead` **2.27 → ~0.74 ms/frame**, GC **290 → ~158 KB/frame**, PlayerLoop ~11.9 → ~10.4 ms. All 118 gallery checks pass.
 - Gallery tuning values ship as Flecs Script (`Assets/_Features/Gallery/GalleryConfig.flecs`, generated from Gallery.asset). Players no longer include Gallery.asset; the Editor polls the asset only under `UNITY_EDITOR`.
 
+- Ring turns and the tree motion clock are compiled systems in `Native/App` (`GalleryRingMotionSystem`, `GalleryTreeMotionSystem`, PreUpdate) plus OnSet observers so same-frame reads still see a written intent immediately. The four contracts (`GalleryTreeActivity`, `GalleryTreeMotion`, `GalleryLayerIntent`, `GalleryLayerState`) are C++ components; return/glass/recenter rules stay reactive Script. Same outputs as the Script version (ctypes check); world tick 55 → 34 µs at 6 rings; Editor frame unchanged (the gain matters at scale, not at 6 rings).
+- Capability coordination per-tick uncached queries were **left as is**: a few µs per tick today, and cached queries would add a component-deletion hazard while capability schemas are Script-defined. Revisit when binding counts grow.
+
 ## Phased plan
 
 1. **Bridge hot path (partly done; remaining GC is elsewhere — profile next):** gallery `Read`/`Write` per-frame paths → typed reads/writes; stop whole query-cache flush on every managed-script set; SyncViews name allocation. Target < 0.1 ms and ~0 GC per frame for bridge traffic. Re-measure with the same benchmark.
