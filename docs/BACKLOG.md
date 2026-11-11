@@ -27,3 +27,4 @@ Retained ideas, not immediate implementation:
 - 2026-11-11: Next cheap mockup after creation tools: decide later.
 - 2026-11-11: Overnight agent work allowed (keep-awake approved).
 - 2026-11-11: Test phone: ARCore (Depth API) is required; use a non-Google mid-range Android for multi-device coverage. Chosen (delegated to assistant): Motorola edge 60 fusion 8/256 (~€279, Galaxus.de, ships to DE); later optional second device with a different chip, e.g. Motorola edge 70 fusion (Snapdragon). Confirm the exact model on developers.google.com/ar/devices before buying. iOS/ARKit: skipped for now (Android/ARCore only).
+- 2026-11-11: Docs index and smaller mandatory read set approved (PROPOSAL-docs-index-and-trim.md sections 1-2): add docs/README.md index; agents read only AGENTS, STATUS, BACKLOG, PROJECT-STRUCTURE by default; rest on demand.
