@@ -89,5 +89,40 @@ namespace Ecaty.Tests
             }
             yield return null;
         }
+        [UnityTest]
+        public IEnumerator IdleReconcileAllocatesNothing()
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                var runtime = world.gameObject.AddComponent<CapabilityRuntime>();
+                runtime.Initialize(world);
+                runtime.RegisterDiscovered();
+                world.Session.SetManagedScript("IdleModule", "IdleTarget { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1} }\nIdleLight { CapBinding: {target: IdleTarget, enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 4, colorR: 1, colorG: 1, colorB: 1} }");
+                world.SyncViews();
+                runtime.Reconcile();
+                yield return Frames(3);
+                Assert.That(runtime.BindingCount, Is.EqualTo(1));
+                // Settle table moves from the first CapState write and CapDirty acknowledgement, then measure.
+                for (int i = 0; i < 5; i++)
+                    runtime.Reconcile(false);
+                long before = System.GC.GetAllocatedBytesForCurrentThread();
+                for (int i = 0; i < 20; i++)
+                    runtime.Reconcile(false);
+                long allocated = System.GC.GetAllocatedBytesForCurrentThread() - before;
+                Assert.That(allocated, Is.EqualTo(0), "Idle capability reconcile allocated " + allocated + " bytes");
+                var edit = JObject.Parse(world.Session.ComponentJson(world.Session.Lookup("IdleLight"), "CapLight"));
+                edit["intensity"] = 3;
+                world.Session.SetComponentJson("IdleLight", "CapLight", edit.ToString());
+                runtime.Reconcile(false);
+                var state = JObject.Parse(world.Session.ComponentJson(world.Session.Lookup("IdleLight"), "CapState"));
+                Assert.That((int)state["generation"], Is.GreaterThan(1), "A configuration edit must still be applied by the change-gated pass");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
     }
 }

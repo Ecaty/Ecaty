@@ -50,6 +50,36 @@ namespace Ecaty.Flecs.PluginAdapters
                 manager.ChangeWeatherWithTransition(weather);
             config = null;
         }
+        // UniStorm has no teardown: the clouds component leaves its command buffer on the camera and its shadow
+        // material alive, and its Start overwrites a static base-noise texture without releasing the previous one.
+        static readonly System.Reflection.FieldInfo BaseNoise = typeof(UniStorm.Utility.GenerateNoise).GetField("_baseNoiseTexture", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        public override void Dispose()
+        {
+            var camera = system ? system.PlayerCamera : null;
+            foreach (var clouds in UnityEngine.Object.FindObjectsByType<UniStorm.Utility.UniStormClouds>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (clouds.cloudsCommBuff != null && camera)
+                {
+                    camera.RemoveCommandBuffer(UnityEngine.Rendering.CameraEvent.AfterSkybox, clouds.cloudsCommBuff);
+                    camera.RemoveCommandBuffer(UnityEngine.Rendering.CameraEvent.BeforeImageEffects, clouds.cloudsCommBuff);
+                    clouds.cloudsCommBuff.Release();
+                    clouds.cloudsCommBuff = null;
+                }
+                if (clouds.shadowsBuildingMaterial)
+                    UnityEngine.Object.Destroy(clouds.shadowsBuildingMaterial);
+                clouds.enabled = false;
+            }
+            // Reading the public property would regenerate the texture; the next UniStorm start recreates it.
+            if (BaseNoise?.GetValue(null) is RenderTexture noise && noise)
+            {
+                noise.Release();
+                UnityEngine.Object.Destroy(noise);
+                BaseNoise.SetValue(null, null);
+            }
+            system = null;
+            manager = null;
+            config = null;
+        }
     }
 #endif
 }
