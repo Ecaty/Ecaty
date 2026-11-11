@@ -130,7 +130,11 @@ namespace Ecaty.Editor
                 experience.SendPointer(world.Session.Lookup("Alpha"), Vector2.zero, 0);
                 await Frames(4);
                 bool Active(string name) => (bool)JObject.Parse(world.Session.EntityJson(name))["components"]["TogglePose.mut"]["active"];
-                Require(Active("toggle_Alpha") && !Active("toggle_Beta"), "Input leaked across behavior instances.");
+                // The pointer event is asynchronous; give the native toggle time to settle before judging it.
+                for (int wait = 0; wait < 60 && !Active("toggle_Alpha"); wait++)
+                    await Frames(1);
+                Require(Active("toggle_Alpha") && !Active("toggle_Beta"),
+                    "Input leaked across behavior instances: alpha=" + Active("toggle_Alpha") + " beta=" + Active("toggle_Beta"));
                 Require(Quaternion.Angle(before, MeasuredRotation(alphaTarget)) > 20, "Async state did not change the actual live part pose.");
                 var observed = JObject.Parse(await Call("observe_over_time", "path", alphaTarget));
                 Require((bool)observed["presentation_available"] && (long)observed["presentation_frames_advanced"] > 0, "Actual presentation feedback did not advance.");
