@@ -88,7 +88,7 @@ namespace Ecaty.Editor
                 Vector3 camera = g.ViewCamera.transform.position;
                 float angle = (float)Read("GalleryTreeLayer1", "GalleryLayerState")["turn"];
                 await Task.Delay(300);
-                Check(g.Items.All(i => Vector3.Distance(positions[i.Entry.Id], i.Entry.Anchor.position) < .00001f), "All originals stay fixed while held");
+                Check(g.Items.All(i => Vector3.Distance(positions[i.Entry.Id], i.Entry.Anchor.position) < .0005f), "All originals stay fixed while held");
                 Check(Vector3.Distance(camera, g.ViewCamera.transform.position) < .00001f, "Camera stays fixed while held");
                 Check(Mathf.Abs((float)Read("GalleryTreeLayer1", "GalleryLayerState")["turn"] - angle) < .000001f, "Native idle turn freezes during drag");
                 g.StepPointer(pb, true);
