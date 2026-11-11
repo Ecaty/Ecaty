@@ -89,3 +89,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 - Preserve unrelated changes, Unity GUIDs and unsaved scenes. Child repos link back to Ecaty's canonical context.
 - Replaced features: remove superseded code/config/tests once the replacement is verified; keep only minimal save migration.
 - Keep `docs/STATUS.md` current (current state, verification evidence, known limits, exact next action) after meaningful milestones; keep BACKLOG current. No dated checkpoint sections or session rituals. Record lasting approved decisions in `PROJECT.md`.
+
+## Code style
+
+- C#: one statement per line, braces on their own lines, aim for at most 140 characters (`.editorconfig`). Reformat with `dotnet format whitespace Assembly-CSharp.csproj --include Assets/_Features/` (trailing slash; use the Unity-generated csproj so `#if ECATY_CAP_*` code is active). Keep formatting-only changes in their own commits.
