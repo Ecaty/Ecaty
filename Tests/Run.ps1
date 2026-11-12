@@ -1,4 +1,4 @@
-param([ValidateSet('Native','Gallery','EditMode','PlayMode','Resources','Validator','PlayerScripts','Extended','All')][string]$Suite='All')
+﻿param([ValidateSet('Native','Gallery','EditMode','PlayMode','Resources','Validator','PlayerScripts','Extended','All')][string]$Suite='All')
 $ErrorActionPreference='Stop'
 $projectPath=Split-Path -Parent $PSScriptRoot
 $runDirectory=Join-Path $PSScriptRoot ('Results/'+[DateTime]::Now.ToString('yyyy-MM-dd_HH-mm-ss_fff'))
@@ -112,6 +112,10 @@ try {
     [byte[]]$gallerySaveBytes=$null
     if($hadGallerySave){$gallerySaveBytes=[IO.File]::ReadAllBytes($gallerySavePath)}
     $saveBackedUp=$true
+    function Clear-GallerySave {
+        # Play-mode suites run against a fresh gallery; the backed-up player save is written back in finally.
+        if($saveBackedUp -and (Test-Path -LiteralPath $gallerySavePath)){Remove-Item -LiteralPath $gallerySavePath}
+    }
     try {
     if($wasPlaying){
         Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.CaptureGalleryArrangement();') | Out-Null
@@ -168,7 +172,8 @@ try {
                 $currentContext.status='Passed'
             } elseif($current -eq 'Gallery'){
                 $state=Invoke-Editor @('editor','status')
-                if($state.playMode -ne 'playing'){Invoke-Editor @('editor','set_auto_tick') | Out-Null;Invoke-Editor @('editor.playmode','start') | Out-Null;Wait-Editor}
+                # Start from a known state, not the player's own gallery save (restored after the run).
+                if($state.playMode -ne 'playing'){Clear-GallerySave;Invoke-Editor @('editor','set_auto_tick') | Out-Null;Invoke-Editor @('editor.playmode','start') | Out-Null;Wait-Editor}
                 $directory=Join-Path $runDirectory 'Gallery';$literal=ConvertTo-Json -InputObject $directory -Compress
                 $result=Invoke-Editor @('script','eval',"return await Ecaty.Editor.GalleryScenarioSuite.Run($literal);")
                 $currentContext.data=$result.result
@@ -179,6 +184,7 @@ try {
                 $state=Invoke-Editor @('editor','status')
                 if($state.playMode -ne 'stopped'){Invoke-Editor @('editor.playmode','stop') | Out-Null;Wait-Editor}
                 $mode=if($current -eq 'PlayMode'){'playmode'}else{'editor'}
+                if($current -eq 'PlayMode'){Clear-GallerySave}
                 $filter=if($current -eq 'Native'){'NativeGalleryTests'}else{'Ecaty.Tests'}
                 $run=Invoke-Editor @('test','run','--','--mode',$mode,'--filter',$filter,'--async-tests','true')
                 $statusFile=Join-Path $projectPath $run.StatusPath;$deadline=[DateTime]::UtcNow.AddMinutes(3)
