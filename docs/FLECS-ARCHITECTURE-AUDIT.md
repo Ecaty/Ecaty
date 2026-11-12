@@ -1,6 +1,6 @@
 # Flecs architecture audit (BACKLOG 3)
 
-Date: 2026-11-11. Flecs 4.2.0 vendored. Supersedes docs/history/FLECS-4.2-AUDIT.md. Tags: [V] external source, [C] project code, [M] measured, [I] inference.
+Date: 2026-11-11. Flecs 4.2.0 vendored. Supersedes docs/history/FLECS-4.2-AUDIT.md. Topic-by-topic API reference and ranked recommendations: [FLECS-NOTES](FLECS-NOTES.md). Tags: [V] external source, [C] project code, [M] measured, [I] inference.
 
 ## Verdict
 
