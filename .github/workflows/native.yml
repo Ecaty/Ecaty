@@ -27,8 +27,10 @@ jobs:
         run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
           lfs: false
+      - name: Native submodules only (Store/ is private)
+        run: git submodule update --init --recursive Native/Core Native/App
       - name: Cache the sound bank (LFS)
         uses: actions/cache@v4
         with:

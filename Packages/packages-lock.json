@@ -63,6 +63,13 @@
         "com.unity.formats.fbx": "5.1.2"
       }
     },
+    "com.release-desk.unity": {
+      "version": "https://github.com/Ecaty/release-desk.git?path=/unity",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "08fc27df1af73e97893421e0b2bc4585e0e4d051"
+    },
     "com.runtime.capabilities": {
       "version": "file:com.runtime.capabilities",
       "depth": 0,

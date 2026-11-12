@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.release-desk.unity": "https://github.com/Ecaty/release-desk.git?path=/unity",
     "com.unity.ai.navigation": "2.0.16",
     "com.unity.animation.rigging": "6.6.0",
     "com.unity.cinemachine": "6.6.0",

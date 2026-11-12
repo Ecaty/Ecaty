@@ -10,3 +10,6 @@
 [submodule "Packages/com.ecaty.ai-agent"]
 	path = Packages/com.ecaty.ai-agent
 	url = https://github.com/Ecaty/ai-agent-unity.git
+[submodule "Store"]
+	path = Store
+	url = https://github.com/Ecaty/ecaty-store.git
