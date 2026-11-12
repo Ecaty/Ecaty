@@ -90,7 +90,7 @@ Reference sweep of official Flecs resources, judged against what Ecaty does toda
 - **Audio.** A Script-defined synthesizer, with instrument prefabs and note-clip prefabs.
 - **Logic.** `async`/`await` coroutines.
 - **Organisation.** One `include` per concern (state, geo, materials, props, world, hud, music), with prefixed names.
-- **Version caveat.** Mossvale uses `event`/`emit` keywords that are **not in our 4.2.0 parser**. It runs on a newer development build. Its rendering, animation, synth and layout runtimes are native code we cannot see.
+- **Version caveat.** Mossvale declares and sends script events (`event Advance()`, `emit Advance()`). Those keywords are **not in our 4.2.0 parser, and not in any public Flecs branch** (checked 2026-11-12: master is one commit past our vendored `6879066`, and none of its 52 branches has the tokens). So the feature is unreleased and cannot be pulled from GitHub yet. Until it ships, the 4.2 equivalent is a native custom event (`ecs_emit` plus an observer) or an intent component that a script `await`s. Its rendering, animation, synth and layout runtimes are native code we cannot see.
 - **The lesson for us.** Native code provides generic primitives and runtimes. Script composes all content from them. That is our intended split.
 
 **What we do today**
@@ -462,5 +462,5 @@ Reference sweep of official Flecs resources, judged against what Ecaty does toda
 
 **Version watch:**
 
-- Mossvale's `event`/`emit` Script keywords are newer than our vendored build.
+- Mossvale's `event`/`emit` Script keywords are unreleased (not on any public Flecs branch as of 2026-11-12). Watch the release notes.
 - Revisit this file when we update past `6879066`.
