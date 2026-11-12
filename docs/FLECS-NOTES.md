@@ -436,20 +436,52 @@ Reference sweep of official Flecs resources, judged against what Ecaty does toda
   - The `city` and `tower_defense` demos split components and systems into hub modules (`flecs-components-*`, `flecs-systems-*`). Script holds the assets.
   - The audit confirms that in `tower_defense` every per-frame rule is a native C++ system and Script defines only prefabs and assets. That is the same split we chose.
 
+## 16. Patterns from Sander's public demos (flecs-hub)
+
+Repos: <https://github.com/orgs/flecs-hub/repositories>. Read through `gh api` on 2026-11-12. These demos ship older Flecs: `traffic` vendors 4.1.5 and `city` vendors 4.1.1. Nothing newer than 4.2.0 appears, and neither demo uses auto_override, slots, group_by, change detection, Sparse, DontFragment or CanToggle.
+
+- **The vehicle model is [`city/etc/assets/city.flecs`](https://github.com/flecs-hub/city/blob/main/etc/assets/city.flecs)**, a `module flecs.city` prefab library.
+  - `prefab Car` has part child prefabs (wheels, lights, body). The four wheels are anonymous instances of one `Wheel` prefab placed with `Position3`.
+  - Variants are IsA chains: `SidewalkTree : Tree` and `ModernBuilding : Building`.
+  - Parts inherit colour from shared material prefabs (`Base : BinMaterial {...}`).
+  - Native code looks prefabs up by name and instantiates them with `ChildOf` + `IsA` + `set(Position3)` (`city/src/module.c:79-87`).
+  - For us this is the template for `Vehicle`. A shared part library (wheel, seat, light, propeller) plus material prefabs, and kinds as IsA variants.
+- **Configuration lives in Script; a native generator reacts to it.**
+  - In `city`, `scene.flecs` holds one `city { City: {...} }` entity. An `on_set` hook on `City` generates the whole city natively (`module.c:709+`).
+  - In `traffic`, `traffic.flecs` declares `export const AccelerationForce: 1.5` and similar constants. Native code reads them with `world.get_const_var(...)` (`traffic/src/cars.cpp:99-106`).
+  - **Adopt:** this is how creation tools should drive native capabilities. The AI or user writes a small config component in Script, and a native hook or observer builds the result. It matches our `GalleryConfig.flecs` approach and the `CapBinding` adapters.
+- **Script generates the scene; native code runs the simulation.**
+  - `traffic/etc/assets/grid.flecs` builds a 50×50 road grid with nested `for`, interpolated names (`"road_lr_{x}_{y}"`), `with cars.Road(...) {...}`, and `#0.lookup(...)` to wire entity references.
+  - All per-frame lane and car logic is native. It runs in `multi_threaded` systems (`cars.cpp:598-1201`) under `world.set_threads(8)`.
+- **The `With` trait for companion components.** `Car` automatically adds `Transform` and `TransformManually`, and `Lane` adds its arrays (`cars.cpp:136,157`). **Adopt** this for capability components that always need a companion state component, so authors and the AI cannot forget it.
+- **Static vs code-driven transforms.**
+  - `TransformOnce` marks static entities, so per-frame transform systems skip them.
+  - `TransformManually` marks entities whose matrix code writes directly (`cars.cpp:236-249`).
+  - **Consider** the same split for our view sync: static scenery would skip `fu_read_views` work.
+- **One-shot deferred work.** An `.immediate()` system disables itself after running, and observers re-enable it ("ping") when its inputs change (`cars.cpp:195-201`: `ConnectRoads`, `ConnectIntersections`). This gives a cheap batched post-edit step, for example rebuilding a capability graph once per frame after many Script edits.
+- **Housekeeping.** `traffic/src/main.cpp:28-36` runs a `DeleteEmptyTables` system as `.immediate().rate(10)` in PostLoad. **Consider** it once creations come and go often (section 14).
+- **A reactive template for a visual state.** `traffic_light.flecs` is `@tree Parent` + `template` with `prop state`, bound to the native `TrafficLight` component. It uses `match state {...}` for colour, so native code sets the component and the template re-renders. **Adopt** this for capability visuals: native code sets state, and Script decides how it looks.
+- **Templates can be spawned like prefabs.** `flecs-game`'s grid spawner (`src/main.c:35-60`) accepts a Script template where it expects a prefab, by creating a private default instance. This is useful if our spawn tools accept both kinds.
+- **[flecs-examples](https://github.com/flecs-hub/flecs-examples/tree/main/examples/scripts).** Small Script samples (`buildings`, `fence`, `traffic_light`, `perlin`, `for`, `math`). They are good few-shot material for the agent's Script instructions. They show relative assignment (`Rotation3: {x += ...}`), typed props with defaults, and composable room templates.
+- **Not relevant to us.**
+  - `flecs-cs` (C# bindings) was last updated in 2023; our own C ABI bridge stays.
+  - `flecs-polyglot` provides Rust and TypeScript WASM bindings and is under construction.
+  - The older `flecs-systems-*` renderers are superseded by Unity in our stack.
+
 ---
 
 ## Top changes for us (impact vs effort)
 
 | # | Change | Impact | Effort | Section |
 |---|---|---|---|---|
-| 1 | **Creation kinds as a prefab chain** (`Vehicle` → `Plane`/`Boat`/`Motorbike`). Kind components `(OnInstantiate, Inherit)`, per-instance state `auto_override`, `@tree ChildOf` for named parts. Saves store only overrides plus `IsA`. | High: BACKLOG 6, smaller saves, editing a kind updates all its instances | Medium | 1, 2 |
+| 1 | **Creation kinds as a prefab chain** (`Vehicle` → `Plane`/`Boat`/`Motorbike`), modelled on `city.flecs`: a shared part library plus material prefabs. Kind components `(OnInstantiate, Inherit)`, per-instance state `auto_override`, `@tree ChildOf` for named parts. Saves store only overrides plus `IsA`. | High: BACKLOG 6, smaller saves, editing a kind updates all its instances | Medium | 1, 2, 16 |
 | 2 | **Prototype first:** reload a managed script that defines a kind and check that instance overrides and child paths survive. Then decide the save format (sources plus override states). | High: removes the main risk of item 1 | Low | 1, 9 |
 | 3 | **Doc briefs and alerts as the AI's contract.** Briefs on components, kinds and props; alerts for invalid creations, fed back after each AI edit. | High for AI quality | Low–Medium | 13 |
 | 4 | **Capability coordination becomes an `OnSet` observer, a dirty list and a timer-driven system** in a named phase, with cached queries (audit phase 3). | Medium: removes per-tick polling, shows in pipeline stats | Medium | 6, 7, 8 |
 | 5 | **Relationship traits:** `GalleryOnLayer` Exclusive (+DontFragment); `CapDependsOn` with `OnDeleteTarget, Remove`. Creation wires as relationships plus custom events. | Medium: correctness and cleanup for free | Low | 4, 7 |
 | 6 | **Native code as `flecs::module`s; content files with a `module` line.** | Medium: clarity in the Explorer and for AI, explicit system order | Low | 11 |
 | 7 | **`fu_type_layout` export plus member ranges and units** for C# mirror checks and AI field descriptions. | Medium | Low–Medium | 10, 13 |
-| 8 | **Copy Mossvale's content organisation** (include per concern, `fn` helpers, template scatter) for Workshop and creation content. | Medium | Low | 2 |
+| 8 | **Copy Mossvale's content organisation** (include per concern, `fn` helpers, template scatter) for Workshop and creation content. Use Sander's demo patterns: config in Script built by a native hook, `With` companions, template visuals driven by native state. | Medium | Low | 2, 16 |
 | 9 | **Audit native writers for `modified()`.** Name loop-created entities in AI Script. | Medium: prevents silent reactivity bugs | Low | 3 |
 | 10 | Optional: release native build without REST/HTTP; `CanToggle` for frequent UI state; `group_by` per world; IR runtime A/B. | Low–Medium | Low–Medium | 8, 12, 14 |
 
