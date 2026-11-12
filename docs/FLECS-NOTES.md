@@ -8,6 +8,24 @@ Reference sweep of official Flecs resources, judged against what Ecaty does toda
 
 **Code references.** `file:line` references point at the submodule commits recorded on `main`: Native/Core `0515cdc`, Native/App `087a01a`, flecs-unity `e52267e`.
 
+## The engine picture
+
+The goal is a general runtime engine, not one feature. Sander's own games show the shape (Mossvale in section 2, the flecs-hub demos in section 16), and it matches our split.
+
+- **Native code provides a small set of generic runtimes.** Each one is driven entirely by reflected components:
+  - presentation, which Unity provides for us;
+  - physics and collision, motion, animation curves, particles, audio and synth, layout and UI, terrain and meshing, input, spatial queries, timers.
+  - For us, each of these is a capability with a reflected config component and a native system, hook or observer (docs/RUNTIME-CAPABILITIES.md).
+- **Script holds every piece of content.**
+  - *Prefab libraries* define families of things at every level: parts, materials, objects, creatures, buildings, vehicles, effects, sounds, UI widgets.
+  - *Templates* make procedural shapes and scatter.
+  - *Relationships* wire things together.
+  - Event-rate *rules* (async, intents) drive behaviour.
+  - Users, the AI and our shipped content all write the same Script, through the same edit and undo path.
+- **The world can be inspected and is self-describing.** Doc briefs, alerts, member ranges and units on every type let the AI and Explorer understand the world without hand-kept prompt text (section 13).
+
+Every example below is an instance of this split. "Vehicle → Plane" is just one family; the same mechanics apply to any family of composed objects.
+
 ---
 
 ## 1. Prefabs and inheritance
@@ -58,10 +76,15 @@ Reference sweep of official Flecs resources, judged against what Ecaty does toda
 - Templates are our only instancing mechanism, for example `WorkshopChain.flecs:9`, `ActorBehavior.flecs:3` and `RuntimeLibrary.flecs:3`.
 - `fu_read_views` already handles shared (inherited) fields once per table (`Native/Core/src/flecs_unity.cpp:310-313`).
 
-**Recommendation: adopt** for creation kinds (BACKLOG 6).
+**Recommendation: adopt** as the engine's general kind system for every family of composed objects, not only creation kinds (BACKLOG 6).
 
-- **Model the kinds as a prefab chain.** `prefab Vehicle` → `prefab Plane : Vehicle`, `Boat : Vehicle`, `Motorbike : Vehicle`. A user's creation is `my_plane : Plane { ...only the edits... }`. Sander confirmed this shape to the user.
-- **Mark kind-level components `(OnInstantiate, Inherit)`.** This covers looks, tuning and capability defaults. Changing `Plane` then updates every plane, and saves hold only overrides plus the `IsA` pair.
+- **Every kind is a prefab in a chain.** `Vehicle` → `Plane`/`Boat`/`Motorbike` is one example; Sander confirmed this shape to the user. Others follow the same pattern:
+  - `Creature` → `Bird`/`Fish`
+  - `Light` → `Lamp`/`Candle`
+  - `Weather` → `Rain`/`Snow`
+  - `Widget` → `Button`
+- **A user's or the AI's creation is an instance that holds only its edits**, for example `my_plane : Plane { ... }`. Shared parts and materials are prefabs too (section 16).
+- **Mark kind-level components `(OnInstantiate, Inherit)`.** This covers looks, tuning and capability defaults. Changing a kind then updates every instance, and saves hold only overrides plus the `IsA` pair.
 - **Use `auto_override` only for per-instance state.** That means pose, motion state and anything a system writes every frame.
 - **Use `@tree ChildOf` for kind prefabs whose parts we address by path.** Our bridge, C# and AI tools all look entities up by dotted path (`flecs_unity.cpp:358`). Otherwise keep `Parent` for small fixed sub-trees that never need names (section 5).
 - **Keep templates for procedural geometry** (section 2). A kind prefab can contain template instances.
@@ -92,6 +115,7 @@ Reference sweep of official Flecs resources, judged against what Ecaty does toda
 - **Organisation.** One `include` per concern (state, geo, materials, props, world, hud, music), with prefixed names.
 - **Version caveat.** Mossvale declares and sends script events (`event Advance()`, `emit Advance()`). Those keywords are **not in our 4.2.0 parser, and not in any public Flecs branch** (checked 2026-11-12: master is one commit past our vendored `6879066`, and none of its 52 branches has the tokens). So the feature is unreleased and cannot be pulled from GitHub yet. Until it ships, the 4.2 equivalent is a native custom event (`ecs_emit` plus an observer) or an intent component that a script `await`s. Its rendering, animation, synth and layout runtimes are native code we cannot see.
 - **The lesson for us.** Native code provides generic primitives and runtimes. Script composes all content from them. That is our intended split.
+- **Other games on the same engine** (2026-11-12): [Helix](https://www.flecs.dev/games/helix/) is a 2 km city with traffic, people, drones and a monorail. The others are [Bunny Hopper](https://www.flecs.dev/games/bunny_hopper/), [Lettuce Pray](https://www.flecs.dev/games/lettuce_pray/), [Ship Happens](https://www.flecs.dev/games/ship_happens/) and [Ore Else](https://www.flecs.dev/games/ore_else/). Unlike Mossvale, their Script is compiled into the `.wasm`, so there are no readable source files; they were not studied. To learn from them, ask Sander for the Script sources.
 
 **What we do today**
 
@@ -445,7 +469,7 @@ Repos: <https://github.com/orgs/flecs-hub/repositories>. Read through `gh api` o
   - Variants are IsA chains: `SidewalkTree : Tree` and `ModernBuilding : Building`.
   - Parts inherit colour from shared material prefabs (`Base : BinMaterial {...}`).
   - Native code looks prefabs up by name and instantiates them with `ChildOf` + `IsA` + `set(Position3)` (`city/src/module.c:79-87`).
-  - For us this is the template for `Vehicle`. A shared part library (wheel, seat, light, propeller) plus material prefabs, and kinds as IsA variants.
+  - For us this is the pattern for every kind family, `Vehicle` included. A shared part library (wheel, seat, light, propeller) plus material prefabs, and kinds as IsA variants.
 - **Configuration lives in Script; a native generator reacts to it.**
   - In `city`, `scene.flecs` holds one `city { City: {...} }` entity. An `on_set` hook on `City` generates the whole city natively (`module.c:709+`).
   - In `traffic`, `traffic.flecs` declares `export const AccelerationForce: 1.5` and similar constants. Native code reads them with `world.get_const_var(...)` (`traffic/src/cars.cpp:99-106`).
@@ -474,7 +498,7 @@ Repos: <https://github.com/orgs/flecs-hub/repositories>. Read through `gh api` o
 
 | # | Change | Impact | Effort | Section |
 |---|---|---|---|---|
-| 1 | **Creation kinds as a prefab chain** (`Vehicle` → `Plane`/`Boat`/`Motorbike`), modelled on `city.flecs`: a shared part library plus material prefabs. Kind components `(OnInstantiate, Inherit)`, per-instance state `auto_override`, `@tree ChildOf` for named parts. Saves store only overrides plus `IsA`. | High: BACKLOG 6, smaller saves, editing a kind updates all its instances | Medium | 1, 2, 16 |
+| 1 | **A general kind system: every family of composed objects is a prefab chain** (for example `Vehicle` → `Plane`/`Boat`, `Creature` → `Bird`, `Light` → `Lamp`), modelled on `city.flecs`: a shared part library plus material prefabs. Kind components `(OnInstantiate, Inherit)`, per-instance state `auto_override`, `@tree ChildOf` for named parts. Saves store only overrides plus `IsA`. | High: BACKLOG 6, smaller saves, editing a kind updates all its instances | Medium | 1, 2, 16 |
 | 2 | **Prototype first:** reload a managed script that defines a kind and check that instance overrides and child paths survive. Then decide the save format (sources plus override states). | High: removes the main risk of item 1 | Low | 1, 9 |
 | 3 | **Doc briefs and alerts as the AI's contract.** Briefs on components, kinds and props; alerts for invalid creations, fed back after each AI edit. | High for AI quality | Low–Medium | 13 |
 | 4 | **Capability coordination becomes an `OnSet` observer, a dirty list and a timer-driven system** in a named phase, with cached queries (audit phase 3). | Medium: removes per-tick polling, shows in pipeline stats | Medium | 6, 7, 8 |
