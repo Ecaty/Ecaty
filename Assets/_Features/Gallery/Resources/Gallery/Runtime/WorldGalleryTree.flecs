@@ -5,6 +5,8 @@ struct GalleryPlacement(layer: i32, slot: i32)
 struct GalleryDrag(source: string, target: string, active: bool)
 struct GalleryVisibility(covered: f32, opacity: f32, pickable: bool)
 struct GalleryPortal(world: string)
+// Request to enter a world by id (scripts, AI tools, store screenshots). The gallery clears it after acting.
+struct GalleryEnterIntent(world: string)
 struct GalleryTreeNavigation(approach: bool, returning: bool, exitArmed: bool, exitIdle: bool, exitAt: f32, boundary: f32, target: string, exitPull: f32, entryDistance: f32, portalReturn: bool, portalAt: f32)
 struct GalleryReturnStyle(seconds: f32, revealSeconds: f32, glassSeconds: f32)
 struct GalleryReturnIntent(active: bool, started: f32, world: string, x: f32, y: f32, z: f32, radius: f32)
@@ -24,6 +26,7 @@ GalleryTreeSettings {
     GalleryFocus: {"", "", 0, 0, false, false}
     GalleryTreeNavigation: {false, false, false, false, 0, 30, "", 0, 0, false, 0}
     GalleryPortal: {""}
+    GalleryEnterIntent: {""}
     GalleryReturnStyle: {1.9, 1.55, 0.7}
     GalleryCameraAnchor: {false, 0, -3.7, 0, 1, 0.9, -3.7}
     GalleryCameraMeasure: {1}

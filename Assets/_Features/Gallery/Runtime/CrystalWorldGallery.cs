@@ -449,6 +449,16 @@ namespace Ecaty
                 Theme.UI.Apply(uiDocument.rootVisualElement);
             layoutValid = false;
         }
+        /// <summary>Acts on GalleryTreeSettings.GalleryEnterIntent written by Flecs Script, then clears it.</summary>
+        void ConsumeEnterIntent()
+        {
+            string id = (string)Read("GalleryTreeSettings", "GalleryEnterIntent")?["world"];
+            if (string.IsNullOrEmpty(id))
+                return;
+            Write("GalleryTreeSettings", "GalleryEnterIntent", new JObject { ["world"] = "" });
+            if (!InsideWorld)
+                EnterWorld(id);
+        }
         void ReadState()
         {
             config = Read("GalleryTreeSettings", "GalleryTreeConfig");
@@ -633,6 +643,7 @@ namespace Ecaty
 #endif
                 ReadState();
                 Arrange();
+                ConsumeEnterIntent();
             }
             SetPaused(IsDragging || InsideWorld || Creating || entryArmed || Returning || FocusedGallery || middleWas);
             if (!IsDragging)
