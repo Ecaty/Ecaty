@@ -47,12 +47,14 @@ Steam was searched directly; Play, Epic, App Store, social handles and `.game` w
 
 ## Tagline
 
-**Bring your ideas to life.** (Earlier draft: "Make a world. Bring it to life.")
+**Draw it, build it, or just say it, and it comes alive.** (Earlier draft: "Make a world. Bring it to life.")
 
 ## Voice
 
 - **The player is the creator.** Lead with what they bring to life (drawings, ideas, stories, games) and sharing with friends, not with how the tools work.
 - Life, not just motion: say "give it a life of its own", not "watch it move".
+- Poetic and short over literal: "just say it", not "say it in your own words"; no obvious details ("on paper"); no ambiguous ones ("shape it by hand").
+- Not only sharing: playing together with friends.
 - Convey the feeling, not a manual: no step-by-step mechanics, no interface terms (sphere, tree, helper, typed/spoken).
 - Plain, warm, short sentences.
 - No hype words (amazing, epic, revolutionary, ultimate), no exclamation marks, no feature lists in capitals.
@@ -66,17 +68,17 @@ The texts describe the intended game at release (user direction 2026-11-13), not
 
 | Claim in the text | State 2026-11-13 |
 |---|---|
-| Shape by hand, give it a life of its own | Real (place, move, spin; motion system) |
-| Describe an idea in your own words | Real (local/cloud AI, text and dictation) |
-| Draw on paper and watch it wake up | Not yet: player photo picker pending, drawing-to-creature quality untested |
-| React, play together, little games, stories | Partly: reactions/links and rules are in creation-tools design, not built |
-| Share with friends | Not built; no networking authorized yet |
-| Worlds stay with you, step back in | Real (saved worlds, resume) |
+| Build it, it comes alive | Partly: place, move, spin and the motion system are real; creation tools are designed, not built |
+| Say it | Real (local/cloud AI, text and dictation) |
+| Draw it (real-world drawings) | Not yet: player photo picker pending, drawing-to-creature quality untested |
+| Games, adventures, stories of every kind | Not yet: rules/links are in creation-tools design, not built |
+| Play together, visit friends' creations, share with anyone | Not built; no networking authorized yet |
+| Everything stays yours, return any time | Real (saved worlds, resume) |
 
 | Store | File | Limits |
 |---|---|---|
-| Steam | `Store/steam/listing.json` | short 300 (current 221), about multiline |
-| Google Play | `Store/play/listing.json` | title 30, short 80 (current 76), full 4000 |
+| Steam | `Store/steam/listing.json` | short 300 (current 212), about multiline |
+| Google Play | `Store/play/listing.json` | title 30, short 80 (current 74), full 4000 |
 | Epic | `Store/epic/listing.json` | not yet in Release Desk rules; verify in the Epic Developer Portal |
 
 ## Next branding tasks
