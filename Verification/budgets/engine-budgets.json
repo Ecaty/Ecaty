@@ -88,9 +88,9 @@
     "target_step": "1.4"
   },
   "spawn_prefab_instance": {
-    "description": "Per-instance cost of creating 1000 prefab instances (one named child each) in one managed script.",
+    "description": "Per-instance cost of creating 1000 prefab instances (one named child each) in one managed script. Since engine plan Phase 3 the child of each instance is attached to the kind's part when the script has run (about 8 us more per instance).",
     "kind": "ratio",
-    "guard": 0.75
+    "guard": 1.2
   },
   "typed_read_bodies_up": {
     "description": "fu_query_read_data over ~1000 bodies, cached query with three up-traversal terms.",
