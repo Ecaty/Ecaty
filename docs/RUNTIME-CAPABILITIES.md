@@ -21,7 +21,7 @@ RoadShape {
 }
 ```
 
-`CapState.phase`: 1 applied, 0 waiting/disabled, -1 failed. A revision change forces reapplication. Reconciliation runs at 20 Hz for up to 256 bindings and reads only binding tables whose Flecs data changed (stable query handles with change detection: edits, added/removed bindings, native CapDirty), plus bindings waiting for a target view; an idle world allocates nothing. `Reconcile()` forces a full pass. Physics and animation tick in their own frame stages.
+`CapState.phase`: 1 applied, 0 waiting/disabled, -1 failed. A revision change forces reapplication. Reconciliation runs at 20 Hz for up to 256 bindings (a binding beyond that reports phase -1 and is applied once a slot is free) and reads only binding tables whose Flecs data changed (stable query handles with change detection: edits, added/removed bindings, native CapDirty), plus bindings waiting for a target view; an idle world allocates nothing. `Reconcile()` forces a full pass. Physics and animation tick in their own frame stages.
 
 **Failure recovery:** a failed configuration reports -1 and, if an earlier configuration succeeded, a fresh instance is rebuilt from that last valid configuration. A failed configuration is retried when it changes or a prerequisite's result changes, not every frame. A tick exception disposes the instance until the next edit or dependency change. Consumers keep their last valid output while a prerequisite regenerates or fails.
 

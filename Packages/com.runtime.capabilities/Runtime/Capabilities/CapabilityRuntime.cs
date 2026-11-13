@@ -239,6 +239,9 @@ namespace Runtime.Capabilities
         readonly Dictionary<string, int> queryHandles = new();
         readonly Dictionary<string, string> queryExpressions = new();
         bool fullPass = true;
+        /// <summary>Most bindings applied at once. A binding beyond it reports CapState phase -1 and is not applied.</summary>
+        public const int MaxBindings = 256;
+        bool overBudget;
         /// <summary>
         /// <paramref name="force"/> false reads only binding tables whose Flecs data changed (edits, added/removed bindings,
         /// native CapDirty) plus bindings waiting for a target view; an idle world allocates nothing.
@@ -293,8 +296,13 @@ namespace Runtime.Capabilities
                     string signature = input.ToString(Formatting.None) + config.ToString(Formatting.None);
                     if (!bindings.TryGetValue(key, out var binding))
                     {
-                        if (bindings.Count >= 256)
-                            throw new InvalidOperationException("Capability binding budget exceeded.");
+                        if (bindings.Count >= MaxBindings)
+                        {
+                            // Only the extra binding fails; the applied ones keep running. It is retried when a binding is removed.
+                            WriteState(path, -1, (int)input["revision"], 0, "Capability binding budget exceeded (" + MaxBindings + ")");
+                            overBudget = true;
+                            continue;
+                        }
                         var target = Resolve(targetId);
                         if (!target)
                         {
@@ -360,6 +368,12 @@ namespace Runtime.Capabilities
                     stale.Add(pair.Key);
             foreach (string key in stale)
                 Remove(key);
+            // A freed slot may belong to a binding of another component that was refused: look at all of them once.
+            if (overBudget && stale.Count > 0)
+            {
+                overBudget = false;
+                fullPass = true;
+            }
         }
         void ApplyBinding(ICapabilityAdapter adapter, Binding binding, JObject config)
         {

@@ -124,5 +124,43 @@ namespace Game.Tests
             }
             yield return null;
         }
+        // One binding more than the budget must fail by itself (CapState phase -1) without stopping the others,
+        // and must be applied once a slot is free.
+        [UnityTest]
+        public IEnumerator BindingBeyondTheBudgetFailsAloneAndIsRetried()
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                var runtime = world.gameObject.AddComponent<CapabilityRuntime>();
+                runtime.Initialize(world);
+                runtime.RegisterDiscovered();
+                int count = CapabilityRuntime.MaxBindings + 1;
+                var script = new System.Text.StringBuilder("BudgetTarget { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1} }\n");
+                for (int i = 0; i < count; i++)
+                    script.Append("BudgetLight").Append(i).Append(" { CapBinding: {target: BudgetTarget, enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 10, colorR: 1, colorG: 1, colorB: 1} }\n");
+                world.Session.SetManagedScript("BudgetModule", script.ToString());
+                world.SyncViews();
+                Assert.DoesNotThrow(() => runtime.Reconcile(), "One binding over the budget stopped capability processing");
+                yield return Frames(3);
+                JObject State(int index) => JObject.Parse(world.Session.ComponentJson(world.Session.Lookup("BudgetLight" + index), "CapState"));
+                Assert.That(runtime.BindingCount, Is.EqualTo(CapabilityRuntime.MaxBindings));
+                var refused = Enumerable.Range(0, count).Where(i => (int)State(i)["phase"] == -1).ToList();
+                Assert.That(refused.Count, Is.EqualTo(1), "Exactly the extra binding must report a failure");
+                Assert.That((string)State(refused[0])["message"], Does.Contain("budget"));
+                Assert.That(Enumerable.Range(0, count).Count(i => (int)State(i)["phase"] == 1), Is.EqualTo(CapabilityRuntime.MaxBindings));
+                world.Session.DeleteEntity("BudgetLight" + Enumerable.Range(0, count).First(i => i != refused[0]));
+                runtime.Reconcile(false);
+                runtime.Reconcile(false);
+                yield return Frames(3);
+                Assert.That(runtime.BindingCount, Is.EqualTo(CapabilityRuntime.MaxBindings));
+                Assert.That((int)State(refused[0])["phase"], Is.EqualTo(1), "The refused binding was not applied after a slot became free");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
     }
 }
