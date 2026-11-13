@@ -168,7 +168,7 @@ namespace Runtime.Capabilities
                 active = this;
                 plane = new Plane(camera.transform.forward, Target.position);
                 begin = Target.position;
-                ownsPose = Context.Runtime.World.AcquirePose(Context.TargetEntity, this);
+                ownsPose = Context.Runtime.World.AcquirePose(Context.TargetEntity, Context.Entity);
                 if (!string.IsNullOrEmpty(component))
                 {
                     var json = Context.Session.ComponentJson(edit, component);
@@ -227,7 +227,7 @@ namespace Runtime.Capabilities
             }
             dragOut.Write(Context.Session, "CapDrag", Context.TargetEntity, new CapDragData { x = Target.position.x, y = Target.position.y, z = Target.position.z, active = false });
             if (ownsPose)
-                Context.Runtime.World.ReleasePose(Context.TargetEntity, this);
+                Context.Runtime.World.ReleasePose(Context.TargetEntity, Context.Entity);
             ownsPose = false;
             active = null;
         }

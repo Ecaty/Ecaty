@@ -212,5 +212,36 @@ namespace Game.Tests
             }
             yield return null;
         }
+        // Ownership is an exclusive relationship in the world: one owner per view, and it ends with its owner entity.
+        [UnityTest]
+        public IEnumerator PoseOwnershipIsExclusiveAndEndsWithItsOwner()
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                world.Session.SetManagedScript("OwnershipModule", "OwnedView { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1} }\nOwnerA {}\nOwnerB {}");
+                world.SyncViews();
+                ulong view = world.Session.Lookup("OwnedView"), a = world.Session.Lookup("OwnerA"), b = world.Session.Lookup("OwnerB");
+                var t = world.FindView(view).transform;
+                Assert.That(world.AcquirePose(view, a), Is.True);
+                Assert.That(world.AcquirePose(view, b), Is.False, "A second owner must be refused");
+                t.localPosition = new Vector3(5, 0, 0);
+                world.Session.SetComponentJson("OwnedView", "Position", "{\"x\":1,\"y\":2,\"z\":3}");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(5, 0, 0)), "An owned view must not follow the world");
+                world.Session.DeleteEntity("OwnerA");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)), "Ownership must end with its owner and show the world's pose");
+                Assert.That(world.AcquirePose(view, b), Is.True, "A free view can be claimed");
+                t.localPosition = new Vector3(7, 0, 0);
+                world.ReleasePose(view, b);
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)), "Release must snap back to the world's pose at once");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
     }
 }

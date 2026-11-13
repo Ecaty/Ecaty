@@ -16,6 +16,19 @@ namespace Game
     {
         const string Shared = "GallerySharedShapeSource";
         readonly FlecsWorld world;
+        ulong appOwner;
+        // The store is not an entity: the application module owns the saved world's origin.
+        ulong AppOwner
+        {
+            get
+            {
+                if (appOwner == 0)
+                    appOwner = world.Session.Lookup("app");
+                if (appOwner == 0)
+                    throw new InvalidOperationException("The application module is not in the world.");
+                return appOwner;
+            }
+        }
         string resident; ulong rootId; Transform root; bool visible;
         public int Generation
         {
@@ -146,7 +159,7 @@ namespace Game
                 root = world.FindView(rootId)?.transform;
                 if (!root)
                     throw new InvalidOperationException("Saved world produced no root view");
-                if (!world.AcquirePose(rootId, this))
+                if (!world.AcquirePose(rootId, AppOwner))
                     throw new InvalidOperationException("Saved world origin already owned");
                 // Capability bindings, dependency relations, trees and owned behavior sources follow the objects they target.
                 foreach (string issue in CapabilityGraph.Restore(world.Session, Capabilities, Graph(record), Scope(id), GraphModule(id), Owned(id)))
@@ -287,7 +300,7 @@ namespace Game
             if (resident == null)
                 return;
             CaptureResident();
-            world.ReleasePose(rootId, this);
+            world.ReleasePose(rootId, appOwner);
             foreach (string path in world.Session.ManagedPaths.Where(p => p == GraphModule(resident) || p.StartsWith(Owned(resident), StringComparison.Ordinal)).ToArray())
             {
                 world.Session.SetManagedScript(path, "");

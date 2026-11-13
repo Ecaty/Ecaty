@@ -25,7 +25,7 @@ RoadShape {
 
 **Failure recovery:** a failed configuration reports -1 and, if an earlier configuration succeeded, a fresh instance is rebuilt from that last valid configuration. A failed configuration is retried when it changes or a prerequisite's result changes, not every frame. A tick exception disposes the instance until the next edit or dependency change. Consumers keep their last valid output while a prerequisite regenerates or fails.
 
-**Ownership:** one transform owner per root (authored placement, CharacterController motor, dynamic body or layout). Competing owners are rejected. Material bindings lease appearance separately. Runtime IK must not target a chain owned by another solver.
+**Ownership:** one transform owner per root (authored placement, CharacterController motor, dynamic body or layout). Competing owners are rejected. The owner is the exclusive relationship `(TransformOwner, binding)` or `(AppearanceOwner, binding)` on the view entity in the world, so deleting the binding releases it. Material bindings lease appearance separately. Runtime IK must not target a chain owned by another solver.
 
 ## Adding a capability (two files)
 

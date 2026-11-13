@@ -48,7 +48,7 @@ namespace Game.Adapters
                 }
                 if (child.GetComponent<CharacterController>() || child.GetComponent<Rigidbody>())
                     throw new InvalidOperationException("Layout cannot own an active motor/body child.");
-                if (!Context.Runtime.World.AcquirePose(id, this))
+                if (!Context.Runtime.World.AcquirePose(id, Context.Entity))
                     throw new InvalidOperationException("Layout child already has a movement owner.");
                 var item = child.GetComponent<FlexalonObject>();
                 if (!item)
@@ -64,7 +64,7 @@ namespace Game.Adapters
                     staleChildren.Add(id);
             foreach (var id in staleChildren)
             {
-                Context.Runtime.World.ReleasePose(id, this);
+                Context.Runtime.World.ReleasePose(id, Context.Entity);
                 children.Remove(id);
             }
             SkipOwnChildren();
@@ -110,7 +110,7 @@ namespace Game.Adapters
         public override void Dispose()
         {
             foreach (var id in children.Keys)
-                Context.Runtime.World.ReleasePose(id, this);
+                Context.Runtime.World.ReleasePose(id, Context.Entity);
             foreach (var item in created)
             if (item)
                 UnityEngine.Object.Destroy(item);

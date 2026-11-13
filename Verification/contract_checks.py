@@ -694,6 +694,8 @@ view_changes = bind_extra("fu_view_changes", c.POINTER(View),
                           [P, c.POINTER(c.c_int32), c.POINTER(c.POINTER(c.c_uint64)), c.POINTER(c.c_int32)])
 read_views = bind_extra("fu_read_views", c.c_int32, [P, c.POINTER(View), c.c_int32])
 emit_events = bind_extra("fu_emit_events", c.c_int32, [P, c.POINTER(Event), c.c_int32])
+claim = bind_extra("fu_claim", c.c_int32, [P, c.c_uint64, c.c_uint64, c.c_uint64])
+release = bind_extra("fu_release", c.c_int32, [P, c.c_uint64, c.c_uint64, c.c_uint64])
 
 
 def changes(world):
@@ -801,6 +803,33 @@ def emit_event_calls():
         assert lib.fu_emit_events(world.ctx, mixed, 2) == 1, "an entry with a dead entity must be skipped"
         assert lib.fu_emit_events(world.ctx, None, 3) == -1, "a null array with a positive count is a bad argument"
     return "1 delivered for a live event and entity; a dead entity is skipped; -1 for a null array"
+
+
+@check("ownership")
+def exclusive_ownership():
+    with isolated_world() as world:
+        world.require_load("Owned", "view { Position: {0,0,0} }\nOwnerA {}\nOwnerB {}")
+        view, a, b = (world.lookup(n) for n in ("view", "OwnerA", "OwnerB"))
+        pose, look = world.lookup("TransformOwner"), world.lookup("AppearanceOwner")
+        assert all((view, a, b, pose, look)), "the view, both owners and both relationships must exist"
+        changes(world)
+        assert claim(world.ctx, view, pose, a) == 1 and claim(world.ctx, view, pose, a) == 1, "a free relation, then again by its owner"
+        assert claim(world.ctx, view, pose, b) == 0, "a second owner must be refused"
+        assert changes(world)[0][view].flags == 2, "a pose claim must set the pose-owned flag"
+        assert release(world.ctx, view, pose, b) == 0, "a non-owner must not release"
+        assert release(world.ctx, view, pose, a) == 1 and release(world.ctx, view, pose, a) == 0, "release once, then nothing to release"
+        assert changes(world)[0][view].flags == 0, "release must clear the flag"
+        assert claim(world.ctx, view, look, b) == 1, "the appearance relation is independent"
+        assert changes(world)[0][view].flags == 4, "an appearance claim must set the appearance-owned flag"
+        rows = World.take(lib.fu_query_once_json(world.ctx, b"(AppearanceOwner, $owner)", 0))
+        assert rows and len(json.loads(rows)["results"]) == 1, "the owner must be visible to queries"
+        assert claim(world.ctx, view, pose, a) == 1
+        assert lib.fu_delete_entity(world.ctx, b"OwnerB") == 1 and lib.fu_delete_entity(world.ctx, b"OwnerA") == 1
+        view_after = changes(world)[0][view]
+        assert view_after.flags == 0, f"deleting the owners must clear both flags, got {view_after.flags}"
+        assert claim(world.ctx, view, pose, b) == -1, "a deleted owner is a bad argument"
+        assert claim(world.ctx, 0, pose, a) == -1 and release(world.ctx, view, pose, 0) == -1, "zero ids are bad arguments"
+    return "exclusive claims, release by owner only, flags 2 and 4 in the view stream, cleared when the owner is deleted"
 
 
 # --- Report --------------------------------------------------------------------------------------------------------

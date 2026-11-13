@@ -74,10 +74,10 @@ namespace Runtime.Capabilities
         public void Publish(string type, object value) => Session.SetComponentJson(Path, type, JsonConvert.SerializeObject(value));
         public void OwnPose()
         {
-            if (!Runtime.World.AcquirePose(TargetEntity, this))
+            if (!Runtime.World.AcquirePose(TargetEntity, Entity))
                 throw new InvalidOperationException("Target already has a movement owner.");
         }
-        public void ReleasePose() => Runtime.World.ReleasePose(TargetEntity, this);
+        public void ReleasePose() => Runtime.World.ReleasePose(TargetEntity, Entity);
     }
     // The ECS is the source of truth. These dictionaries are disposable presentation bindings only.
     [DefaultExecutionOrder(150)]

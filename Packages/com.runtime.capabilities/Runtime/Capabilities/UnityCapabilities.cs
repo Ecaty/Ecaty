@@ -183,7 +183,7 @@ namespace Runtime.Capabilities
     public sealed class MaterialCapability : CapabilityInstance<MaterialConfig>
     {
         readonly List<(Renderer, Material, MaterialPropertyBlock)> originals = new();
-        public MaterialCapability(CapabilityContext c) : base(c) { if (!c.Runtime.World.AcquireAppearance(c.TargetEntity, this)) throw new InvalidOperationException("Target already has an appearance owner."); }
+        public MaterialCapability(CapabilityContext c) : base(c) { if (!c.Runtime.World.AcquireAppearance(c.TargetEntity, c.Entity)) throw new InvalidOperationException("Target already has an appearance owner."); }
         protected override void Apply(MaterialConfig j)
         {
             var color = new Color(j.colorR, j.colorG, j.colorB);
@@ -209,7 +209,7 @@ namespace Runtime.Capabilities
         }
         public override void Dispose()
         {
-            Context.Runtime.World.ReleaseAppearance(Context.TargetEntity, this);
+            Context.Runtime.World.ReleaseAppearance(Context.TargetEntity, Context.Entity);
             foreach (var item in originals)
             if (item.Item1)
             {
