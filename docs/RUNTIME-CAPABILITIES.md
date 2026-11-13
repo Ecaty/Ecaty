@@ -80,6 +80,16 @@ These expose selected runtime operations, not every plugin Inspector field. New 
 - **Gallery saved world:** bindings under `worlds.<id>` are ordinary instances in the world's format 2 document, so they save and load with it (atomic load); adapter state is kept next to the document (`CaptureState(root)` / `QueueRestore`). Activation rebuilds them, unloading removes them. A version 1 record with `graph` is converted on read.
 - Reload builds fresh plugin instances. Contacts, plugin internals, playing audio and pending tree/Script waits are not checkpointed; tasks restart. Asset keys must resolve to the same installed/bundled assets.
 
+## Look adapter
+
+`Packages/com.runtime.capabilities/Runtime/Look/` shows the native `Look` and `WorldStyle` components. It is not a `CapBinding` capability: `LookAdapter` (a MonoBehaviour that runs after the world has synced its views) owns a `LookPresenter` and a `WorldStylePresenter`.
+
+- `LookPresenter` gives each element with a `Look` a shared material on its view's renderer. Looks that round to the same values share one reference-counted material (`LookMaterials`), made from two template materials in `Resources/Look` (opaque and clear), so equal looks batch and there are no property blocks. A pattern gets a generated albedo and normal texture (`LookPatternTextures`), cached by the quantised pattern and colours. It takes the appearance with the exclusive `(AppearanceOwner, core.look)` relationship, so other writers see the view as owned, and it restores the original material and releases the relationship when the `Look` goes away.
+- `WorldStylePresenter` shows the entered world's `WorldStyle` as overrides on one global post-processing Volume (white balance, colour adjustments, bloom, vignette). With no world entered or no style, every override is off. Values that are set but not drawn yet are listed in `NotRendered`.
+- `LookManifest` (`Resources/Look/LookManifest.json`) holds the shader names, the mapping from values to shader and Volume settings, and the pattern numbers, so none are repeated in code.
+
+Motion loops (`MotionLoop`, `SecondPose`) need no adapter: the native module writes the offset and the view stream already sends rest plus offset, so Unity applies it as an ordinary view change.
+
 ## Verification
 
 - EditMode `CapabilityContractTests`: generated schema equals the previously shipped schema for all 24 configurations; every configuration round-trips through Flecs; defaults/finite checks; scoped graph capture -> restore in a fresh native world (entities, dependency pairs, configurations); invalid documents rejected.

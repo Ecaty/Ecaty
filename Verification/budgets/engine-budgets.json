@@ -35,6 +35,16 @@
     "target": 2.0,
     "target_step": "1.3"
   },
+  "tick_motion_256_parts": {
+    "description": "fu_tick with 16 motion loops of 16 moving parts each (256 parts with a second pose), all moving.",
+    "kind": "ratio",
+    "guard": 6.6
+  },
+  "tick_motion_idle_1000": {
+    "description": "fu_tick with 1000 elements with two parts each and no loop or second pose: motion costs nothing when unused.",
+    "kind": "ratio",
+    "guard": 1.5
+  },
   "read_views_1000": {
     "description": "fu_read_views over 1000 entities.",
     "kind": "ratio",

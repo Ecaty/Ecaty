@@ -1227,6 +1227,81 @@ def look_contract():
     return "Look 52 bytes and WorldStyle 28 with the expected field names and offsets, defaults, a brief on every member, WorldStyle saved and loaded with the world"
 
 
+# --- Motion loops (Native/Core/src/Motion.cpp) ---------------------------------------------------------------------------
+# MotionLoop and SecondPose are authored; the module writes MotionOffset and MotionState. The view stream sends rest plus
+# offset, and neither run-time component is saved.
+
+MOTION_SCRIPT = ("cat {{\n  Position: {{10, 0, 0}}\n  MotionLoop: {{snap: {snap}, bounce: {bounce}, period: 1, phase: 0.25}}\n"
+                 "  tail {{ Position: {{0, 1, 0}}; SecondPose: {{move: {{x: 0, y: 2, z: 0}}, turn: {{x: 0, y: 90, z: 0}}, stretch: 1}} }}\n"
+                 "  body {{ Position: {{0, 0, 0}} }}\n}}")
+
+
+@check("motion")
+def motion_contract():
+    def values(world, seconds):
+        seen = []
+        for _ in range(int(seconds * 60)):
+            assert lib.fu_tick(world.ctx, 1 / 60) == 0, world.error()
+            seen.append(component(world, "cat", "MotionState")["value"])
+        return seen
+
+    with isolated_world() as world:
+        world.require_load("Motion", MOTION_SCRIPT.format(snap=0, bounce=0))
+        tail, body, cat = world.lookup("cat.tail"), world.lookup("cat.body"), world.lookup("cat")
+        assert tail and body and cat, "the element and its parts are missing"
+        first, _ = changes(world)  # the first call returns every view
+        assert {tail, body, cat} <= set(first), "the first call must return every view"
+        rest = first[tail]
+        smooth = values(world, 4)
+        assert -0.05 <= min(smooth) and max(smooth) <= 1.05, f"snap 0 and bounce 0 left 0..1: {min(smooth)}..{max(smooth)}"
+        assert max(smooth) > 0.8 and min(smooth) < 0.2, "the loop does not swing between rest and the second pose"
+        assert component(world, "cat.tail", "Position") == {"x": 0, "y": 1, "z": 0}, "the rest pose was written"
+        moved, _ = changes(world)
+        assert tail in moved, "the moving part is not in the view stream"
+        view = moved[tail]
+        assert view.flags & 1, f"a part with a turn must be oriented, flags {view.flags}"
+        assert abs(view.py - rest.py) > 1e-3 and view.sx != rest.sx, f"the part is sent at its rest pose: {view.py} against {rest.py}"
+        assert body not in moved and cat not in moved, "a part without a second pose, or the element, was sent"
+        assert component(world, "cat.tail", "MotionOffset"), "the part has no MotionOffset"
+        assert world.entity("cat.body").get("components", {}).get("MotionOffset") is None, "a part without a second pose has an offset"
+    with isolated_world() as world:
+        world.require_load("Motion", MOTION_SCRIPT.format(snap=0, bounce=1))
+        wobble = values(world, 4)
+        assert max(wobble) > 1.05 or min(wobble) < -0.05, f"bounce 1 did not leave 0..1: {min(wobble)}..{max(wobble)}"
+    with isolated_world() as world:
+        world.require_load("Still", "a { Position: {1, 0, 0}\n  b { Position: {0, 1, 0} } }")
+        changes(world)
+        for _ in range(60):
+            assert lib.fu_tick(world.ctx, 1 / 60) == 0, world.error()
+            moved, removed = changes(world)
+            assert not moved and not removed, f"a world without a loop sent {len(moved)} views"
+    with isolated_world() as world:
+        assert lib.fu_run_script(world.ctx, WORLD_SCHEMA.encode()) == 0, world.error()
+        entity = world_create(world.ctx, b"moving")
+        script = ("fish { Position: {0, 0, 0}; MotionLoop: {period: 1}\n"
+                  "  fin { Position: {0, 0, 0}; SecondPose: {move: {x: 0, y: 1, z: 0}} } }")
+        assert world_run(world.ctx, entity, script.encode()) == 0, world.error()
+        for _ in range(20):
+            assert lib.fu_tick(world.ctx, 1 / 60) == 0, world.error()
+        document = saved(world, entity)
+        assert "MotionLoop" in document and "SecondPose" in document, "the loop or the second pose is not in the document"
+        assert "MotionOffset" not in document and "MotionState" not in document, "a run-time value was saved"
+        assert world_load(world.ctx, b"again", document.encode()), world.error()
+    with isolated_world() as world:
+        members = {"MotionLoop": ["snap", "bounce", "period", "phase"], "SecondPose": ["move", "turn", "stretch"],
+                   "MotionOffset": [], "MotionState": []}
+        missing = []
+        for type_name, names in members.items():
+            for path in [type_name] + [f"{type_name}.{n}" for n in names]:
+                components = world.entity(path).get("components", {})
+                if not components.get("(flecs.doc.Description,flecs.doc.Brief)", {}).get("value"):
+                    missing.append(path)
+        assert not missing, f"no brief on: {missing}"
+    return ("loops stay in 0..1 without bounce and leave it with bounce; the rest pose is never written; the view stream sends the moving part "
+            "with an offset and an orientation, and neither the other part nor the element; a world without a loop sends nothing; "
+            "documents hold the loop and the second pose only; every member has a brief")
+
+
 # --- Report --------------------------------------------------------------------------------------------------------
 
 passed = all(row["ok"] for row in results)

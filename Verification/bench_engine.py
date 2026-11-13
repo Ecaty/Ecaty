@@ -174,6 +174,29 @@ def tick_trees_256():
         return best_calls(lambda: tick(w, 0.016), 400)
 
 
+def tick_motion_256_parts():
+    """16 loops with 16 moving parts each: the cost of motion while it runs."""
+    lines = []
+    for e in range(16):
+        parts = "\n".join(
+            f" p{i} {{ Position: {{0,{i},0}}; SecondPose: {{move: {{x: 0, y: 1, z: 0}}, turn: {{x: 0, y: 45, z: 0}}, stretch: 0.5}} }}"
+            for i in range(16))
+        lines.append(f"M{e} {{ Position: {{{e},0,0}}; MotionLoop: {{snap: 0.5, bounce: 0.5, period: 2, phase: {e / 16}}}\n{parts}\n}}")
+    with world() as w:
+        set_script(w, "Motion", "\n".join(lines))
+        tick(w, 0.016)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def tick_motion_idle_1000():
+    """1000 elements with parts and no loop or second pose: motion must cost nothing when unused."""
+    lines = [f"E{i} {{ Position: {{{i},0,0}}\n a {{ Position: {{0,1,0}} }}\n b {{ Position: {{0,2,0}} }} }}" for i in range(1000)]
+    with world() as w:
+        set_script(w, "Idle", "\n".join(lines))
+        tick(w, 0.016)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
 # ---- view snapshot and presentation -------------------------------------
 
 def read_views_metric(n):
@@ -459,6 +482,8 @@ METRICS = [
     ("tick_bindings_1000", lambda: tick_bindings(1000)),
     ("tick_splines_256", tick_splines_256),
     ("tick_trees_256", tick_trees_256),
+    ("tick_motion_256_parts", tick_motion_256_parts),
+    ("tick_motion_idle_1000", tick_motion_idle_1000),
     ("read_views_1000", lambda: read_views_metric(1000)),
     ("view_changes_10000_static", view_changes_10000_static),
     ("read_views_10000", lambda: read_views_metric(10000)),
