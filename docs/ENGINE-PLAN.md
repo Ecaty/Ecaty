@@ -72,6 +72,7 @@ Per frame today: `fu_tick` services REST, resolves waits, sets `Clock`, runs the
 | N8 | Any managed-script set, undo or entity delete marks **every** query handle as changed, so every consumer refreshes fully. Each AI edit therefore re-parses all capability bindings. | [C] `flecs_unity.cpp:65-71`, `:609`. [M] an unrelated script set flips an idle `[in] A` handle to changed. |
 | N9 | The transform contract is Euler `Rotation`, no quaternion, and the view struct is fixed at position, rotation, scale, colour, primitive, label. Anything richer goes through capabilities and JSON. | [C] `FlecsComponents.hpp:9-17`, `flecs_unity.h:14-23` |
 | N10 | Errors cross the ABI as one 4 KB text buffer. No line, column or entity is reported in a structured way for the AI. | [C] `flecs_unity.cpp:32`, `:255`, `:281-286` |
+| N12 | **Redeclaring a struct that is in use corrupts stored values and reports success.** `struct Wings(span: f32, sweep: f32)` over a live `Wings(span: f32)` changes the component size from 4 to 8 while existing storage keeps 4-byte values; neighbouring entities then read each other's data. Flecs logs "cannot change trait 'Component' ... already in use" as fatal, but with soft asserts execution continues and the call returns 0. Any Script source can do this today: AI edits, REST, saved sources. | [M] `spike4.py`; [C] `fu_run_script` `flecs_unity.cpp:231-258`, `fu_set_managed_script` `:260-289`, `FLECS_SOFT_ASSERT` `Native/Core/CMakeLists.txt:32` |
 | N11 | Release builds keep every addon (REST, HTTP) and keep asserts (`FLECS_KEEP_ASSERT`, `FLECS_SOFT_ASSERT`). No warning flags, no sanitizer build, no C++ test target. The cost of kept asserts is not measured. | [C] `Native/Core/CMakeLists.txt:32` |
 
 **Kind reload matrix** [M]. Schema, kinds and instances were three managed scripts; `Speed` and `Wings` are `(OnInstantiate, Inherit)`, `Pose` is `auto_override`, parts use `@tree ChildOf`.
@@ -207,10 +208,12 @@ app.gallery ring and tree motion (Native/App)
 
 - **Kinds are prefab chains in the library scope**, as FLECS-NOTES recommends: engine components `(OnInstantiate, Inherit)`, per-instance state `auto_override`, named parts with `@tree ChildOf`, companion components through `With`.
 - **Instances are data, not Script.** A native `spawn(kind, parent, overrides)` creates them; tools and the AI change them with typed or JSON writes (1.7 µs measured) with no reload, so ids, Unity objects and plugin instances stay alive during editing. Entity JSON of an instance already contains only its overrides [M].
-- **A native source manager owns every managed script.** One script per kind (or per recipe or rule set), never one script per world. It records which instances use a kind, and after a kind reload it re-attaches `IsA`, spawns newly added parts and reports what changed. It returns structured errors (script, line, message) and keeps a bounded undo stack per script.
-- **Edit protocol**: while a value is dragged, write the component (live). On release, commit: for an instance nothing more is needed; for a kind, apply the source edit and let the manager re-attach. Target: commit under 1 ms.
+- **A native source manager owns the text of every kind, recipe and template** (one source per kind, never one per world) and **applies a changed source in place** instead of reloading it (result of the step 0.3 spike, in section 4). It evaluates the new text over the existing prefab, finds what the new text no longer defines by evaluating it once under a staging scope, removes exactly that, and syncs parts on existing instances. It returns structured errors (source, line, message) and keeps a bounded undo stack per source. Kinds and instances are not Flecs managed scripts; managed scripts stay for schemas (never reloaded) and for reactive rule scripts.
+- **Parts are instances of the kind's parts.** Flecs copies a prefab's children on instantiation, so a copied part does not follow later edits of the kind's part and stores every value. The manager therefore creates each part as `part : Kind.part`, which stores nothing and follows the kind; it adds parts that a kind gains and removes parts that a kind loses, unless the instance changed that part.
+- **Types are never redefined.** The manager and the script entry points reject a source that redeclares an existing type with a different layout (finding N12).
+- **Edit protocol**: while a value is dragged, write the component (live). On release, commit: for an instance nothing more is needed; for a kind, the manager applies the edited source in place. Target: commit under 1 ms (measured in the spike: about 0.1 ms including the staging pass).
 - **Schema scripts are never reloaded in place.** Player- or AI-defined types live in their own scripts and change by adding a new version.
-- This needs a spike before it is built (plan step 0.3). If a later Flecs version updates a prefab script in place (keeping entity ids and instances), we adopt it and remove our re-attach step.
+- If a later Flecs version updates a prefab script in place (keeping entity ids and instances), we adopt it and remove our own step.
 
 ### 3.4 Bridge (ABI 4)
 
@@ -274,7 +277,7 @@ Targets on the development desktop, release DLL. Each becomes an automated check
 | Bridge traffic per frame | ≤ 0.2 ms, 0 B managed allocation | gallery ≈ 0.085 ms and < 0.1 KB (audit); capabilities ≈ 22 KB (audit) |
 | Live value write (drag) | ≤ 5 µs | 1.7 µs [M] |
 | Edit commit (release) | ≤ 1 ms | 0.14 ms to 19 ms, by script size [M] |
-| Kind edit with 1,000 instances | ≤ 5 ms | breaks instances [M] |
+| Kind edit with 1,000 instances | ≤ 5 ms | reload breaks instances; in-place application ≈ 0.1 ms in the spike [M] |
 | Load 1,000 instances | ≤ 100 ms | ≈ 12 µs per instance natively [M] |
 | AI tool query | ≤ 1 ms native, never disturbs feature queries | 24 µs new expression; flushes shared slots [M] |
 
@@ -290,9 +293,24 @@ Effort: **S** up to half a day, **M** one to two days, **L** three to five days,
 |---|---|---|---|---|
 | 0.1 | Benchmark harness in `Verification/` with JSON output and the budgets of 3.9 as thresholds; run it in native CI. Start from this review's scripts. | CI fails when a budget regresses by more than 25 %. | Noisy CI timings; use ratios against an in-run baseline. | S, **S** |
 | 0.2 | Native contract checks in CI: every `.flecs` file loads in a scratch world; header exports match `DllImport` declarations; Debug build with warnings on. | New Python checks pass; the eight uncalled exports are covered or removed. | Low. | M, **S** |
-| 0.3 | **Kind lifecycle spike** (throwaway branch): prototype the re-attach after a kind reload and the instance-as-data spawn; repeat the matrix of 2.1. | Every row of the matrix passes; kind edit with 1,000 instances timed. | This decides 3.3. If re-attach is not clean, fall back to option B of decision 2. | M, **F** |
+| 0.3 | **Kind lifecycle spike**: how a kind can change while its instances live (re-attach after reload versus in-place application), and instances as data. **Done, see the result below.** | Every row of the matrix passes; kind edit with 1,000 instances timed. | This decides 3.3. | M, **F** |
 | 0.4 | Golden saves: one experience and one gallery arrangement captured as fixtures with a load test. | EditMode test loads both. | Low. | S, **S** |
 | 0.5 | Small defects found in review: 256-binding throw, gallery 80-entry cap at creation, per-frame `Has()` read, duplicate `SyncViews`, trace default. | Existing suites plus one test each. | Low. | S–M, **S** |
+
+**Step 0.3 result (2026-11-13, done)** [M]. Scripts `spike_kinds.py`, `spike2.py`, `spike3.py`, `spike4.py` in the shared notes folder; current DLL, Python ctypes.
+
+| Question | Result |
+|---|---|
+| Reload the kind, then re-add `IsA` on its instances (the plan's first idea) | **Rejected.** Values come back, but re-adding `IsA` instantiates the parts again (`engine` twice), part ids change, and reloading a base kind also detaches the kinds derived from it. 7.5 ms for 1,000 instances. |
+| Evaluate the changed kind source over the existing prefab (one-shot, no reload) | **Works.** Prefab, instance and part ids stay. Instances see the new inherited value at once, also through two levels of `IsA`. About 35 µs with 1,000 instances (3 µs when the parsed text is cached); a direct component write on the prefab is 5 µs. |
+| Finding what a new source removed | Evaluate it once under a staging scope: base kinds resolve to the live ones, the staged prefab lists exactly the components and parts the source defines, and deleting the staging scope leaves the live kind untouched. Staging plus apply: about 0.1 ms. |
+| Parts of existing instances | Flecs copies parts: an instance's part has no `IsA` to the kind's part and does not follow its edits. A part created as `part : Kind.part` follows and stores nothing. A part added to a kind does not reach existing instances by itself; one removed from a kind stays on them. Adding one part to 1,000 instances through Script took 12.7 ms. |
+| Deleting a kind that has instances | Instances stay alive and lose their inherited values. The manager must refuse, or first copy the values onto the instances. |
+| Templates | A template can be redefined in place the same way; existing instances re-evaluate and keep their ids. |
+| Instances created by a one-shot script (data, no managed script) | Survive every kind change with ids, overrides and runtime values intact. |
+| Redeclaring a struct in use | Corrupts stored values and returns success (finding N12). |
+
+Consequences: section 3.3 now uses in-place application; step 3.1 builds that (plus the part sync and the type guard); step 1.5 is new.
 
 ### Phase 1: native foundation
 
@@ -301,6 +319,7 @@ Effort: **S** up to half a day, **M** one to two days, **L** three to five days,
 | 1.1 | Modules and the phase map; split `RuntimeCapabilities.cpp` into `cap`, `tree`, `geometry`, `sound` files with no behaviour change. | Python smokes unchanged; Explorer shows modules and systems in phases. | Name paths change for Script; keep root aliases for one release. | M, **F→S** |
 | 1.2 | `cap` contracts native; observers, dirty list and timer system replace `coordinate()`; relationship traits. | Capability contract and lifecycle tests; idle tick with 1,000 bindings within budget. | Saved schemas that redefine these structs must be skipped on load. | M, **F** |
 | 1.3 | Footprints and trees react to `OnSet`; no per-tick string work. | Idle tick with 256 splines and 256 trees within budget; footprint outputs identical. | Low. | S–M, **F→S** |
+| 1.5 | Reject a script that redeclares an existing type with a different layout (N12), at `fu_run_script`, `fu_set_managed_script` and REST edits, before anything is evaluated. | Python test: the redeclaration returns an error, the size is unchanged and stored values read back intact. | Detecting it before evaluation needs a pre-parse of type statements; a Flecs log hook is the fallback. | S–M, **F** |
 | 1.4 | Separate tool queries from feature handles; scoped invalidation on source change. | Benchmark: 40 tool queries cause no rebuild of feature handles; an unrelated script set leaves an idle handle unchanged. | Missed invalidation gives stale reads; keep the "type no longer alive" rebuild. | M, **F** |
 
 ### Phase 2: bridge ABI 4
@@ -316,7 +335,7 @@ Effort: **S** up to half a day, **M** one to two days, **L** three to five days,
 
 | Step | What | Check | Risk | Effort |
 |---|---|---|---|---|
-| 3.1 | Native source manager (scripts, dependents, structured errors, undo). | The 0.3 matrix as a permanent test; edit-commit budget. | The core of the design; depends on 0.3. | L, **F** |
+| 3.1 | Native source manager: in-place application with a staging pass, part sync, refusal to delete a kind in use, structured errors, undo. | The 0.3 matrix as a permanent test; edit-commit budget. | The core of the design. Part sync when an instance changed a part needs a clear rule (keep the instance's part). | L, **F** |
 | 3.2 | Kind system: library scope, traits on engine components, `spawn`, a first part and material library, pouch items as kinds. | Spawn 1,000 instances, edit the kind, verify all follow and saves hold only overrides. | Child-part policy when a kind changes (decision 2). | L, **F** |
 | 3.3 | World scope: `worlds.<id>` subtree, `(Entered, world)`, scoped queries and Script. | Two worlds loaded; a tool call in one cannot see the other. | Gallery private-root code must move to the same model. | M, **F→S** |
 | 3.4 | World document v2, migration from both v1 formats, atomic load, Play snapshot and rewind. | Golden v1 files load; round trip equals; a corrupted file leaves the world untouched. | Save compatibility is the highest user-facing risk; keep the v1 reader until the user confirms their saves load. | L, **F** |
@@ -367,7 +386,7 @@ Changed by the user on 2026-11-13: do not ask Sander Mertens. We build our own r
 - [ ] C. Keep today's model (large scripts plus a state overlay). No work now; kinds and fast edits stay blocked.
 
 **2. How do kinds survive a reload?**
-- [x] **A. A native source manager re-attaches instances and adds new parts after a kind reload** (recommended). It is removed if a later Flecs version does this itself.
+- [x] **A. A native source manager keeps kinds and their instances intact when a kind changes** (recommended). After the step 0.3 spike it does this by applying the changed source in place, not by reloading and re-attaching. It is removed if a later Flecs version does this itself.
 - [ ] B. Never reload for value edits: write the world live and keep the source text in our own store. Faster, but text and world can drift.
 - [ ] C. Wait for an upstream answer before building kinds.
 
