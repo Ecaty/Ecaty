@@ -1,6 +1,6 @@
 # Engine plan: review and target architecture
 
-Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Nothing here is implemented; each phase starts only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
+Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phase 0 is implemented on this branch (see "Phase 0 status" in section 4) and waits for one Unity test run after merge. Later phases start only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
 
 Readable page with pickable decisions: https://claude.ai/artifact/3mxTpAwGuAYdgmeBEE9jrw (private to the owner until shared).
 
@@ -297,6 +297,16 @@ Effort: **S** up to half a day, **M** one to two days, **L** three to five days,
 | 0.4 | Golden saves: one experience and one gallery arrangement captured as fixtures with a load test. | EditMode test loads both. | Low. | S, **S** |
 | 0.5 | Small defects found in review: 256-binding throw, gallery 80-entry cap at creation, per-frame `Has()` read, duplicate `SyncViews`, trace default. | Existing suites plus one test each. | Low. | S–M, **S** |
 
+**Phase 0 status (2026-11-13).** Implemented on `feature/engine-architecture-review` after the user's go.
+
+| Step | State | Evidence |
+|---|---|---|
+| 0.1 | Done. `Verification/bench_engine.py` with `Verification/budgets/engine-budgets.json`: 16 timings as ratios against an empty tick plus 2 behaviour flags; guards are enforced, targets are reported with the step that will meet them. In the Extended suite; CI runs it as a report until the guards are confirmed on the runner. | Passes against the committed DLL (about 45 s); ratios vary by about 10 % between runs. Two things it turned up: `tick_splines_256` runs about four times slower in roughly one process in four (cause unknown, to look at in step 1.3; the harness takes the best of three fresh processes), and `fu_write_presented` crashes on an entity id of 0 (to guard in step 2.2). |
+| 0.2 | Done except the Debug build. `Verification/contract_checks.py`: header against DLL exports and C# imports, ABI constants, all 26 `.flecs` files loading after their prerequisites, and real assertions for the eight exports no smoke called. A gate in CI and in the Extended suite. **The Debug build with warnings moved to step 1.1**, where the native files are split anyway. | 36 of 36 checks pass. |
+| 0.3 | Done, result below. | |
+| 0.4 | Checks added to the experience verifier and the gallery suite. Each seeds `Tests/Fixtures/Saves/<name>-v1.json` from its own fixture scenario the first time it runs, then loads the committed file on every later run. **The two files do not exist yet: they appear after the first Extended and Gallery run and must be committed.** | Compiles offline; not run in Unity. |
+| 0.5 | Done: a binding over the 256 budget fails alone and is retried (with a PlayMode test); world creation is refused at the 80-entry limit that restore enforces; the per-frame saved-world read is cached; actors refresh the views once per frame, not once per actor; trace capture is opt-in (toggle or `-agentTrace`). | All changed assemblies compile offline with Unity's compiler and response files (0 errors). **Not run in Unity:** `Tests/Run-All.cmd` and `Tests/Run-Extended.cmd` are needed after merge. |
+
 **Step 0.3 result (2026-11-13, done)** [M]. Scripts `spike_kinds.py`, `spike2.py`, `spike3.py`, `spike4.py` in the shared notes folder; current DLL, Python ctypes.
 
 | Question | Result |
@@ -316,7 +326,7 @@ Consequences: section 3.3 now uses in-place application; step 3.1 builds that (p
 
 | Step | What | Check | Risk | Effort |
 |---|---|---|---|---|
-| 1.1 | Modules and the phase map; split `RuntimeCapabilities.cpp` into `cap`, `tree`, `geometry`, `sound` files with no behaviour change. | Python smokes unchanged; Explorer shows modules and systems in phases. | Name paths change for Script; keep root aliases for one release. | M, **F→S** |
+| 1.1 | Modules and the phase map; split `RuntimeCapabilities.cpp` into `cap`, `tree`, `geometry`, `sound` files with no behaviour change. Add a Debug build with warnings on our own sources (moved here from step 0.2) and the small C++ test target of decision 7. | Python smokes unchanged; Explorer shows modules and systems in phases; the Debug build is clean. | Name paths change for Script; keep root aliases for one release. | M, **F→S** |
 | 1.2 | `cap` contracts native; observers, dirty list and timer system replace `coordinate()`; relationship traits. | Capability contract and lifecycle tests; idle tick with 1,000 bindings within budget. | Saved schemas that redefine these structs must be skipped on load. | M, **F** |
 | 1.3 | Footprints and trees react to `OnSet`; no per-tick string work. | Idle tick with 256 splines and 256 trees within budget; footprint outputs identical. | Low. | S–M, **F→S** |
 | 1.5 | Reject a script that redeclares an existing type with a different layout (N12), at `fu_run_script`, `fu_set_managed_script` and REST edits, before anything is evaluated. | Python test: the redeclaration returns an error, the size is unchanged and stored values read back intact. | Detecting it before evaluation needs a pre-parse of type statements; a Flecs log hook is the fallback. | S–M, **F** |
