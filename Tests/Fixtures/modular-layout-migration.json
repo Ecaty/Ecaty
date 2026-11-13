@@ -99,11 +99,11 @@
     },
     {
       "from": "Assets/__Common/Bootstrap/EcatyAgentTools.cs",
-      "to": "Assets/__Common/Agent/Runtime/EcatyAgentTools.cs"
+      "to": "Assets/__Common/Agent/Runtime/WorldAgentTools.cs"
     },
     {
       "from": "Assets/__Common/Bootstrap/EcatyTheme.cs",
-      "to": "Assets/__Common/Theme/Runtime/EcatyTheme.cs"
+      "to": "Assets/__Common/Theme/Runtime/GameTheme.cs"
     },
     {
       "from": "Assets/__Common/Bootstrap/GalleryExitFeedback.cs",
@@ -1341,19 +1341,19 @@
     },
     {
       "from": "Assets/Ecaty/Runtime/EcatyAgentTools.cs",
-      "to": "Assets/__Common/Agent/Runtime/EcatyAgentTools.cs",
+      "to": "Assets/__Common/Agent/Runtime/WorldAgentTools.cs",
       "guid": "c2da89cadf99a614daeeb2e78358c6bc",
       "sha256": "347eaf0730f86ef1932c641060f01c80c25641117cac83fc2a039bdb55d93cf8"
     },
     {
       "from": "Assets/Ecaty/Runtime/EcatyBootstrap.cs",
-      "to": "Assets/__Common/Bootstrap/EcatyBootstrap.cs",
+      "to": "Assets/__Common/Bootstrap/GameBootstrap.cs",
       "guid": "82fdd7c2ca302a84b9a1727f603bb9ec",
       "sha256": "58700b7d114e7729d2774a4502ed32bd25e32fc3a24751cc43fd050fa9009ead"
     },
     {
       "from": "Assets/Ecaty/Runtime/EcatyTheme.cs",
-      "to": "Assets/__Common/Theme/Runtime/EcatyTheme.cs",
+      "to": "Assets/__Common/Theme/Runtime/GameTheme.cs",
       "guid": "bd7038b7a4fbbc94c8b714074edb853c",
       "sha256": "46cec43fbf2ef3319e437511be0fc7eb675b74dfc4a3e47d400283c48bd3922e"
     },
@@ -1619,7 +1619,7 @@
     },
     {
       "from": "Assets/Ecaty/Tests/EditMode/Ecaty.Tests.EditMode.asmdef",
-      "to": "Assets/_Features/Gallery/Tests/EditMode/Ecaty.Tests.EditMode.asmdef",
+      "to": "Assets/_Features/Gallery/Tests/EditMode/Gallery.Tests.EditMode.asmdef",
       "guid": "73c2d71f60bc7e54faecd2e855a110be",
       "sha256": "5b93cd5c1284abd1df383adac111bc9b8dab1aff86968ce95f70140b33332a81"
     },
@@ -1631,7 +1631,7 @@
     },
     {
       "from": "Assets/Ecaty/Tests/PlayMode/Ecaty.Tests.PlayMode.asmdef",
-      "to": "Assets/_Features/Gallery/Tests/PlayMode/Ecaty.Tests.PlayMode.asmdef",
+      "to": "Assets/_Features/Gallery/Tests/PlayMode/Gallery.Tests.PlayMode.asmdef",
       "guid": "804a67d97a809e84b9731b98933577a4",
       "sha256": "8ec676c8c6ef4e874539338c4b2a5996d68a1424b1c9824c1ed75d9cb1d72e87"
     },
