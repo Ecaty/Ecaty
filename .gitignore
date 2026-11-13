@@ -186,6 +186,8 @@ InitTestScene*.unity*
 /Packages/xyz.staggart-creations.splinemesher-pro.meta
 /Assets/AmplifyShaderEditor/
 /Assets/AmplifyShaderEditor.meta
+/Assets/AmplifyShaderPack/
+/Assets/AmplifyShaderPack.meta
 
 # Local automated test captures and reports
 /Tests/Results/
