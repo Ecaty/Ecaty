@@ -52,9 +52,28 @@ namespace Game.Tests
                 Bodies = new BodyPresenter(World);
             }
 
-            public ulong Id(string path) => Session.Lookup(path);
-            public Rigidbody Body(string path) => Bodies.BodyOf(Id(path));
-            public Transform View(string path) => World.FindView(Id(path)).transform;
+            public string Info => Bodies.Diagnostics + " free bodies in the world: " + Session.QueryOnce("Free");
+
+            // Each lookup says what is missing and what the presenter holds, instead of failing on a null later.
+            public ulong Id(string path)
+            {
+                ulong id = Session.Lookup(path);
+                Assert.That(id, Is.Not.EqualTo(0UL), "no entity at " + path + ". " + Info);
+                return id;
+            }
+            public GameObject ViewObject(string path)
+            {
+                var view = World.FindView(Id(path));
+                Assert.That(view, Is.Not.Null, "no view for " + path + ". " + Info);
+                return view;
+            }
+            public Rigidbody Body(string path)
+            {
+                var body = Bodies.BodyOf(Id(path));
+                Assert.That(body, Is.Not.Null, "no Rigidbody for " + path + ". " + Info);
+                return body;
+            }
+            public Transform View(string path) => ViewObject(path).transform;
 
             // The order the adapter runs in a frame: step, physics, note poses, native tick and view sync, put views back.
             public void Advance(float seconds)
@@ -82,12 +101,15 @@ namespace Game.Tests
             }
 
             // True when the entity is a child of the parent, asked of the world itself.
-            public bool IsChild(string child, string parent) =>
-                Session.QueryOnce("Free, (ChildOf, " + parent + ")").Contains("\"" + child + "\"");
+            public void AssertChild(string child, string parent, bool expected = true) =>
+                Assert.That(Session.QueryOnce("Free, (ChildOf, " + parent + ")").Contains("\"" + child + "\""), Is.EqualTo(expected),
+                    child + (expected ? " should be" : " should not be") + " a child of " + parent + ". " + Info);
 
             public Vector3 Flecs(string path)
             {
-                var position = JObject.Parse(Session.ComponentJson(Id(path), "Position"));
+                string json = Session.ComponentJson(Id(path), "Position");
+                Assert.That(json, Is.Not.Null, path + " has no Position. " + Info);
+                var position = JObject.Parse(json);
                 return new Vector3(position["x"].Value<float>(), position["y"].Value<float>(), position["z"].Value<float>());
             }
 
@@ -105,9 +127,9 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario());
-            Vector3 drifter = scene.World.FindView(scene.Id("drifter")).transform.position;
+            Vector3 drifter = scene.View("drifter").position;
             scene.Advance(0.2f);
-            Assert.That(scene.Bodies.TrackedCount, Is.GreaterThanOrEqualTo(8), "shapes and bodies were built");
+            Assert.That(scene.Bodies.TrackedCount, Is.GreaterThanOrEqualTo(8), "shapes and bodies were built. " + scene.Info);
             Assert.That(scene.Body("land.ball").position.y, Is.LessThan(3f), "the ball is falling");
             scene.Advance(2.8f);
             var ball = scene.Body("land.ball");
@@ -140,11 +162,11 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario(dropper: true));
-            Assert.That(scene.IsChild("dropper", "land"));
+            scene.AssertChild("dropper", "land");
             scene.Advance(3f);
-            Assert.That(scene.IsChild("dropper", "land.pond"), "a ball dropped into the pond is in the pond");
-            Assert.That(scene.IsChild("fish", "land.pond"));
-            Assert.That(scene.IsChild("ball", "land"));
+            scene.AssertChild("dropper", "land.pond");
+            scene.AssertChild("fish", "land.pond");
+            scene.AssertChild("ball", "land");
             var force = JObject.Parse(scene.Session.ComponentJson(scene.Id("land.pond.dropper"), "EffectiveForce"));
             Assert.That(force["fluid"].Value<float>(), Is.EqualTo(1f), "it gets the pond's fluid");
             // A body pushed out of the pond sideways is in the land again.
@@ -152,8 +174,8 @@ namespace Game.Tests
             fish.position = new Vector3(8.5f, 2f, 0f);
             fish.linearVelocity = Vector3.zero;
             scene.Advance(0.5f);
-            Assert.That(scene.IsChild("fish", "land"), "the fish is a child of the land");
-            Assert.That(scene.IsChild("fish", "land.pond"), Is.False);
+            scene.AssertChild("fish", "land");
+            scene.AssertChild("fish", "land.pond", false);
             var land = JObject.Parse(scene.Session.ComponentJson(scene.Id("land.fish"), "EffectiveForce"));
             Assert.That(land["fluid"].Value<float>(), Is.EqualTo(0f), "and it has no fluid");
         }
@@ -194,14 +216,14 @@ namespace Game.Tests
             yield return null;
             using var scene = new Scene(Scenario());
             scene.Advance(1f);
-            var view = scene.World.FindView(scene.Id("land.ball"));
-            Assert.That(view.GetComponent<Rigidbody>(), Is.Not.Null);
+            var view = scene.ViewObject("land.ball");
+            Assert.That(view.GetComponent<Rigidbody>(), Is.Not.Null, "no Rigidbody on the view. " + scene.Info);
             Assert.That(view.transform.parent, Is.SameAs(scene.World.transform), "a simulated body hangs under the world root");
             Assert.That(scene.World.AcquirePose(scene.Id("land.ball"), scene.Id("land")), Is.False, "its pose is held");
             scene.Session.SetManagedScript("Bodies", Scenario(ballFree: false));
             scene.Advance(0.1f);
             yield return null;
-            Assert.That(scene.Body("land.ball"), Is.Null);
+            Assert.That(scene.Bodies.BodyOf(scene.Id("land.ball")), Is.Null);
             Assert.That(view.GetComponent<Rigidbody>(), Is.Null, "the Rigidbody is gone");
             Assert.That(view.GetComponent<Collider>(), Is.Null, "and so is the collider");
             Assert.That(view.transform.parent, Is.SameAs(scene.View("land")), "the view is under its parent again");
@@ -220,9 +242,9 @@ namespace Game.Tests
             yield return null;
             using var scene = new Scene(Scenario());
             scene.Advance(1f);
-            var fish = scene.World.FindView(scene.Id("land.pond.fish"));
-            Assert.That(fish.GetComponent<Rigidbody>(), Is.Not.Null);
-            Assert.That(scene.View("land.pond").GetComponent<PlaceVolume>(), Is.Not.Null);
+            var fish = scene.ViewObject("land.pond.fish");
+            Assert.That(fish.GetComponent<Rigidbody>(), Is.Not.Null, "no Rigidbody on the fish. " + scene.Info);
+            Assert.That(scene.View("land.pond").GetComponent<PlaceVolume>(), Is.Not.Null, "no trigger on the pond. " + scene.Info);
             scene.Bodies.Dispose();
             yield return null;
             Assert.That(scene.Bodies.TrackedCount, Is.EqualTo(0));

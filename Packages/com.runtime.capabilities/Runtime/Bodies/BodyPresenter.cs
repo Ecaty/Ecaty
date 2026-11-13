@@ -88,7 +88,9 @@ namespace Runtime.Capabilities
         int generation, ticks, lastRetry, viewCount;
         bool rescan; // A body was built after the rows were read: its parent and forces are read again.
         FlecsSession.Event[] events = new FlecsSession.Event[32];
-        int eventCount;
+        int eventCount, sentEntered, sentLeft, restores, writes;
+        string lastSkip, lastCrossing;
+        int ignoredExits;
         ulong[] writeIds = new ulong[64];
         PositionValues[] writePositions = new PositionValues[64];
         OrientationValues[] writeOrientations = new OrientationValues[64];
@@ -104,6 +106,31 @@ namespace Runtime.Capabilities
         /// <summary>Crossings waiting to be sent with the next Step.</summary>
         public int PendingCrossings => eventCount;
 
+        /// <summary>Read-only state for failure messages: what the presenter holds and why it left something alone.</summary>
+        public string Diagnostics
+        {
+            get
+            {
+                int bodiesBuilt = 0, shapes = 0, volumes = 0, pose = 0;
+                foreach (var item in items.Values)
+                {
+                    if (item.Role == Role.Free && item.Body)
+                        bodiesBuilt++;
+                    else if (item.Role == Role.Ghost && item.Volume)
+                        volumes++;
+                    else if (item.Role == Role.Pinned && item.Collider)
+                        shapes++;
+                    if (item.Owned)
+                        pose++;
+                }
+                return "bodies{owner=" + (owner != 0 ? "found" : "missing") + ", rows free=" + free.Count + " pinned=" + pinned.Count
+                    + " ghosts=" + ghosts.Count + " parents=" + parents.Count + " forces=" + forces.Count + "; built bodies=" + bodiesBuilt
+                    + " pinned=" + shapes + " ghosts=" + volumes + " poseOwned=" + pose + " waiting=" + waiting.Count
+                    + "; ignored exits=" + ignoredExits + "; sent entered=" + sentEntered + " left=" + sentLeft + "; restores=" + restores + " writes=" + writes
+                    + "; last skip=" + (lastSkip ?? "none") + "; last crossing=" + (lastCrossing ?? "none") + "}";
+            }
+        }
+
         public Rigidbody BodyOf(ulong entity) => items.TryGetValue(entity, out var item) ? item.Body : null;
 
         /// <summary>
@@ -115,7 +142,7 @@ namespace Runtime.Capabilities
             if (!Ready())
                 return;
             Restore();
-            Capture();
+            NotePoses();
             ticks++;
             bool changed = free.Refresh(session);
             changed |= parents.Refresh(session);
@@ -140,6 +167,11 @@ namespace Runtime.Capabilities
         /// </summary>
         public void Capture()
         {
+            NotePoses();
+        }
+
+        void NotePoses()
+        {
             foreach (var item in items.Values)
             {
                 if (item.Role != Role.Free || !item.Body || !item.Root || item.Root.transform.parent != world.transform)
@@ -161,6 +193,7 @@ namespace Runtime.Capabilities
                     continue;
                 t.SetParent(world.transform, false);
                 t.SetPositionAndRotation(item.Position, item.Rotation);
+                restores++;
             }
         }
 
@@ -256,7 +289,10 @@ namespace Runtime.Capabilities
                 return true;
             var view = world.FindView(entity);
             if (!view)
+            {
+                lastSkip = item.Role + " " + entity + ": no view yet";
                 return false;
+            }
             int primitive = session.TryRead<PrimitiveValues>(entity, "Primitive", out var p) ? p.kind : -1;
             if (item.Root == view)
             {
@@ -268,6 +304,7 @@ namespace Runtime.Capabilities
             if (view.TryGetComponent<Collider>(out _) || view.TryGetComponent<Rigidbody>(out _))
             {
                 item.Settled = true;
+                lastSkip = item.Role + " " + view.name + ": the view already has a collider or Rigidbody";
                 return true;
             }
             if (item.Role == Role.Free)
@@ -276,7 +313,10 @@ namespace Runtime.Capabilities
                 {
                     // Held by another owner: tried again now and then.
                     if (!world.AcquirePose(entity, owner))
+                    {
+                        lastSkip = "Free " + view.name + ": pose held by another owner";
                         return false;
+                    }
                     item.Owned = true;
                 }
                 var t = view.transform;
@@ -441,6 +481,7 @@ namespace Runtime.Capabilities
                 return;
             session.WriteBatch("Position", writeIds, writePositions, count);
             session.WriteBatch("Orientation", writeIds, writeOrientations, count);
+            writes += count;
         }
 
         // Gravity and wind, lift in a fluid and drag, for bodies that are awake (or whose forces just changed).
@@ -486,6 +527,17 @@ namespace Runtime.Capabilities
             var body = other.attachedRigidbody;
             if (!body || !bodies.TryGetValue(body, out ulong entity) || !volume.Shape || session == null || session.IsDisposed)
                 return;
+            // A trigger can report an exit although the shapes still overlap (for example when a body falls asleep): not a crossing.
+            if (!enter)
+            {
+                var own = bodyCollider(body);
+                if (own && volume.Shape && Physics.ComputePenetration(own, body.position, body.rotation, volume.Shape,
+                    volume.Shape.transform.position, volume.Shape.transform.rotation, out _, out _))
+                {
+                    ignoredExits++;
+                    return;
+                }
+            }
             ulong kind = enter ? entered : left;
             if (kind == 0)
                 return;
@@ -493,6 +545,7 @@ namespace Runtime.Capabilities
                 Array.Resize(ref events, eventCount * 2);
             var size = volume.Shape.bounds.size;
             var point = world.transform.InverseTransformPoint(body.position);
+            lastCrossing = (enter ? "entered " : "left ") + volume.name + " by " + body.name + " at " + point;
             events[eventCount++] = new FlecsSession.Event
             {
                 Kind = kind,
@@ -505,12 +558,19 @@ namespace Runtime.Capabilities
             };
         }
 
+        Collider bodyCollider(Rigidbody body) => bodies.TryGetValue(body, out ulong id) && items.TryGetValue(id, out var item) ? item.Collider : null;
+
         void Send()
         {
             if (eventCount == 0)
                 return;
             int count = eventCount;
             eventCount = 0;
+            for (int i = 0; i < count; i++)
+                if (events[i].Kind == entered)
+                    sentEntered++;
+                else
+                    sentLeft++;
             session.Emit(events, count);
             // The native side re-parents and writes the position itself: the next pose is written again in the new space.
             for (int i = 0; i < count; i++)
