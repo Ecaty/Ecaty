@@ -1,6 +1,6 @@
 # Engine plan: review and target architecture
 
-Status: **proposal, awaiting the user's review. Nothing here is implemented.** Date: 2026-11-13. Branch `feature/engine-architecture-review-6a5706`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
+Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Nothing here is implemented; each phase starts only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review-6a5706`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
 
 Readable page with pickable decisions: https://claude.ai/artifact/3mxTpAwGuAYdgmeBEE9jrw (private to the owner until shared).
 
@@ -357,56 +357,58 @@ Each is a native module, an adapter and its tests. They can run one at a time af
 
 ## 5. Decisions for the user
 
-Recommended option first in each.
+Recommended option first in each. **Decided by the user on 2026-11-13: the recommended option in all ten (marked).**
+
+Question to send to Sander Mertens (decision 2, drafted for the user to send): "When a managed script that defines a prefab is reloaded, `ecs_script_clear` deletes the prefab, so existing instances lose `(IsA, prefab)` and new prefab children never reach them (Flecs 4.2.0, commit 6879066). Is an in-place update of a script's entities planned, one that keeps entity ids and instances? Until then we plan to re-add `IsA` and spawn new children ourselves after a reload. Is there a better supported way?"
 
 **1. Where do a world's things live?**
-- [ ] **A. Kinds are Script, instances are data holding only overrides** (recommended). Ids stay stable while editing, edits cost microseconds, saves hold differences.
+- [x] **A. Kinds are Script, instances are data holding only overrides** (recommended). Ids stay stable while editing, edits cost microseconds, saves hold differences.
 - [ ] B. Everything is Script, one managed script per element. Fully readable sources; every committed edit recreates that element and its Unity objects.
 - [ ] C. Keep today's model (large scripts plus a state overlay). No work now; kinds and fast edits stay blocked.
 
 **2. How do kinds survive a reload?**
-- [ ] **A. A native source manager re-attaches instances and adds new parts after a kind reload, and I ask Sander whether an in-place update is planned** (recommended).
+- [x] **A. A native source manager re-attaches instances and adds new parts after a kind reload, and I ask Sander whether an in-place update is planned** (recommended).
 - [ ] B. Never reload for value edits: write the world live and keep the source text in our own store. Faster, but text and world can drift.
 - [ ] C. Wait for an upstream answer before building kinds.
 
 **3. Where are engine contracts defined?**
-- [ ] **A. In native C++ modules** (capability, look, motion, body, place, rule), with Script reserved for content (recommended).
+- [x] **A. In native C++ modules** (capability, look, motion, body, place, rule), with Script reserved for content (recommended).
 - [ ] B. Keep them as Script schemas. Easier to change today; keeps JSON-only reads and frozen save schemas.
 
 **4. Look shaders**
-- [ ] **A. Our own small set authored in Amplify Shader Editor, one per world style with the same inputs; the Shader Pack as optional named recipes** (recommended).
+- [x] **A. Our own small set authored in Amplify Shader Editor, one per world style with the same inputs; the Shader Pack as optional named recipes** (recommended).
 - [ ] B. Pack shaders as the base, with a mapping per shader. More looks sooner; values do not carry across styles and the pack becomes a hard dependency.
 - [ ] C. A generic property bag on any catalogued shader. Most flexible; nothing stable for tools or the AI.
 
 **4b. Which styles first?**
-- [ ] **Realistic and Toon** (recommended)
+- [x] **Realistic and Toon** (recommended)
 - [ ] Realistic, Toon and Clay
 - [ ] All six from the concept
 
 **5. Release native build**
-- [ ] **A. Strip REST and HTTP from release; keep soft asserts until their cost is measured** (recommended; AI-written Script should not be able to crash the player).
+- [x] **A. Strip REST and HTTP from release; keep soft asserts until their cost is measured** (recommended; AI-written Script should not be able to crash the player).
 - [ ] B. Strip REST, HTTP and asserts.
 - [ ] C. Leave as is.
 
 **6. Order of work**
-- [ ] **A. Safety net and native foundation, then Look as the first full slice, then sources, kinds and saves, then the other runtimes** (recommended).
+- [x] **A. Safety net and native foundation, then Look as the first full slice, then sources, kinds and saves, then the other runtimes** (recommended).
 - [ ] B. Foundation through saves first (Phases 0–3), then all runtimes. Cleanest; nothing visible for longer.
 - [ ] C. Build the concept features on today's architecture and refactor later. Fastest to a demo; most of it is rewritten.
 
 **7. Native tests**
-- [ ] **A. Keep Python contract tests as the main net and add a small C++ test target with a sanitizer build for module logic** (recommended).
+- [x] **A. Keep Python contract tests as the main net and add a small C++ test target with a sanitizer build for module logic** (recommended).
 - [ ] B. Python only.
 
 **8. Rotation in the transform contract (ABI 4)**
-- [ ] **A. Quaternion in the contract, Euler accepted in Script as authoring input** (recommended; 3D turning for every element is in the handles concept).
+- [x] **A. Quaternion in the contract, Euler accepted in Script as authoring input** (recommended; 3D turning for every element is in the handles concept).
 - [ ] B. Keep Euler degrees.
 
 **9. Developer traces**
-- [ ] **A. Make them opt-in, as AGENTS.md says** (recommended).
+- [x] **A. Make them opt-in, as AGENTS.md says** (recommended).
 - [ ] B. Keep them on by default in the Editor and change the AGENTS.md wording.
 
 **10. Saves**
-- [ ] **A. One world document for gallery worlds and experiences, with migration from both current formats** (recommended).
+- [x] **A. One world document for gallery worlds and experiences, with migration from both current formats** (recommended).
 - [ ] B. Keep two formats and add migration to each.
 
 ## Not verified in this review
