@@ -1,6 +1,6 @@
 # Engine plan: review and target architecture
 
-Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phase 0 is implemented and tested on this branch (see "Phase 0 status" in section 4): Run-All and Extended pass. Later phases start only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
+Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phases 0 and 1 are implemented on this branch (see "Phase 0 status" and "Phase 1 status" in section 4). Later phases start only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
 
 Readable page with pickable decisions: https://claude.ai/artifact/3mxTpAwGuAYdgmeBEE9jrw (private to the owner until shared).
 
@@ -199,9 +199,9 @@ tree        BehaviorTree.CPP for sentences that wait
 app.gallery ring and tree motion (Native/App)
 ```
 
-- Each is a `flecs::module` with its own file, imported in a fixed order. Types move out of the root scope; Script content gets a default `using` so existing names keep working.
+- Each is a `flecs::module` with its own file, imported in a fixed order. Systems, observers and module state live in the module (`core.cap`, `core.tree`, `core.geometry`, `app`). **Public component names stay at the root scope for now** (changed in Phase 1): Script, JSON, C# readers and saves all use those names, so moving them belongs to the save migration of step 3.4.
 - One phase map, documented once: **OnLoad** events and input from Unity; **PreUpdate** intents and timers; **OnUpdate** simulation (motion, forces, rules); **PostUpdate** derived state and capability coordination; **PreStore** snapshot export. Rule systems run only while the world has `Playing`.
-- No polling: capability coordination, footprints and trees react to `OnSet` and a dirty list, and low-rate work uses Flecs timers. Idle tick cost must not grow with content.
+- No polling: capability coordination, footprints and trees react to changes, and low-rate work uses Flecs timers. Idle tick cost must not grow with content. An observer only notes what changed, because Flecs locks tables while it reports a change; a system applies the notes once per frame and returns at once when there are none.
 - Threads stay off until a profile shows a CPU-bound native system.
 
 ### 3.3 Sources, kinds and instances
@@ -271,7 +271,7 @@ Targets on the development desktop, release DLL. Each becomes an automated check
 
 | Budget | Target | Today |
 |---|---|---|
-| Native tick, idle world | ≤ 50 µs, independent of bindings, splines and trees | 24 µs empty; 288 µs with 256 splines [M] |
+| Native tick, idle world | ≤ 50 µs, independent of bindings, splines and trees | Met in Phase 1: 26 µs empty, 26 µs with 1,000 bindings or 256 splines, 31 µs with 256 waiting trees (before: up to 288 µs) [M] |
 | Native tick, 1,000 moving elements | ≤ 0.5 ms | not built; 1,000 `Spin` ≈ 64 µs (audit) |
 | View sync, 10,000 static entities | ≤ 50 µs native, no C# work | 186 µs read + 331 µs ack + full C# apply [M] |
 | Bridge traffic per frame | ≤ 0.2 ms, 0 B managed allocation | gallery ≈ 0.085 ms and < 0.1 KB (audit); capabilities ≈ 22 KB (audit) |
@@ -279,7 +279,7 @@ Targets on the development desktop, release DLL. Each becomes an automated check
 | Edit commit (release) | ≤ 1 ms | 0.14 ms to 19 ms, by script size [M] |
 | Kind edit with 1,000 instances | ≤ 5 ms | reload breaks instances; in-place application ≈ 0.1 ms in the spike [M] |
 | Load 1,000 instances | ≤ 100 ms | ≈ 12 µs per instance natively [M] |
-| AI tool query | ≤ 1 ms native, never disturbs feature queries | 24 µs new expression; flushes shared slots [M] |
+| AI tool query | ≤ 1 ms native, never disturbs feature queries | Met in Phase 1: 15 µs for a new expression, no query slot used [M] |
 
 ---
 
@@ -331,6 +331,20 @@ Consequences: section 3.3 now uses in-place application; step 3.1 builds that (p
 | 1.3 | Footprints and trees react to `OnSet`; no per-tick string work. | Idle tick with 256 splines and 256 trees within budget; footprint outputs identical. | Low. | S–M, **F→S** |
 | 1.5 | Reject a script that redeclares an existing type with a different layout (N12), at `fu_run_script`, `fu_set_managed_script` and REST edits, before anything is evaluated. | Python test: the redeclaration returns an error, the size is unchanged and stored values read back intact. | Detecting it before evaluation needs a pre-parse of type statements; a Flecs log hook is the fallback. | S–M, **F** |
 | 1.4 | Separate tool queries from feature handles; scoped invalidation on source change. | Benchmark: 40 tool queries cause no rebuild of feature handles; an unrelated script set leaves an idle handle unchanged. | Missed invalidation gives stale reads; keep the "type no longer alive" rebuild. | M, **F** |
+
+**Phase 1 status (2026-11-13).** Implemented on `feature/engine-architecture-review` (native branches `feature/native-foundation` in Native/Core and Native/App, `feature/query-once` in the bridge package). Windows and Android libraries rebuilt.
+
+| Step | State | Evidence |
+|---|---|---|
+| 1.5 | Done. `fu_run_script` and `fu_set_managed_script` refuse a script that changes the layout of a type in use, or of any compiled type, before evaluating it: the new declarations are built under a throwaway scope and the layouts Flecs computes are compared. A managed script may still change its own types. What the check cannot see (a member entity, a REST edit) is caught by a log hook: the call fails and `fu_bridge_diagnostics` counts `layoutFaults`. | Four contract checks; stored values stay intact in every refused case. REST edits are counted, not prevented. |
+| 1.1 | Done, with one change: public names stay at the root (section 3.2). `RuntimeCapabilities.cpp` is split into `Capabilities`, `BehaviorTrees`, `Geometry` and `Audio`; `Modules.hpp` holds the phase map. `-DFU_WARNINGS=ON` and `-DFU_BUILD_TESTS=ON` exist; CI builds Debug with both, fails on a warning in our sources, runs the core tests and repeats the smokes on the Debug library. | Debug build: no warning in our sources; 28 core tests pass; all smokes pass on Debug and Release. **No sanitizer build:** the MinGW toolchain has none; it needs an MSVC or clang job. |
+| 1.2 | Done. `CapBinding` and `CapState` are compiled components with the Script schema's names and layout. A binding gets its state and first dirty mark together with the component. Marks are noted by observers and applied once per frame and before every `fu_cap_*` call; a repeated identical result no longer marks consumers. | Idle tick with 1,000 bindings: 103 µs before, 26 µs now (an empty world is 26 µs). |
+| 1.3 | Done. Footprints are recomputed when a `CapSpline` value is set. A tree is compiled when its definition is set and is not ticked while it only waits for simulation time (only under plain sequence-type nodes; reactive and timer nodes keep it ticking). | 256 unchanged splines: 288 µs before, 26 µs now. 256 waiting trees: 239 µs before, 31 µs now. The four-times-slower runs seen in Phase 0 are gone with the per-tick string work. |
+| 1.4 | Done. `fu_query_once_json` (uncached, no slot, optional row limit) for tools; the AI `query` tool uses it through `FlecsSession.QueryOnce`. The string-keyed path replaces only its least recently used slot. A source change no longer flags every handle as changed. | Benchmark flags `handles_survive_unrelated_script_set` and `tool_queries_keep_feature_slots` are 1 and enforced; a new tool expression costs 15 µs (was 27 µs and a slot). |
+
+Found on the way: the Debug build showed that writing a component inside an add, remove or set observer changes a locked table (Flecs asserts in Debug and says nothing in Release). The new modules avoid it; **the existing gallery observers in `Native/App/src/Application.cpp` write `GalleryLayerState` and `GalleryTreeMotion` inside `OnSet` observers** and are only safe because Script creates those components first. They are listed for step 6.3.
+
+The benchmark guards were re-measured after Phase 1, so a return to the old costs now fails the run.
 
 ### Phase 2: bridge ABI 4
 
