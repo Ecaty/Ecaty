@@ -12,6 +12,8 @@
     { "name": "Capability native smoke", "kind": "python", "script": "Verification/capability_native_smoke.py", "args": ["Assets/Plugins/Flecs/x86_64/flecs_unity.dll"], "report": "Verification/capability-native-checks.json", "timeout": 120 },
     { "name": "Runtime engine native smoke", "kind": "python", "script": "Verification/runtime_engine_smoke.py", "args": [], "report": "Verification/runtime-engine-native-checks.json", "timeout": 120 },
     { "name": "Runtime behavior native smoke", "kind": "python", "script": "Verification/runtime_behavior_smoke.py", "args": [], "report": "Verification/runtime-behavior-native-checks.json", "timeout": 120 },
-    { "name": "Workshop chain native smoke", "kind": "python", "script": "Verification/workshop_chain_smoke.py", "args": [], "report": "", "timeout": 120 }
+    { "name": "Workshop chain native smoke", "kind": "python", "script": "Verification/workshop_chain_smoke.py", "args": [], "report": "", "timeout": 120 },
+    { "name": "Native contract checks", "kind": "python", "script": "Verification/contract_checks.py", "args": [], "report": "Verification/contract-checks.json", "timeout": 120 },
+    { "name": "Engine benchmark budgets", "kind": "python", "script": "Verification/bench_engine.py", "args": [], "report": "Verification/engine-bench.json", "timeout": 240 }
   ]
 }

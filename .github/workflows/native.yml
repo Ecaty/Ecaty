@@ -1,6 +1,7 @@
 name: Native
 
-# Builds the native Flecs library (Native/Core + Native/App) and runs the Python native smokes.
+# Builds the native Flecs library (Native/Core + Native/App) and runs the Python native smokes,
+# the contract checks (header, C# imports, every .flecs file) and the engine benchmark.
 # No Unity involved; Unity suites still run locally (Tests/Run-All.cmd, Run-Extended.cmd).
 on:
   push:
@@ -8,13 +9,21 @@ on:
     paths:
       - 'Native/**'
       - 'Verification/*.py'
+      - 'Verification/budgets/**'
       - 'Assets/**/*.flecs'
+      - 'Packages/**/*.flecs'
+      - 'Packages/com.runtime.flecs'
+      - 'Packages/com.runtime.capabilities/**/*.cs'
       - '.github/workflows/native.yml'
   pull_request:
     paths:
       - 'Native/**'
       - 'Verification/*.py'
+      - 'Verification/budgets/**'
       - 'Assets/**/*.flecs'
+      - 'Packages/**/*.flecs'
+      - 'Packages/com.runtime.flecs'
+      - 'Packages/com.runtime.capabilities/**/*.cs'
       - '.github/workflows/native.yml'
   workflow_dispatch:
 
@@ -33,6 +42,8 @@ jobs:
           lfs: false
       - name: Native submodules only, incl. their vendor forks (Store/ is private)
         run: git submodule update --init --recursive --depth 1 Native/Core Native/App
+      - name: Bridge package (its DllImport declarations are checked against the native header)
+        run: git submodule update --init --depth 1 Packages/com.runtime.flecs
       - name: Cache the sound bank (LFS)
         uses: actions/cache@v4
         with:
@@ -55,7 +66,8 @@ jobs:
             @{ script = 'Verification/capability_native_smoke.py'; args = @('Assets/Plugins/Flecs/x86_64/flecs_unity.dll'); report = 'Verification/capability-native-checks.json' },
             @{ script = 'Verification/runtime_engine_smoke.py'; args = @(); report = 'Verification/runtime-engine-native-checks.json' },
             @{ script = 'Verification/runtime_behavior_smoke.py'; args = @(); report = 'Verification/runtime-behavior-native-checks.json' },
-            @{ script = 'Verification/workshop_chain_smoke.py'; args = @(); report = '' }
+            @{ script = 'Verification/workshop_chain_smoke.py'; args = @(); report = '' },
+            @{ script = 'Verification/contract_checks.py'; args = @(); report = 'Verification/contract-checks.json' }
           )
           foreach ($smoke in $smokes) {
             Write-Host "::group::$($smoke.script)"
@@ -66,3 +78,15 @@ jobs:
             Write-Host '::endgroup::'
           }
           if ($failed.Count -gt 0) { throw "Failed: $($failed -join ', ')" }
+      # The guards in Verification/budgets were measured on the development machine. Until they are confirmed on
+      # this runner the benchmark reports without failing the job; it is enforced locally (Tests/Run-Extended.cmd).
+      - name: Engine benchmark (report only)
+        continue-on-error: true
+        run: python Verification/bench_engine.py
+      - name: Keep the benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-bench
+          path: Verification/engine-bench.json
+          if-no-files-found: ignore
