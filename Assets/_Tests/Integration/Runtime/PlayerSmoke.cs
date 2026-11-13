@@ -46,8 +46,10 @@ namespace Game
                     if (!icons || !icons.HasCharacter('\ue163'))
                         throw new Exception("Bundled icon font missing in player");
                     var browser = Runtime.Agents.Diagnostics.AgentTraceBrowser.Current;
+                    // The viewer exists only in development builds; capture also needs the developer's opt-in.
                     bool traceExpected = Debug.isDebugBuild;
-                    if ((browser && browser.Server != null) != traceExpected || Runtime.Agents.Diagnostics.AgentTrace.Enabled != traceExpected)
+                    bool captureExpected = traceExpected && Runtime.Agents.Diagnostics.AgentTraceBrowser.CaptureRequested;
+                    if ((browser && browser.Server != null) != traceExpected || Runtime.Agents.Diagnostics.AgentTrace.Enabled != captureExpected)
                         throw new Exception("Development-only browser trace gating failed");
                     if (host.Session == null || host.ViewCount != 3)
                         throw new Exception("Initial world not running");
