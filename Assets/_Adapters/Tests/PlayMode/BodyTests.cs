@@ -49,6 +49,7 @@ namespace Game.Tests
             public FlecsSession Session;
             public BodyPresenter Bodies;
             readonly SimulationMode mode;
+            readonly System.Collections.Generic.Dictionary<string, ulong> ids = new();
 
             public Scene(string script)
             {
@@ -59,6 +60,13 @@ namespace Game.Tests
                 Session.SetManagedScript("Bodies", script);
                 Session.Tick(Step);
                 World.SyncViews();
+                // Ids are found once: a body's path changes when it changes place.
+                foreach (var name in new[] { "land", "land.ground", "land.pond", "land.fish", "land.rock", "land.ship", "land.ball", "land.dropper", "drifter" })
+                {
+                    ulong id = Session.Lookup(name);
+                    if (id != 0)
+                        ids[name.Substring(name.LastIndexOf('.') + 1)] = id;
+                }
                 Bodies = new BodyPresenter(World);
                 CheckGeometry(script.Contains("dropper"));
             }
@@ -69,12 +77,12 @@ namespace Game.Tests
             {
                 Bodies.Step(Step);
                 Physics.SyncTransforms();
-                var ground = View("land.ground").GetComponent<Collider>();
-                var pond = View("land.pond").GetComponent<Collider>();
+                var ground = View("ground").GetComponent<Collider>();
+                var pond = View("pond").GetComponent<Collider>();
                 Assert.That(ground && pond, "the shapes were not built. " + Info);
-                var names = new System.Collections.Generic.List<string> { "land.fish", "land.rock", "land.ship", "land.ball", "drifter" };
+                var names = new System.Collections.Generic.List<string> { "fish", "rock", "ship", "ball", "drifter" };
                 if (dropper)
-                    names.Add("land.dropper");
+                    names.Add("dropper");
                 foreach (var name in names)
                 {
                     var body = Body(name);
@@ -82,7 +90,7 @@ namespace Game.Tests
                     string bounds = name + " at " + body.position + " bounds " + shape.bounds + "; ground " + ground.bounds + "; pond " + pond.bounds;
                     Assert.That(Physics.ComputePenetration(shape, body.position, body.rotation, ground, ground.transform.position, ground.transform.rotation, out _, out _),
                         Is.False, "starts inside the ground: " + bounds);
-                    bool inPond = name == "land.fish" || name == "land.rock" || name == "land.ship";
+                    bool inPond = name == "fish" || name == "rock" || name == "ship";
                     Assert.That(pond.bounds.Contains(body.position), Is.EqualTo(inPond), (inPond ? "should start inside the pond: " : "should start outside the pond: ") + bounds);
                 }
             }
@@ -90,10 +98,9 @@ namespace Game.Tests
             public string Info => Bodies.Diagnostics + " free bodies in the world: " + Session.QueryOnce("Free");
 
             // Each lookup says what is missing and what the presenter holds, instead of failing on a null later.
-            public ulong Id(string path)
+            public ulong Id(string name)
             {
-                ulong id = Session.Lookup(path);
-                Assert.That(id, Is.Not.EqualTo(0UL), "no entity at " + path + ". " + Info);
+                Assert.That(ids.TryGetValue(name, out ulong id), "no entity " + name + " in the scene. " + Info);
                 return id;
             }
             public GameObject ViewObject(string path)
@@ -110,7 +117,7 @@ namespace Game.Tests
             }
             public Transform View(string path) => ViewObject(path).transform;
 
-            // The order the adapter runs in a frame: step, physics, note poses, native tick and view sync, put views back.
+            // The order the adapter runs in a frame: step, physics, native tick and view sync.
             public void Advance(float seconds)
             {
                 int steps = Mathf.RoundToInt(seconds / Step);
@@ -119,10 +126,8 @@ namespace Game.Tests
                     Bodies.Step(Step);
                     Physics.SyncTransforms();
                     Physics.Simulate(Step);
-                    Bodies.Capture();
                     Session.Tick(Step);
                     World.SyncViews();
-                    Bodies.Restore();
                 }
             }
 
@@ -132,7 +137,16 @@ namespace Game.Tests
                 Bodies.Step(Step);
                 Session.Tick(Step);
                 World.SyncViews();
-                Bodies.Restore();
+            }
+
+            // The path of the place a body is in now: the pond or the land.
+            public string ParentOf(string name)
+            {
+                foreach (var place in new[] { "land.pond", "land" })
+                    if (Session.QueryOnce("Free, (ChildOf, " + place + ")").Contains("\"" + name + "\""))
+                        return place;
+                Assert.Fail(name + " is in neither place. " + Info);
+                return null;
             }
 
             // True when the entity is a child of the parent, asked of the world itself.
@@ -164,10 +178,10 @@ namespace Game.Tests
             using var scene = new Scene(Scenario());
             Vector3 drifter = scene.View("drifter").position;
             scene.Advance(0.2f);
-            Assert.That(scene.Bodies.TrackedCount, Is.GreaterThanOrEqualTo(8), "shapes and bodies were built. " + scene.Info);
-            Assert.That(scene.Body("land.ball").position.y, Is.LessThan(3.9f), "the ball is falling (it starts at y = 4)");
+            Assert.That(scene.Bodies.TrackedCount, Is.EqualTo(7), "five bodies, the ground and the pond were built. " + scene.Info);
+            Assert.That(scene.Body("ball").position.y, Is.LessThan(3.9f), "the ball is falling (it starts at y = 4)");
             scene.Advance(2.8f);
-            var ball = scene.Body("land.ball");
+            var ball = scene.Body("ball");
             Assert.That(ball.position.y, Is.EqualTo(0.5f).Within(0.1f), "the ball rests on the ground (top at 0, radius 0.5)");
             Assert.That(ball.linearVelocity.magnitude, Is.LessThan(0.1f), "and holds still");
             var drifterBody = scene.Body("drifter");
@@ -180,12 +194,13 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario());
-            scene.Advance(4f);
-            float rock = scene.Body("land.pond.rock").position.y, fish = scene.Body("land.pond.fish").position.y;
-            var ship = scene.Body("land.pond.ship");
+            scene.Advance(5f);
+            float rock = scene.Body("rock").position.y, fish = scene.Body("fish").position.y;
+            var ship = scene.Body("ship");
+            Assert.That(Mathf.Abs(ship.position.x - 3.5f), Is.LessThan(1f), "the ship rises straight up from x = 3.5, it is at " + ship.position + ". " + scene.Info);
             Assert.That(rock, Is.LessThan(fish - 0.5f), "the rock ends lower than the fish");
             Assert.That(ship.position.y, Is.GreaterThan(fish + 0.5f), "the ship ends higher than both");
-            float top = scene.View("land.pond").GetComponent<BoxCollider>().bounds.max.y;
+            float top = scene.View("pond").GetComponent<BoxCollider>().bounds.max.y;
             Assert.That(top, Is.EqualTo(6f).Within(0.01f));
             var bounds = ship.GetComponent<Collider>().bounds;
             Assert.That(bounds.max.y, Is.GreaterThan(top + 0.1f), "part of the ship is above the pond's top");
@@ -202,16 +217,16 @@ namespace Game.Tests
             scene.AssertChild("dropper", "land.pond");
             scene.AssertChild("fish", "land.pond");
             scene.AssertChild("ball", "land");
-            var force = JObject.Parse(scene.Session.ComponentJson(scene.Id("land.pond.dropper"), "EffectiveForce"));
+            var force = JObject.Parse(scene.Session.ComponentJson(scene.Id("dropper"), "EffectiveForce"));
             Assert.That(force["fluid"].Value<float>(), Is.EqualTo(1f), "it gets the pond's fluid");
             // A body pushed out of the pond sideways is in the land again.
-            var fish = scene.Body("land.pond.fish");
+            var fish = scene.Body("fish");
             fish.position = new Vector3(9.5f, 3f, 0f);
             fish.linearVelocity = Vector3.zero;
             scene.Advance(0.5f);
             scene.AssertChild("fish", "land");
             scene.AssertChild("fish", "land.pond", false);
-            var land = JObject.Parse(scene.Session.ComponentJson(scene.Id("land.fish"), "EffectiveForce"));
+            var land = JObject.Parse(scene.Session.ComponentJson(scene.Id("fish"), "EffectiveForce"));
             Assert.That(land["fluid"].Value<float>(), Is.EqualTo(0f), "and it has no fluid");
         }
 
@@ -222,13 +237,14 @@ namespace Game.Tests
             using var scene = new Scene(Scenario());
             scene.Advance(2.5f);
             scene.Flush();
-            foreach (var (path, parent) in new[] { ("land.pond.ship", "land.pond"), ("land.pond.rock", "land.pond"), ("land.ball", "land"), ("drifter", (string)null) })
+            foreach (var path in new[] { "ship", "rock", "ball", "drifter" })
             {
-                var space = parent == null ? scene.World.transform : scene.View(parent);
+                // The space of the place the body is in now (the ship may be above the pond), or the world.
+                var space = path == "drifter" ? scene.World.transform : scene.View(scene.ParentOf(path) == "land.pond" ? "pond" : "land");
                 Vector3 world = space.TransformPoint(scene.Flecs(path));
                 Assert.That(Vector3.Distance(world, scene.Body(path).position), Is.LessThan(0.05f), path);
             }
-            Assert.That(scene.Body("land.pond.ship").position.y, Is.GreaterThan(3f), "the ship moved");
+            Assert.That(scene.Body("ship").position.y, Is.GreaterThan(3f), "the ship moved");
         }
 
         [UnityTest]
@@ -237,7 +253,7 @@ namespace Game.Tests
             yield return null;
             using var scene = new Scene(Scenario());
             scene.Advance(3f);
-            var ball = scene.Body("land.ball");
+            var ball = scene.Body("ball");
             Assert.That(ball.position.y, Is.LessThan(0.7f));
             scene.Session.SetComponentJson("land", "Gravity", "{\"x\":0,\"y\":9.8,\"z\":0}");
             scene.Advance(1f);
@@ -251,24 +267,24 @@ namespace Game.Tests
             yield return null;
             using var scene = new Scene(Scenario());
             scene.Advance(1f);
-            var view = scene.ViewObject("land.ball");
+            var view = scene.ViewObject("ball");
             Assert.That(view.GetComponent<Rigidbody>(), Is.Not.Null, "no Rigidbody on the view. " + scene.Info);
             Assert.That(view.transform.parent, Is.SameAs(scene.World.transform), "a simulated body hangs under the world root");
-            Assert.That(scene.World.AcquirePose(scene.Id("land.ball"), scene.Id("land")), Is.False, "its pose is held");
-            scene.Session.SetManagedScript("Bodies", Scenario(ballFree: false));
+            Assert.That(scene.World.AcquirePose(scene.Id("ball"), scene.Id("land")), Is.False, "its pose is held");
+            Assert.That(scene.Session.RemoveComponent(scene.Id("ball"), scene.Session.TypeId("Free")), Is.True, "the ball had Free");
             scene.Advance(0.1f);
             yield return null;
-            Assert.That(scene.Bodies.BodyOf(scene.Id("land.ball")), Is.Null);
+            Assert.That(scene.Bodies.BodyOf(scene.Id("ball")), Is.Null);
             Assert.That(view.GetComponent<Rigidbody>(), Is.Null, "the Rigidbody is gone");
             Assert.That(view.GetComponent<Collider>(), Is.Null, "and so is the collider");
             Assert.That(view.transform.parent, Is.SameAs(scene.View("land")), "the view is under its parent again");
             // The view follows Flecs again.
-            Assert.That(Vector3.Distance(view.transform.position, scene.View("land").TransformPoint(scene.Flecs("land.ball"))), Is.LessThan(0.01f));
+            Assert.That(Vector3.Distance(view.transform.position, scene.View("land").TransformPoint(scene.Flecs("ball"))), Is.LessThan(0.01f));
             scene.Session.SetComponentJson("land.ball", "Position", "{\"x\":0.1,\"y\":-0.2,\"z\":0}");
             scene.Advance(0.1f);
             Assert.That(Vector3.Distance(view.transform.localPosition, new Vector3(0.1f, -0.2f, 0f)), Is.LessThan(0.001f));
-            Assert.That(scene.World.AcquirePose(scene.Id("land.ball"), scene.Id("land")), Is.True, "the pose can be claimed by someone else");
-            scene.World.ReleasePose(scene.Id("land.ball"), scene.Id("land"));
+            Assert.That(scene.World.AcquirePose(scene.Id("ball"), scene.Id("land")), Is.True, "the pose can be claimed by someone else");
+            scene.World.ReleasePose(scene.Id("ball"), scene.Id("land"));
         }
 
         [UnityTest]
@@ -277,18 +293,18 @@ namespace Game.Tests
             yield return null;
             using var scene = new Scene(Scenario());
             scene.Advance(1f);
-            var fish = scene.ViewObject("land.pond.fish");
+            var fish = scene.ViewObject("fish");
             Assert.That(fish.GetComponent<Rigidbody>(), Is.Not.Null, "no Rigidbody on the fish. " + scene.Info);
-            Assert.That(scene.View("land.pond").GetComponent<PlaceVolume>(), Is.Not.Null, "no trigger on the pond. " + scene.Info);
+            Assert.That(scene.View("pond").GetComponent<PlaceVolume>(), Is.Not.Null, "no trigger on the pond. " + scene.Info);
             scene.Bodies.Dispose();
             yield return null;
             Assert.That(scene.Bodies.TrackedCount, Is.EqualTo(0));
             Assert.That(scene.World.GetComponentsInChildren<Rigidbody>(true), Is.Empty);
             Assert.That(scene.World.GetComponentsInChildren<Collider>(true), Is.Empty);
             Assert.That(scene.World.GetComponentsInChildren<PlaceVolume>(true), Is.Empty);
-            Assert.That(fish.transform.parent, Is.SameAs(scene.View("land.pond")), "views are under their Flecs parents again");
-            Assert.That(scene.World.AcquirePose(scene.Id("land.pond.fish"), scene.Id("land")), Is.True, "the pose was given back");
-            scene.World.ReleasePose(scene.Id("land.pond.fish"), scene.Id("land"));
+            Assert.That(fish.transform.parent, Is.SameAs(scene.View("pond")), "views are under their Flecs parents again");
+            Assert.That(scene.World.AcquirePose(scene.Id("fish"), scene.Id("land")), Is.True, "the pose was given back");
+            scene.World.ReleasePose(scene.Id("fish"), scene.Id("land"));
         }
     }
 }

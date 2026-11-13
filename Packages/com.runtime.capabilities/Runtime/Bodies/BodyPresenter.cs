@@ -88,7 +88,7 @@ namespace Runtime.Capabilities
         int generation, ticks, lastRetry, viewCount;
         bool rescan; // A body was built after the rows were read: its parent and forces are read again.
         FlecsSession.Event[] events = new FlecsSession.Event[32];
-        int eventCount, sentEntered, sentLeft, restores, writes;
+        int eventCount, sentEntered, sentLeft, writes;
         string lastSkip, lastCrossing;
         int ignoredExits;
         ulong[] writeIds = new ulong[64];
@@ -126,7 +126,7 @@ namespace Runtime.Capabilities
                 return "bodies{owner=" + (owner != 0 ? "found" : "missing") + ", rows free=" + free.Count + " pinned=" + pinned.Count
                     + " ghosts=" + ghosts.Count + " parents=" + parents.Count + " forces=" + forces.Count + "; built bodies=" + bodiesBuilt
                     + " pinned=" + shapes + " ghosts=" + volumes + " poseOwned=" + pose + " waiting=" + waiting.Count
-                    + "; ignored exits=" + ignoredExits + "; sent entered=" + sentEntered + " left=" + sentLeft + "; restores=" + restores + " writes=" + writes
+                    + "; ignored exits=" + ignoredExits + "; sent entered=" + sentEntered + " left=" + sentLeft + "; writes=" + writes
                     + "; last skip=" + (lastSkip ?? "none") + "; last crossing=" + (lastCrossing ?? "none") + "}";
             }
         }
@@ -141,7 +141,6 @@ namespace Runtime.Capabilities
         {
             if (!Ready())
                 return;
-            Restore();
             NotePoses();
             ticks++;
             bool changed = free.Refresh(session);
@@ -161,39 +160,15 @@ namespace Runtime.Capabilities
             Send();
         }
 
-        /// <summary>
-        /// Remembers each free body's world pose. Call it once per frame before the world syncs its views (the sync moves
-        /// a view under its Flecs parent), and Restore after it.
-        /// </summary>
-        public void Capture()
-        {
-            NotePoses();
-        }
-
+        // The world pose of each free body, as physics left it.
         void NotePoses()
         {
             foreach (var item in items.Values)
             {
-                if (item.Role != Role.Free || !item.Body || !item.Root || item.Root.transform.parent != world.transform)
+                if (item.Role != Role.Free || !item.Body || !item.Root)
                     continue;
                 item.Position = item.Body.position;
                 item.Rotation = item.Body.rotation;
-            }
-        }
-
-        /// <summary>Puts a free body's view back under the world root with its last world pose when the view sync moved it.</summary>
-        public void Restore()
-        {
-            foreach (var item in items.Values)
-            {
-                if (item.Role != Role.Free || !item.Owned || !item.Root)
-                    continue;
-                var t = item.Root.transform;
-                if (t.parent == world.transform)
-                    continue;
-                t.SetParent(world.transform, false);
-                t.SetPositionAndRotation(item.Position, item.Rotation);
-                restores++;
             }
         }
 
@@ -319,11 +294,9 @@ namespace Runtime.Capabilities
                     }
                     item.Owned = true;
                 }
-                var t = view.transform;
-                Vector3 position = t.position;
-                Quaternion rotation = t.rotation;
-                t.SetParent(world.transform, false);
-                t.SetPositionAndRotation(position, rotation);
+                Vector3 position = view.transform.position;
+                Quaternion rotation = view.transform.rotation;
+                world.SetDetached(entity, true);
                 item.Position = item.Written = position;
                 item.Rotation = item.WrittenRotation = rotation;
                 item.Write = false;
@@ -594,13 +567,7 @@ namespace Runtime.Capabilities
             item.Owned = false;
             if (!alive)
                 return;
-            if (item.Root)
-            {
-                var parent = item.Parent != 0 ? world.FindView(item.Parent) : null;
-                var target = parent ? parent.transform : world.transform;
-                if (item.Root.transform.parent != target)
-                    item.Root.transform.SetParent(target, false);
-            }
+            world.SetDetached(entity, false);
             world.ReleasePose(entity, owner);
         }
 
