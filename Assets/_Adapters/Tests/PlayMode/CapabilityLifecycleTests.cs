@@ -141,7 +141,7 @@ namespace Game.Tests
                 runtime.Initialize(world);
                 runtime.RegisterDiscovered();
                 world.Session.SetManagedScript("SteadyModule", "SteadyTarget { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1}; CapDrag: {x: 0, y: 0, z: 0, active: false} }\n"
-                    + "SteadyBody { CapBinding: {target: SteadyTarget, enabled: true, revision: 1}; CapBody: {mass: 1, radius: .5, height: 1, gravity: 1, kinematic: false}; CapForce: {x: 0, y: 0, z: 0, sequence: 1} }\n"
+                    + "SteadyBody { CapBinding: {target: SteadyTarget, enabled: true, revision: 1}; CapBody: {mass: 1, radius: 0.5, height: 1, gravity: 1, kinematic: false}; CapForce: {x: 0, y: 0, z: 0, sequence: 1} }\n"
                     + "SteadyLight { CapBinding: {target: SteadyTarget, enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 4, colorR: 1, colorG: 1, colorB: 1} }");
                 world.SyncViews();
                 runtime.Reconcile();
