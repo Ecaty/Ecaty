@@ -55,6 +55,8 @@ Native layout: `Native/Core/src/Modules.hpp` documents the modules (`core.cap`, 
 - MinGW-w64: `./Native/Build.ps1 -Compiler GCC`; MSVC: `./Native/Build.ps1 -Compiler MSVC`; direct: `cmake -S Native -B Native/build` then `cmake --build Native/build --config Release`.
 - Output: `Assets/Plugins/Flecs/x86_64/flecs_unity.dll` (Core + App in one library). Keep ABI version/layout in sync with C#; no C++ classes/STL strings across it; free owned UTF-8 with `fu_free`. Product-specific systems go in `Native/App` (`flecs_unity::register_application`), never Core.
 - Changing the compiled Spin system: edit `Native/App/src/Application.cpp`, close Unity, rebuild, reopen. Different logic can instead be reactive Script (no rebuild). A new presentation feature also needs a C# adapter.
+- Sanitizers: `-DFU_SANITIZE=ON` builds with AddressSanitizer; use MSVC or Clang, not MinGW.
+- Worktrees: `Tools/Sync-WorktreeSubmodules.ps1` copies a worktree's submodule commits into the main checkout's submodule repositories before a worktree branch is merged or tested there.
 
 ## Tests
 
