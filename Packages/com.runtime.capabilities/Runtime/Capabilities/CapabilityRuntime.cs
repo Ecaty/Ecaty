@@ -114,7 +114,7 @@ namespace Runtime.Capabilities
                     continue;
                 var state = p.Value.Instance?.CaptureState();
                 if (state != null)
-                    result[p.Key] = state;
+                    result[p.Value.Key] = state;
             }
             return result;
         }
@@ -134,13 +134,32 @@ namespace Runtime.Capabilities
         public IReadOnlyList<ICapabilityAdapter> Adapters => adapters;
         public int BindingCount => bindings.Count;
         readonly List<ICapabilityAdapter> adapters = new();
-        readonly Dictionary<string, Binding> bindings = new();
+        // Keyed by entity id and component so a steady pass never builds a path string.
+        readonly Dictionary<(ulong, string), Binding> bindings = new();
+        /// <summary>CapBinding(target: entity, enabled: bool, revision: i32) in CapabilitySchema.flecs.</summary>
+        struct CapBindingData
+        {
+            public ulong target; public bool enabled; public int revision;
+        }
         sealed class Binding
         {
             public CapabilityContext Context;
             public CapabilityInstance Instance;
             public string Component;
-            public string Signature;
+            /// <summary>"path|Component", the key of saved adapter state.</summary>
+            public string Key;
+            // Last applied (or failed) input: binding values plus configuration JSON bytes. Parsed only when it changes.
+            public byte[] Config;
+            public int ConfigLength;
+            public ulong SigTarget;
+            public int SigRevision;
+            public bool SigSet;
+            /// <summary>The stored signature failed; it is retried only after it changes or CapDirty is set.</summary>
+            public bool Failed;
+            // Last CapState written, so an unchanged state is not serialized again.
+            public bool Written;
+            public int WrittenPhase, WrittenRevision, WrittenGeneration;
+            public string WrittenMessage;
             public JObject LastValid;
             public bool Retained;
             public int Generation;
@@ -231,10 +250,15 @@ namespace Runtime.Capabilities
         /// <summary>Full pass over every binding. The 20 Hz update reads only binding tables that changed.</summary>
         public void Reconcile() => Reconcile(true);
         // Reused per pass so an idle world allocates nothing.
-        readonly HashSet<string> seen = new();
+        readonly HashSet<(ulong, string)> seen = new();
         readonly HashSet<string> processed = new();
         readonly HashSet<string> polling = new();
-        readonly List<string> stale = new();
+        readonly List<(ulong, string)> stale = new();
+        ulong[] rowEntities = new ulong[16], rowTargets = new ulong[16];
+        CapBindingData[] rowValues = new CapBindingData[16];
+        byte[] configBuffer = new byte[512];
+        const string DependencyWaiting = "Waiting for dependency", DependencyFailed = "Dependency failed or cycle";
+        const string WaitingKeeping = DependencyWaiting + "; keeping last valid result", FailedKeeping = DependencyFailed + "; keeping last valid result";
         readonly List<Binding> ticking = new();
         readonly Dictionary<string, int> queryHandles = new();
         readonly Dictionary<string, string> queryExpressions = new();
@@ -276,46 +300,43 @@ namespace Runtime.Capabilities
                     continue;
                 processed.Add(adapter.Component);
                 polling.Remove(adapter.Component);
-                foreach (var row in JObject.Parse(session.QueryJson(handle))["results"])
+                ulong typeId = session.TypeId(adapter.Component);
+                int rows = session.ReadQuery(queryExpressions[adapter.Component], "", ref rowEntities, ref rowTargets, ref rowValues);
+                for (int row = 0; row < rows; row++)
                 {
-                    var values = row["fields"]?["values"];
-                    if (values == null)
+                    var input = rowValues[row];
+                    if (!input.enabled)
                         continue;
-                    string path = row["parent"] == null ? (string)row["name"] : (string)row["parent"] + "." + (string)row["name"];
-                    var input = (JObject)values[0];
-                    var config = (JObject)values[1];
-                    string key = path + "|" + adapter.Component;
-                    if (!(bool)input["enabled"])
-                        continue;
+                    ulong entity = rowEntities[row];
+                    var key = (entity, adapter.Component);
                     seen.Add(key);
-                    var targetId = session.Lookup((string)input["target"]); // Reflection serializes entity references as paths.
-                    if (input["target"]?.Type == JTokenType.Integer)
-                        targetId = (ulong)input["target"];
-                    if (targetId == 0)
-                        targetId = session.Lookup(path);
-                    string signature = input.ToString(Formatting.None) + config.ToString(Formatting.None);
+                    int length = session.ComponentJsonBytes(entity, typeId, ref configBuffer);
+                    if (length < 0)
+                        continue;
+                    ulong targetId = input.target != 0 ? input.target : entity; // A binding without a target is its own target.
                     if (!bindings.TryGetValue(key, out var binding))
                     {
+                        string path = session.EntityPath(entity);
                         if (bindings.Count >= MaxBindings)
                         {
                             // Only the extra binding fails; the applied ones keep running. It is retried when a binding is removed.
-                            WriteState(path, -1, (int)input["revision"], 0, "Capability binding budget exceeded (" + MaxBindings + ")");
+                            WriteState(path, -1, input.revision, 0, "Capability binding budget exceeded (" + MaxBindings + ")");
                             overBudget = true;
                             continue;
                         }
                         var target = Resolve(targetId);
                         if (!target)
                         {
-                            WriteState(path, 0, (int)input["revision"], 0, "Waiting for target view");
+                            WriteState(path, 0, input.revision, 0, "Waiting for target view");
                             polling.Add(adapter.Component);
                             continue;
                         }
                         var host = new GameObject(adapter.Component + " binding");
                         host.transform.SetParent(target, false);
-                        binding = new Binding { Component = adapter.Component, Context = new CapabilityContext { Runtime = this, SessionOwner = session, Entity = session.Lookup(path), Path = path, TargetEntity = targetId, Target = target, Host = host } };
+                        binding = new Binding { Component = adapter.Component, Key = path + "|" + adapter.Component, Context = new CapabilityContext { Runtime = this, SessionOwner = session, Entity = entity, Path = path, TargetEntity = targetId, Target = target, Host = host } };
                         bindings.Add(key, binding);
                     }
-                    binding.Revision = (int)input["revision"];
+                    binding.Revision = input.revision;
                     try
                     {
                         if (!binding.Context.Target || binding.Context.TargetEntity != targetId)
@@ -331,34 +352,38 @@ namespace Runtime.Capabilities
                             // Keep the last valid output while a prerequisite regenerates or has failed; apply again once it is ready.
                             if (binding.Phase == 1)
                                 binding.Phase = 0;
-                            string waiting = ready < 0 ? "Dependency failed or cycle" : "Waiting for dependency";
-                            if (binding.Generation > 0)
-                                waiting += "; keeping last valid result";
-                            WriteState(path, ready < 0 ? -1 : 0, (int)input["revision"], binding.Generation, waiting);
+                            string waiting = binding.Generation > 0
+                                ? (ready < 0 ? FailedKeeping : WaitingKeeping)
+                                : (ready < 0 ? DependencyFailed : DependencyWaiting);
+                            WriteState(binding, ready < 0 ? -1 : 0, input.revision, binding.Generation, waiting);
                             continue;
                         }
                         bool dirty = CapabilityNative.fu_cap_has(session.NativeContext, binding.Context.Entity, "CapDirty") != 0;
+                        bool same = SameSignature(binding, targetId, input.revision, length);
                         // A failed configuration is retried only after it changes or a prerequisite result changes.
-                        if (binding.Signature == "!" + signature && !dirty)
+                        if (binding.Failed && same && !dirty)
                             continue;
-                        if (binding.Signature != signature || dirty || binding.Phase != 1)
+                        if (!same || binding.Failed || dirty || binding.Phase != 1)
                         {
+                            var config = JObject.Parse(System.Text.Encoding.UTF8.GetString(configBuffer, 0, length));
+                            StoreSignature(binding, targetId, input.revision, length);
+                            binding.Failed = false;
                             ApplyBinding(adapter, binding, config);
-                            if (pendingRestore.Remove(key, out var restore))
+                            if (pendingRestore.Remove(binding.Key, out var restore))
                                 binding.Instance.RestoreState(restore);
                             CapabilityNative.fu_cap_ack(session.NativeContext, binding.Context.Entity);
-                            binding.Signature = signature;
                             binding.LastValid = (JObject)config.DeepClone();
                             binding.Retained = false;
                             binding.Phase = 1;
                             ++binding.Generation;
-                            WriteState(path, 1, (int)input["revision"], binding.Generation, "");
+                            WriteState(binding, 1, input.revision, binding.Generation, "");
                         }
                     }
                     catch (Exception e)
                     {
                         CapabilityNative.fu_cap_ack(session.NativeContext, binding.Context.Entity);
-                        Fail(adapter, binding, signature, (int)input["revision"], e);
+                        StoreSignature(binding, targetId, input.revision, length);
+                        Fail(adapter, binding, input.revision, e);
                     }
                 }
             }
@@ -366,7 +391,7 @@ namespace Runtime.Capabilities
             foreach (var pair in bindings)
                 if (processed.Contains(pair.Value.Component) && !seen.Contains(pair.Key))
                     stale.Add(pair.Key);
-            foreach (string key in stale)
+            foreach (var key in stale)
                 Remove(key);
             // A freed slot may belong to a binding of another component that was refused: look at all of them once.
             if (overBudget && stale.Count > 0)
@@ -374,6 +399,19 @@ namespace Runtime.Capabilities
                 overBudget = false;
                 fullPass = true;
             }
+        }
+        bool SameSignature(Binding b, ulong target, int revision, int length) =>
+            b.SigSet && b.SigTarget == target && b.SigRevision == revision && b.ConfigLength == length
+            && new ReadOnlySpan<byte>(b.Config, 0, length).SequenceEqual(new ReadOnlySpan<byte>(configBuffer, 0, length));
+        void StoreSignature(Binding b, ulong target, int revision, int length)
+        {
+            if (b.Config == null || b.Config.Length < length)
+                b.Config = new byte[Math.Max(length, 64)];
+            Buffer.BlockCopy(configBuffer, 0, b.Config, 0, length);
+            b.ConfigLength = length;
+            b.SigTarget = target;
+            b.SigRevision = revision;
+            b.SigSet = true;
         }
         void ApplyBinding(ICapabilityAdapter adapter, Binding binding, JObject config)
         {
@@ -390,10 +428,10 @@ namespace Runtime.Capabilities
         /// Reports the failure and, when an earlier configuration succeeded, rebuilds a fresh instance from it so the
         /// last valid result stays in the world. Dependents see phase -1 and keep their own last results.
         /// </summary>
-        void Fail(ICapabilityAdapter adapter, Binding binding, string signature, int revision, Exception error, bool keepLastValid = true)
+        void Fail(ICapabilityAdapter adapter, Binding binding, int revision, Exception error, bool keepLastValid = true)
         {
             DisposeBinding(binding);
-            binding.Signature = "!" + signature;
+            binding.Failed = true;
             binding.Phase = -1;
             binding.Retained = false;
             string message = Failure(error);
@@ -411,12 +449,24 @@ namespace Runtime.Capabilities
                     message += " Last valid configuration also failed: " + fallback.Message;
                 }
             }
-            WriteState(binding.Context.Path, -1, revision, binding.Generation, message);
+            WriteState(binding, -1, revision, binding.Generation, message);
         }
         // A tick failure would repeat with the same inputs, so it disposes the instance until an edit or dependency change.
-        void TickFailed(Binding binding, Exception error) => Fail(null, binding, binding.Signature.TrimStart('!'), binding.Revision, error, false);
+        void TickFailed(Binding binding, Exception error) => Fail(null, binding, binding.Revision, error, false);
         static string Failure(Exception e) => (Application.isEditor || Debug.isDebugBuild) ? e.ToString() : e.Message;
         void WriteState(string path, int phase, int revision, int generation, string message) => session.SetComponentJson(path, "CapState", JsonConvert.SerializeObject(new { phase, appliedRevision = revision, generation, message }));
+        // CapState has a string member (no blittable mirror), so it stays JSON; an unchanged state is not written again.
+        void WriteState(Binding b, int phase, int revision, int generation, string message)
+        {
+            if (b.Written && b.WrittenPhase == phase && b.WrittenRevision == revision && b.WrittenGeneration == generation && b.WrittenMessage == message)
+                return;
+            WriteState(b.Context.Path, phase, revision, generation, message);
+            b.Written = true;
+            b.WrittenPhase = phase;
+            b.WrittenRevision = revision;
+            b.WrittenGeneration = generation;
+            b.WrittenMessage = message;
+        }
         float nextReconcile;
         void Update()
         {
@@ -428,6 +478,23 @@ namespace Runtime.Capabilities
                 nextReconcile = Time.unscaledTime + .05f;
                 Reconcile(false);
             }
+            TickInstances();
+        }
+        void FixedUpdate() => FixedTickInstances();
+        void LateUpdate() => LateTickInstances();
+        /// <summary>
+        /// For tests: one frame (reconcile when due is skipped; a change-gated reconcile, Tick, LateTick) and one fixed step,
+        /// exactly the calls Update, LateUpdate and FixedUpdate make, so allocation can be measured without frame timing.
+        /// </summary>
+        public void StepForTests()
+        {
+            Reconcile(false);
+            TickInstances();
+            LateTickInstances();
+            FixedTickInstances();
+        }
+        void TickInstances()
+        {
             foreach (var b in Ticking())
             if (b.Ticks)
                 try
@@ -439,7 +506,7 @@ namespace Runtime.Capabilities
                     TickFailed(b, e);
                 }
         }
-        void FixedUpdate()
+        void FixedTickInstances()
         {
             if (session == null || session.IsDisposed)
                 return;
@@ -454,7 +521,7 @@ namespace Runtime.Capabilities
                     TickFailed(b, e);
                 }
         }
-        void LateUpdate()
+        void LateTickInstances()
         {
             if (session == null || session.IsDisposed)
                 return;
@@ -477,7 +544,7 @@ namespace Runtime.Capabilities
                 ticking.Add(b);
             return ticking;
         }
-        void Remove(string key)
+        void Remove((ulong, string) key)
         {
             if (!bindings.Remove(key, out var b))
                 return;
@@ -499,7 +566,7 @@ namespace Runtime.Capabilities
         }
         void Clear()
         {
-            foreach (string key in bindings.Keys.ToArray())
+            foreach (var key in bindings.Keys.ToArray())
                 Remove(key);
         }
         void OnDestroy()
@@ -567,6 +634,8 @@ namespace Runtime.Capabilities
                 throw new ArgumentException("Nonfinite " + key);
             return f;
         }
+        /// <summary>Same check as <see cref="F"/> for a value read from a typed component.</summary>
+        public static float Finite(float value, string key) => float.IsFinite(value) ? value : throw new ArgumentException("Nonfinite " + key);
         public static int I(this JObject j, string key, int fallback = 0) => (int?)j[key] ?? fallback;
         public static bool B(this JObject j, string key) => (bool?)j[key] ?? false;
         public static string S(this JObject j, string key) => (string)j[key] ?? "";

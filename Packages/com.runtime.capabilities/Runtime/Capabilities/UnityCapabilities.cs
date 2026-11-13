@@ -19,6 +19,61 @@ namespace Runtime.Capabilities
         void OnCollisionExit(Collision c) => touching.Remove(c.collider);
         void OnDisable() => touching.Clear();
     }
+    // Plain-data mirrors of CapabilitySchema.flecs components, read and written without JSON.
+    // struct CapDrag(x: f32, y: f32, z: f32, active: bool)
+    struct CapDragData
+    {
+        public float x, y, z; public bool active;
+    }
+    // struct CapForce(x: f32, y: f32, z: f32, sequence: i32)
+    struct CapForceData
+    {
+        public float x, y, z; public int sequence;
+    }
+    // struct CapReadback(x: f32, y: f32, z: f32, vx: f32, vy: f32, vz: f32, contacts: i32)
+    struct CapReadbackData
+    {
+        public float x, y, z, vx, vy, vz; public int contacts;
+    }
+    // struct CapPath(x: f32, y: f32, z: f32, status: i32)
+    struct CapPathData
+    {
+        public float x, y, z; public int status;
+    }
+    // struct CapRigResult(x: f32, y: f32, z: f32, error: f32)
+    struct CapRigResultData
+    {
+        public float x, y, z, error;
+    }
+    // struct MoveIntent(x: f32, z: f32) in ActorSchema.flecs
+    struct MoveIntentData
+    {
+        public float x, z;
+    }
+    static class Typed
+    {
+        // An older saved schema may lack a command component: that means no command, as the JSON read did. Writes still throw.
+        public static bool TryReadOptional<T>(FlecsSession session, ulong entity, string type, out T value) where T : unmanaged
+        {
+            if (session.TypeId(type) == 0)
+            {
+                value = default;
+                return false;
+            }
+            return session.TryRead(entity, type, out value);
+        }
+    }
+    // One-element arrays for FlecsSession.WriteBatch, so a publish allocates nothing.
+    sealed class Publisher<T> where T : unmanaged
+    {
+        readonly ulong[] entities = new ulong[1]; readonly T[] values = new T[1];
+        public void Write(FlecsSession session, string type, ulong entity, T value)
+        {
+            entities[0] = entity;
+            values[0] = value;
+            session.WriteBatch(type, entities, values, 1);
+        }
+    }
     [Capability("CapBody", "physics", 20)]
     public sealed class BodyConfig
     {
@@ -28,7 +83,7 @@ namespace Runtime.Capabilities
     public sealed class BodyCapability : CapabilityInstance<BodyConfig>
     {
         Rigidbody body; CapsuleCollider collider; ContactReadback contacts; float gravity; int forceSequence = int.MinValue;
-        bool drag, wasKinematic; float lastReport;
+        bool drag, wasKinematic; float lastReport; readonly Publisher<CapReadbackData> readback = new();
         public BodyCapability(CapabilityContext c) : base(c) { }
         protected override void Apply(BodyConfig j)
         {
@@ -54,9 +109,8 @@ namespace Runtime.Capabilities
         {
             if (!body)
                 return;
-            var request = Context.Session.ComponentJson(Context.TargetEntity, "CapDrag");
-            var d = string.IsNullOrEmpty(request) ? null : JObject.Parse(request);
-            bool active = d?.B("active") == true;
+            bool hasDrag = Typed.TryReadOptional(Context.Session, Context.TargetEntity, "CapDrag", out CapDragData d);
+            bool active = hasDrag && d.active;
             if (active && !drag)
             {
                 wasKinematic = body.isKinematic;
@@ -65,7 +119,7 @@ namespace Runtime.Capabilities
             }
             if (active)
             {
-                body.MovePosition(d.XYZ());
+                body.MovePosition(new Vector3(Fields.Finite(d.x, "x"), Fields.Finite(d.y, "y"), Fields.Finite(d.z, "z")));
                 return;
             }
             if (drag)
@@ -75,28 +129,18 @@ namespace Runtime.Capabilities
             }
             if (!body.isKinematic)
                 body.AddForce(Physics.gravity * gravity, ForceMode.Acceleration);
-            var f = Context.Read("CapForce");
-            if (f != null && f.I("sequence") != forceSequence)
+            if (Typed.TryReadOptional(Context.Session, Context.Entity, "CapForce", out CapForceData f) && f.sequence != forceSequence)
             {
-                forceSequence = f.I("sequence");
+                forceSequence = f.sequence;
                 if (!body.isKinematic)
-                    body.AddForce(Vector3.ClampMagnitude(f.XYZ(), 10000), ForceMode.Impulse);
+                    body.AddForce(Vector3.ClampMagnitude(new Vector3(Fields.Finite(f.x, "x"), Fields.Finite(f.y, "y"), Fields.Finite(f.z, "z")), 10000), ForceMode.Impulse);
             }
             if (Time.unscaledTime - lastReport > .05f)
             {
                 lastReport = Time.unscaledTime;
                 var p = body.position;
                 var v = body.linearVelocity;
-                Context.Publish("CapReadback", new
-                {
-                    x = p.x,
-                    y = p.y,
-                    z = p.z,
-                    vx = v.x,
-                    vy = v.y,
-                    vz = v.z,
-                    contacts = contacts.Count
-                });
+                readback.Write(Context.Session, "CapReadback", Context.Entity, new CapReadbackData { x = p.x, y = p.y, z = p.z, vx = v.x, vy = v.y, vz = v.z, contacts = contacts.Count });
             }
         }
         public override JObject CaptureState()
@@ -252,6 +296,7 @@ namespace Runtime.Capabilities
     public sealed class NavigationCapability : CapabilityInstance<NavigationConfig>
     {
         readonly NavMeshPath path = new(); Vector3 goal; float speed, stopping; ulong command; float next;
+        readonly Vector3[] corners = new Vector3[2]; readonly Publisher<CapPathData> pathOut = new(); readonly Publisher<MoveIntentData> intentOut = new();
         public NavigationCapability(CapabilityContext c) : base(c) { }
         protected override void Apply(NavigationConfig j)
         {
@@ -268,29 +313,16 @@ namespace Runtime.Capabilities
             next = Time.unscaledTime + .15f;
             int status = 0;
             Vector3 direction = Vector3.zero;
-            if (NavMesh.SamplePosition(Target.position, out var start, 2, NavMesh.AllAreas) && NavMesh.CalculatePath(start.position, goal, NavMesh.AllAreas, path) && path.corners.Length > 1)
+            if (NavMesh.SamplePosition(Target.position, out var start, 2, NavMesh.AllAreas) && NavMesh.CalculatePath(start.position, goal, NavMesh.AllAreas, path) && path.GetCornersNonAlloc(corners) > 1)
             {
-                direction = path.corners[1] - Target.position;
+                direction = corners[1] - Target.position;
                 direction.y = 0;
                 direction = Vector3.Distance(Target.position, goal) > stopping ? direction.normalized * speed : Vector3.zero;
                 status = (int)path.status + 1;
             }
-            Context.Publish("CapPath", new
-            {
-                x = direction.x,
-                y = direction.y,
-                z = direction.z,
-                status
-            });
+            pathOut.Write(Context.Session, "CapPath", Context.Entity, new CapPathData { x = direction.x, y = direction.y, z = direction.z, status = status });
             if (command != 0)
-            {
-                string name = Context.Session.EntityPath(command);
-                Context.Session.SetComponentJson(name, "MoveIntent", Newtonsoft.Json.JsonConvert.SerializeObject(new
-                {
-                    x = direction.x,
-                    z = direction.z
-                }));
-            }
+                intentOut.Write(Context.Session, "MoveIntent", command, new MoveIntentData { x = direction.x, z = direction.z });
         }
     }
     [Capability("CapCamera", "camera", 40)]
@@ -373,7 +405,7 @@ namespace Runtime.Capabilities
     }
     public sealed class RigCapability : CapabilityInstance<RigConfig>
     {
-        RigBuilder builder; Rig rig; TwoBoneIKConstraint constraint; bool ownBuilder, ownAnimator; float nextReport;
+        RigBuilder builder; Rig rig; TwoBoneIKConstraint constraint; bool ownBuilder, ownAnimator; float nextReport; readonly Publisher<CapRigResultData> result = new();
         public RigCapability(CapabilityContext c) : base(c) { }
         protected override void Apply(RigConfig j)
         {
@@ -424,13 +456,7 @@ namespace Runtime.Capabilities
             nextReport = Time.unscaledTime + .05f;
             var data = constraint.data;
             var p = data.tip.position;
-            Context.Publish("CapRigResult", new
-            {
-                x = p.x,
-                y = p.y,
-                z = p.z,
-                error = Vector3.Distance(p, data.target.position)
-            });
+            result.Write(Context.Session, "CapRigResult", Context.Entity, new CapRigResultData { x = p.x, y = p.y, z = p.z, error = Vector3.Distance(p, data.target.position) });
         }
         public override void Dispose()
         {

@@ -132,6 +132,7 @@ SIGNATURES = {
     "fu_cap_has": (c.c_int, [P, c.c_uint64, S]), "fu_cap_ack": (None, [P, c.c_uint64]),
     "fu_cap_ready": (c.c_int, [P, c.c_uint64]), "fu_delete_entity": (c.c_int32, [P, S]),
     "fu_query_once_json": (P, [P, S, c.c_int32]),
+    "fu_type_layout_into": (c.c_int32, [P, c.c_uint64, c.c_char_p, c.c_int32]),
 }
 for _name, (_result, _args) in SIGNATURES.items():
     _function = getattr(lib, _name)
@@ -293,7 +294,7 @@ def header_vs_csharp():
 
 # --- ABI constants -------------------------------------------------------------------------------------------------
 
-FIELD_SIZE = {"ulong": 8, "float": 4, "int": 4}
+FIELD_SIZE = {"ulong": 8, "float": 4, "int": 4, "uint": 4}
 
 
 def csharp_view_size(source):
@@ -313,7 +314,7 @@ def abi_constants():
     managed_version = int(re.search(r"const int AbiVersion\s*=\s*(\d+)", source).group(1))
     native_version, native_size, managed_size = lib.fu_abi_version(), lib.fu_view_size(), csharp_view_size(source)
     assert native_version == managed_version, f"fu_abi_version() {native_version} != C# AbiVersion {managed_version}"
-    assert native_size == 80, f"fu_view_size() is {native_size}, expected 80"
+    assert native_size == 96, f"fu_view_size() is {native_size}, expected 96"
     assert native_size == managed_size, f"fu_view_size() {native_size} != C# View size {managed_size}"
     return f"ABI {native_version}, view size {native_size} bytes"
 
@@ -667,6 +668,139 @@ def query_once():
         assert "Invalid query" in world.error(), world.error()
         assert slots() == before, "a one-off query took a query slot"
     return "all rows, a row limit, NULL with an error for an invalid expression, and no query slot used"
+
+
+# --- ABI 4: view changes, type layout, events ----------------------------------------------------------------------
+
+class View(c.Structure):
+    _fields_ = [("entity", c.c_uint64), ("parent", c.c_uint64)] + [
+        (name, c.c_float) for name in "px py pz rx ry rz sx sy sz r g b a".split()
+    ] + [("primitive", c.c_int32), ("has_label", c.c_int32)] + [
+        (name, c.c_float) for name in "qx qy qz qw".split()] + [("flags", c.c_uint32)]
+
+
+class Event(c.Structure):
+    _fields_ = [("event", c.c_uint64), ("entity", c.c_uint64), ("other", c.c_uint64),
+                ("x", c.c_float), ("y", c.c_float), ("z", c.c_float), ("value", c.c_float)]
+
+
+def bind_extra(name, result, args):
+    function = getattr(lib, name)
+    function.restype, function.argtypes = result, args
+    return function
+
+
+view_changes = bind_extra("fu_view_changes", c.POINTER(View),
+                          [P, c.POINTER(c.c_int32), c.POINTER(c.POINTER(c.c_uint64)), c.POINTER(c.c_int32)])
+read_views = bind_extra("fu_read_views", c.c_int32, [P, c.POINTER(View), c.c_int32])
+emit_events = bind_extra("fu_emit_events", c.c_int32, [P, c.POINTER(Event), c.c_int32])
+
+
+def changes(world):
+    """One fu_view_changes call: ({entity: copy of the view}, [removed entity ids])."""
+    count, removed_count, removed = c.c_int32(-1), c.c_int32(-1), c.POINTER(c.c_uint64)()
+    views = view_changes(world.ctx, c.byref(count), c.byref(removed), c.byref(removed_count))
+    assert views, f"fu_view_changes returned NULL: {world.error()}"
+    changed = {}
+    for i in range(count.value):
+        copy = View()
+        c.memmove(c.byref(copy), c.byref(views[i]), c.sizeof(View))
+        changed[copy.entity] = copy
+    return changed, [removed[i] for i in range(removed_count.value)]
+
+
+@check("view-changes")
+def view_changes_stream():
+    with isolated_world() as world:
+        world.require_load("Views", "a { Position: {1,0,0} }\nb { Position: {2,0,0}; Rotation: {0,45,0} }\n"
+                                    "c { Position: {3,0,0}; Rotation: {0,0,0}; Spin: {0,90,0} }\n"
+                                    "d { Position: {4,0,0}; Orientation: {0, 0.7071, 0, 0.7071} }")
+        ids = {name: world.lookup(name) for name in "abcd"}
+        assert all(ids.values()), f"entities missing: {ids}"
+        first, removed = changes(world)
+        assert set(first) == set(ids.values()) and not removed, \
+            f"first call must return every view, got {len(first)}, removed {removed}"
+        d, a = first[ids["d"]], first[ids["a"]]
+        assert d.flags & 1 and abs(d.qy - 0.7071) < 1e-4 and abs(d.qw - 0.7071) < 1e-4 and d.qx == 0 and d.qz == 0, \
+            f"oriented view: flags {d.flags}, q ({d.qx}, {d.qy}, {d.qz}, {d.qw})"
+        assert a.flags == 0 and a.qw == 1 and (a.qx, a.qy, a.qz) == (0, 0, 0), \
+            f"unoriented view: flags {a.flags}, q ({a.qx}, {a.qy}, {a.qz}, {a.qw})"
+        again, removed = changes(world)
+        assert not again and not removed, f"nothing changed, got {len(again)} views, removed {removed}"
+        # fu_read_views returns every view and leaves the change stream alone.
+        buffer = (View * 16)()
+        assert read_views(world.ctx, buffer, 16) == 4, "fu_read_views must return all four views"
+        between, removed = changes(world)
+        assert not between and not removed, "fu_read_views disturbed the change stream"
+        world.tick(1)
+        spun, _ = changes(world)
+        assert set(spun) == {ids["c"]}, f"after a tick only the spinning entity changes, got {sorted(spun)}"
+        assert lib.fu_set_component_json(world.ctx, b"a", b"Position", b'{"x":9,"y":0,"z":0}') == 0, world.error()
+        written, _ = changes(world)
+        assert ids["a"] in written and written[ids["a"]].px == 9, \
+            f"a Position write must resend that entity: {sorted(written)}"
+        assert ids["d"] not in written and ids["c"] not in written, "entities in other tables must not be resent"
+        assert lib.fu_delete_entity(world.ctx, b"b") == 1, "b was not deleted"
+        gone, removed = changes(world)
+        assert removed == [ids["b"]] and ids["b"] not in gone, f"a deleted entity must be listed as removed: {removed}"
+        world.require_load("Gain", "a { Color: {1,0,0,1} }")
+        moved, removed = changes(world)
+        assert ids["a"] in moved and moved[ids["a"]].r == 1 and not removed, \
+            f"an entity that moves table is resent: {sorted(moved)}, removed {removed}"
+    return ("all views first, nothing when idle, only the spinner after a tick, writes and table moves resent, "
+            "deletes removed, read_views leaves the stream alone, Orientation flag and values")
+
+
+@check("type-layout")
+def type_layout():
+    def layout(world, name, capacity=4096):
+        buffer = c.create_string_buffer(capacity)
+        length = lib.fu_type_layout_into(world.ctx, world.lookup(name), buffer, capacity)
+        return length, buffer
+
+    def parse(length, buffer):
+        assert 0 < length < len(buffer.raw), f"layout length {length}"
+        return json.loads(buffer.raw[:length].decode())
+
+    with isolated_world() as world:
+        world.require_load("Mix", "struct Mix(a: f32, b: bool, c: i32)")
+        world.require_load("Plain", "thing {}")
+        info = parse(*layout(world, "Position"))
+        assert info["size"] == 12 and [(f["offset"], f["size"], f["kind"]) for f in info["fields"]] == \
+            [(0, 4, "f32"), (4, 4, "f32"), (8, 4, "f32")], info
+        info = parse(*layout(world, "CapBinding"))
+        fields = {f["name"]: f for f in info["fields"]}
+        assert info["size"] == 16, info
+        assert (fields["target"]["offset"], fields["target"]["kind"]) == (0, "entity"), fields.get("target")
+        assert (fields["enabled"]["offset"], fields["enabled"]["kind"]) == (8, "bool"), fields.get("enabled")
+        assert (fields["revision"]["offset"], fields["revision"]["kind"]) == (12, "i32"), fields.get("revision")
+        info = parse(*layout(world, "Presented"))
+        assert "position.x" in {f["name"] for f in info["fields"]}, f"nested leaves: {[f['name'] for f in info['fields']]}"
+        info = parse(*layout(world, "Mix"))
+        assert [(f["name"], f["offset"]) for f in info["fields"]] == [("a", 0), ("b", 4), ("c", 8)], info
+        length, _ = layout(world, "Position")
+        small, buffer = layout(world, "Position", 8)
+        assert small == length and len(buffer.value) < length, \
+            f"a too-small buffer must return the full length {length}, got {small}"
+        assert lib.fu_type_layout_into(world.ctx, 0xDEAD0000, c.create_string_buffer(64), 64) == -1, \
+            "an unknown id must return -1"
+        assert lib.fu_type_layout_into(world.ctx, world.lookup("thing"), c.create_string_buffer(64), 64) == -1, \
+            "a non-component entity must return -1"
+    return ("Position, CapBinding, Presented (position.x) and a Script struct report offsets; a short buffer returns "
+            "the full length; unknown and non-component ids return -1")
+
+
+@check("emit-events")
+def emit_event_calls():
+    with isolated_world() as world:
+        world.require_load("Events", "Touched {}\nsubject {}\nother {}")
+        touched, subject, other = (world.lookup(n) for n in ("Touched", "subject", "other"))
+        live = (Event * 1)(Event(touched, subject, other, 1, 2, 3, 0.5))
+        assert lib.fu_emit_events(world.ctx, live, 1) == 1, "a live event and entity must be delivered"
+        mixed = (Event * 2)(Event(touched, 0xDEAD0000, 0, 0, 0, 0, 0), Event(touched, subject, 0, 0, 0, 0, 0))
+        assert lib.fu_emit_events(world.ctx, mixed, 2) == 1, "an entry with a dead entity must be skipped"
+        assert lib.fu_emit_events(world.ctx, None, 3) == -1, "a null array with a positive count is a bad argument"
+    return "1 delivered for a live event and entity; a dead entity is skipped; -1 for a null array"
 
 
 # --- Report --------------------------------------------------------------------------------------------------------

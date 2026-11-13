@@ -18,7 +18,8 @@ P = c.c_void_p
 class View(c.Structure):
     _fields_ = [("entity", c.c_uint64), ("parent", c.c_uint64)] + [
         (name, c.c_float) for name in "px py pz rx ry rz sx sy sz r g b a".split()
-    ] + [("primitive", c.c_int32), ("has_label", c.c_int32)]
+    ] + [("primitive", c.c_int32), ("has_label", c.c_int32)] + [
+        (name, c.c_float) for name in "qx qy qz qw".split()] + [("flags", c.c_uint32)]
 
 def bind(name, ret, *args):
     fn = getattr(lib, name)
@@ -101,7 +102,7 @@ def request(w, port, path, method="GET", body=None):
 report = {"passed": False, "flecs": version().decode(), "checks": checks}
 w = None
 try:
-    assert abi() == 3
+    assert abi() == 4 and c.sizeof(View) == 96
     assert size() == c.sizeof(View)
     w = create(0)
     assert w, error(None)

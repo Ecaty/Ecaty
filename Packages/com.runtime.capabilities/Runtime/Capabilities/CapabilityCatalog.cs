@@ -117,7 +117,17 @@ namespace Runtime.Capabilities
                 return token.Type == JTokenType.String ? (string)token : token.ToString();
             throw new NotSupportedException("Unsupported capability field " + field.DeclaringType.Name + "." + field.Name);
         }
-        public static IEnumerable<FieldInfo> Members(Type type) => type.GetFields(BindingFlags.Instance | BindingFlags.Public).OrderBy(f => f.MetadataToken);
+        // Reflection per call allocated on every read/write; fields of a type never change.
+        static readonly Dictionary<Type, FieldInfo[]> members = new();
+        public static IEnumerable<FieldInfo> Members(Type type)
+        {
+            lock (members)
+            {
+                if (!members.TryGetValue(type, out var fields))
+                    members[type] = fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public).OrderBy(f => f.MetadataToken).ToArray();
+                return fields;
+            }
+        }
         public static string MemberType(FieldInfo field)
         {
             var type = field.FieldType;

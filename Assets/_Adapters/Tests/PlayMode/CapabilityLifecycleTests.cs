@@ -124,6 +124,56 @@ namespace Game.Tests
             }
             yield return null;
         }
+        // struct CapReadback(x: f32, y: f32, z: f32, vx: f32, vy: f32, vz: f32, contacts: i32) in CapabilitySchema.flecs
+        struct ReadbackMirror
+        {
+            public float x, y, z, vx, vy, vz; public int contacts;
+        }
+        // Ticking capabilities (a dynamic body publishing CapReadback and reading CapDrag/CapForce each fixed step, a light)
+        // must neither allocate nor parse JSON once settled. The ticks run through the same code as Update/FixedUpdate.
+        [UnityTest]
+        public IEnumerator SteadyStateTicksAllocateNothing()
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                var runtime = world.gameObject.AddComponent<CapabilityRuntime>();
+                runtime.Initialize(world);
+                runtime.RegisterDiscovered();
+                world.Session.SetManagedScript("SteadyModule", "SteadyTarget { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1}; CapDrag: {x: 0, y: 0, z: 0, active: false} }\n"
+                    + "SteadyBody { CapBinding: {target: SteadyTarget, enabled: true, revision: 1}; CapBody: {mass: 1, radius: .5, height: 1, gravity: 1, kinematic: false}; CapForce: {x: 0, y: 0, z: 0, sequence: 1} }\n"
+                    + "SteadyLight { CapBinding: {target: SteadyTarget, enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 4, colorR: 1, colorG: 1, colorB: 1} }");
+                world.SyncViews();
+                runtime.Reconcile();
+                yield return Frames(3);
+                Assert.That(runtime.BindingCount, Is.EqualTo(2));
+                Assert.That((int)JObject.Parse(world.Session.ComponentJson(world.Session.Lookup("SteadyBody"), "CapState"))["phase"], Is.EqualTo(1), "The body binding did not apply");
+                // Settle: first CapReadback write, CapState/CapDirty table moves, JIT of the generic paths. Real frames
+                // pass between steps so the 20 Hz readback and reconcile timers fire.
+                for (int i = 0; i < 20; i++)
+                {
+                    runtime.StepForTests();
+                    yield return null;
+                }
+                long allocated = 0;
+                for (int i = 0; i < 300; i++)
+                {
+                    long before = System.GC.GetAllocatedBytesForCurrentThread();
+                    runtime.StepForTests();
+                    allocated += System.GC.GetAllocatedBytesForCurrentThread() - before;
+                    if (i % 3 == 0)
+                        yield return null;
+                }
+                Assert.That(allocated, Is.EqualTo(0), "Steady-state capability ticks allocated " + allocated + " bytes");
+                Assert.That(world.Session.TryRead(world.Session.Lookup("SteadyBody"), "CapReadback", out ReadbackMirror readback), Is.True, "The body did not publish CapReadback");
+                Assert.That(float.IsFinite(readback.y));
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
         // One binding more than the budget must fail by itself (CapState phase -1) without stopping the others,
         // and must be applied once a slot is free.
         [UnityTest]

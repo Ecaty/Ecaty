@@ -50,6 +50,7 @@ query_json = bind("fu_query_json", P, P, c.c_char_p)
 query_once = bind("fu_query_once_json", P, P, c.c_char_p, c.c_int32)
 set_json = bind("fu_set_component_json", c.c_int32, P, c.c_char_p, c.c_char_p, c.c_char_p)
 read_views = bind("fu_read_views", c.c_int32, P, P, c.c_int32)
+view_changes = bind("fu_view_changes", P, P, c.POINTER(c.c_int32), P, c.POINTER(c.c_int32))
 write_presented = bind("fu_write_presented", c.c_int32, P, P, c.c_int32, c.c_int32)
 diagnostics = bind("fu_bridge_diagnostics", P, P)
 query_create = bind("fu_query_create", c.c_int32, P, c.c_char_p)
@@ -61,7 +62,8 @@ script_edit = bind("fu_script_edit", c.c_int32, P, c.c_char_p, c.c_char_p, c.c_c
 class View(c.Structure):
     _fields_ = [("entity", U64), ("parent", U64)] + [
         (name, c.c_float) for name in "px py pz rx ry rz sx sy sz r g b a".split()
-    ] + [("primitive", c.c_int32), ("has_label", c.c_int32)]
+    ] + [("primitive", c.c_int32), ("has_label", c.c_int32)] + [
+        (name, c.c_float) for name in "qx qy qz qw".split()] + [("flags", c.c_uint32)]
 
 
 # ---- helpers -------------------------------------------------------------
@@ -174,6 +176,28 @@ def read_views_metric(n):
         buffer = (View * n)()
         tick(w, 0.016)
         return best_calls(lambda: read_views(w, buffer, n), 100)
+
+
+def view_changes_10000_static():
+    """10,000 static views and one spinning entity: a frame is one tick plus one change report."""
+    n = 10000
+    with world() as w:
+        set_script(w, "Bulk", bulk_views_script(n))
+        set_script(w, "Spinner", "spinner { Position: {0,0,0}; Rotation: {0,0,0}; Spin: {0,90,0} }")
+        count, removed_count = c.c_int32(0), c.c_int32(0)
+        removed = c.c_void_p()
+
+        def frame():
+            tick(w, 0.016)
+            if not view_changes(w, c.byref(count), c.byref(removed), c.byref(removed_count)):
+                raise RuntimeError((error(w) or b"").decode())
+        frame()
+        if count.value != n + 1:
+            raise RuntimeError(f"the first change report returned {count.value} views")
+        frame()
+        if count.value != 1:
+            raise RuntimeError(f"a static frame reported {count.value} changed views, expected the spinner only")
+        return best_calls(frame, 300)
 
 
 def write_presented_10000():
@@ -323,6 +347,7 @@ METRICS = [
     ("tick_splines_256", tick_splines_256),
     ("tick_trees_256", tick_trees_256),
     ("read_views_1000", lambda: read_views_metric(1000)),
+    ("view_changes_10000_static", view_changes_10000_static),
     ("read_views_10000", lambda: read_views_metric(10000)),
     ("write_presented_10000", write_presented_10000),
     ("live_write_component", live_write_component),

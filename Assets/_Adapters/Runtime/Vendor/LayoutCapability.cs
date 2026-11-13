@@ -15,23 +15,37 @@ namespace Game.Adapters
         public float radius = 1, spacing = 45;
     }
 #if CAP_FLEXALON
+    // Position { x, y, z } of the native core; only its size matters for the typed child query.
+    struct PositionData
+    {
+        public float x, y, z;
+    }
     public sealed class LayoutCapability : CapabilityInstance<LayoutConfig>
     {
         FlexalonCircleLayout layout; bool owned; readonly System.Collections.Generic.Dictionary<ulong, FlexalonObject> children = new(); readonly System.Collections.Generic.List<FlexalonObject> created = new();
+        // Typed child query read only when Flecs reports a change (or a child still has no view); no JSON, nothing rebuilt per tick.
+        string childQuery; ulong[] childIds = new ulong[16], childParents = new ulong[16]; PositionData[] childPositions = new PositionData[16];
+        readonly System.Collections.Generic.HashSet<ulong> seenChildren = new(); readonly System.Collections.Generic.List<ulong> staleChildren = new();
+        bool pendingChildren; int unityChildren = int.MinValue;
         public LayoutCapability(CapabilityContext c) : base(c) { layout = Target.GetComponent<FlexalonCircleLayout>(); if (layout) throw new InvalidOperationException("Target already has a layout owner."); layout = Target.gameObject.AddComponent<FlexalonCircleLayout>(); owned = true; }
         void BindChildren()
         {
-            var seen = new System.Collections.Generic.HashSet<ulong>();
-            foreach (var row in JObject.Parse(Context.Session.Query("Position, (ChildOf, " + Context.Session.EntityPath(Context.TargetEntity) + ")"))["results"])
+            childQuery ??= "Position, (ChildOf, " + Context.Session.EntityPath(Context.TargetEntity) + ")";
+            pendingChildren = false;
+            int rows = Context.Session.ReadQuery(childQuery, "", ref childIds, ref childParents, ref childPositions);
+            seenChildren.Clear();
+            for (int i = 0; i < rows; i++)
             {
-                string path = row["parent"] == null ? (string)row["name"] : (string)row["parent"] + "." + (string)row["name"];
-                ulong id = Context.Session.Lookup(path);
-                seen.Add(id);
+                ulong id = childIds[i];
+                seenChildren.Add(id);
                 if (children.ContainsKey(id))
                     continue;
                 var child = Context.Resolve(id);
                 if (!child)
+                {
+                    pendingChildren = true; // no view yet: look again next tick
                     continue;
+                }
                 if (child.GetComponent<CharacterController>() || child.GetComponent<Rigidbody>())
                     throw new InvalidOperationException("Layout cannot own an active motor/body child.");
                 if (!Context.Runtime.World.AcquirePose(id, this))
@@ -44,22 +58,40 @@ namespace Game.Adapters
                 }
                 children[id] = item;
             }
-            foreach (var id in new System.Collections.Generic.List<ulong>(children.Keys))
-            if (!seen.Contains(id))
+            staleChildren.Clear();
+            foreach (var id in children.Keys)
+                if (!seenChildren.Contains(id))
+                    staleChildren.Add(id);
+            foreach (var id in staleChildren)
             {
                 Context.Runtime.World.ReleasePose(id, this);
                 children.Remove(id);
             }
-            foreach (Transform child in Target)
-            if (child == Host.transform || child.name == "Visual")
+            SkipOwnChildren();
+        }
+        // Unity-side children (the binding host, "Visual") are not laid out. Transform.name allocates, so the names
+        // are only inspected when the set of child transforms changed.
+        void SkipOwnChildren()
+        {
+            int signature = Target.childCount;
+            for (int i = 0; i < Target.childCount; i++)
+                signature = signature * 31 + Target.GetChild(i).GetEntityId().GetHashCode();
+            if (signature == unityChildren)
+                return;
+            unityChildren = signature;
+            for (int i = 0; i < Target.childCount; i++)
             {
-                var skip = child.GetComponent<FlexalonObject>();
-                if (!skip)
+                var child = Target.GetChild(i);
+                if (child == Host.transform || child.name == "Visual")
                 {
-                    skip = child.gameObject.AddComponent<FlexalonObject>();
-                    created.Add(skip);
+                    var skip = child.GetComponent<FlexalonObject>();
+                    if (!skip)
+                    {
+                        skip = child.gameObject.AddComponent<FlexalonObject>();
+                        created.Add(skip);
+                    }
+                    skip.SkipLayout = true;
                 }
-                skip.SkipLayout = true;
             }
         }
         protected override void Apply(LayoutConfig j)
@@ -68,7 +100,13 @@ namespace Game.Adapters
             layout.SpacingDegrees = Mathf.Clamp(j.spacing, 0, 360);
             BindChildren();
         }
-        public override void Tick(float delta) => BindChildren();
+        public override void Tick(float delta)
+        {
+            if (childQuery == null || pendingChildren || Context.Session.QueryChanged(Context.Session.QueryHandle(childQuery)))
+                BindChildren();
+            else
+                SkipOwnChildren();
+        }
         public override void Dispose()
         {
             foreach (var id in children.Keys)
