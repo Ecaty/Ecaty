@@ -44,7 +44,8 @@ jobs:
             branch=$(gh api "repos/$upstream" --jq .default_branch)
             head=$(gh api "repos/$upstream/commits/$branch" --jq .sha)
             ahead=$(gh api "repos/$upstream/compare/$pin...$head" --jq .ahead_by)
-            release=$(gh api "repos/$upstream/releases/latest" --jq .tag_name 2>/dev/null || true)
+            # No release published -> 404 (gh prints the error body on stdout, so discard it).
+            release=$(gh api "repos/$upstream/releases/latest" --jq .tag_name 2>/dev/null) || release=''
             release_new=0; release_line='none published'
             if [ -n "$release" ]; then
               release_ahead=$(gh api "repos/$upstream/compare/$pin...$release" --jq .ahead_by)
