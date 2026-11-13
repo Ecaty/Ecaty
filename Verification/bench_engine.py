@@ -57,6 +57,12 @@ query_create = bind("fu_query_create", c.c_int32, P, c.c_char_p)
 query_changed = bind("fu_query_changed", c.c_int32, P, c.c_int32)
 query_read = bind("fu_query_read_data", c.c_int32, P, c.c_int32, c.c_char_p, P, P, P, c.c_int32, c.c_int32)
 script_edit = bind("fu_script_edit", c.c_int32, P, c.c_char_p, c.c_char_p, c.c_char_p, c.c_char_p)
+source_apply = bind("fu_source_apply", c.c_int32, P, c.c_char_p, c.c_char_p, c.c_char_p)
+lookup = bind("fu_lookup", U64, P, c.c_char_p)
+spawn = bind("fu_spawn", U64, P, U64, U64, c.c_char_p)
+world_create = bind("fu_world_create", U64, P, c.c_char_p)
+world_save = bind("fu_world_save_json", P, P, U64)
+world_load = bind("fu_world_load_json", U64, P, c.c_char_p, c.c_char_p)
 
 
 class View(c.Structure):
@@ -312,6 +318,113 @@ def typed_read_bodies_up():
         return best_calls(read, 1000)
 
 
+# ---- kinds: editing a kind while its instances exist ------------------------
+
+def craft_kind(red=1, tail=False, parts=2):
+    """Text of the kind `Craft`: a body, `parts` parts (one nested) and optionally one more part."""
+    text = f"prefab Craft {{\n  Position: {{0,0,0}}\n  Color: {{{red},0,0,1}}\n  Primitive: {{0}}\n"
+    text += "  prefab wing { Position: {1,0,0}\n    Color: {0,1,0,1}\n    prefab tip { Color: {0,0,1,1} } }\n"
+    if parts > 2:
+        text += "  prefab fin { Position: {0,1,0}; Color: {1,1,0,1} }\n"
+    if tail:
+        text += "  prefab tail { Position: {0,0,-1}; Color: {1,1,1,1} }\n"
+    return text + "}"
+
+
+def apply_kind(w, text):
+    if source_apply(w, b"sources.Craft", b"library", text.encode()) < 0:
+        raise RuntimeError((error(w) or b"").decode())
+
+
+def kind_world(w, instances, parts=2):
+    apply_kind(w, craft_kind(parts=parts))
+    kind = lookup(w, b"library.Craft")
+    for i in range(instances):
+        if not spawn(w, kind, 0, b"i%d" % i):
+            raise RuntimeError((error(w) or b"").decode())
+    tick(w, 0.016)
+
+
+def source_apply_value_1000():
+    """Edit commit: the text changes one value while 1,000 instances exist."""
+    counter = itertools.count()
+    with world() as w:
+        kind_world(w, 1000)
+        return best_calls(lambda: apply_kind(w, craft_kind(red=next(counter) % 5)), 100)
+
+
+def source_apply_part_1000():
+    """The text adds one part to a kind with 1,000 instances, then removes it again; the mean of the two applies."""
+    with world() as w:
+        kind_world(w, 1000)
+        texts = itertools.cycle([craft_kind(tail=True), craft_kind()])
+        return best_calls(lambda: apply_kind(w, next(texts)), 40)
+
+
+def spawn_1000():
+    """Per-instance cost of fu_spawn for 1,000 instances of a kind with three parts."""
+    instances = 1000
+
+    def batch():
+        with world() as w:
+            apply_kind(w, craft_kind(parts=3))
+            kind = lookup(w, b"library.Craft")
+            start = time.perf_counter()
+            for i in range(instances):
+                if not spawn(w, kind, 0, b"i%d" % i):
+                    raise RuntimeError((error(w) or b"").decode())
+            return (time.perf_counter() - start) / instances * 1e6
+    return best(batch)
+
+
+# ---- worlds: saving and loading a document ----------------------------------
+
+def saved_world(w, instances=1000):
+    """A world that owns one kind with three parts and `instances` instances with one changed value each; returns its document."""
+    entity = world_create(w, b"w1")
+    if not entity:
+        raise RuntimeError((error(w) or b"").decode())
+    if source_apply(w, b"worlds.w1.sources.Craft", b"worlds.w1.kinds", craft_kind(parts=3).encode()) < 0:
+        raise RuntimeError((error(w) or b"").decode())
+    kind = lookup(w, b"worlds.w1.kinds.Craft")
+    for i in range(instances):
+        if not spawn(w, kind, entity, b"i%d" % i) or set_json(
+                w, b"worlds.w1.i%d" % i, b"Position", b'{"x":%d,"y":1,"z":2}' % i) != 0:
+            raise RuntimeError((error(w) or b"").decode())
+    tick(w, 0.016)
+    return entity
+
+
+def saved_document(w, entity):
+    pointer = world_save(w, entity)
+    if not pointer:
+        raise RuntimeError((error(w) or b"").decode())
+    try:
+        return c.string_at(pointer)
+    finally:
+        free(pointer)
+
+
+def world_save_1000():
+    def save():
+        pointer = world_save(w, entity)
+        if not pointer:
+            raise RuntimeError((error(w) or b"").decode())
+        free(pointer)
+    with world() as w:
+        entity = saved_world(w)
+        return best_calls(save, 10)
+
+
+def world_load_1000():
+    def load():
+        if not world_load(w, b"w1", document):
+            raise RuntimeError((error(w) or b"").decode())
+    with world() as w:
+        document = saved_document(w, saved_world(w))
+        return best_calls(load, 5)
+
+
 # ---- behaviour checks (1 = as intended) ----------------------------------
 
 def handles_survive_unrelated_script_set():
@@ -357,6 +470,11 @@ METRICS = [
     ("tool_query_new", tool_query_new),
     ("spawn_prefab_instance", spawn_prefab_instance),
     ("typed_read_bodies_up", typed_read_bodies_up),
+    ("source_apply_value_1000", source_apply_value_1000),
+    ("source_apply_part_1000", source_apply_part_1000),
+    ("spawn_1000", spawn_1000),
+    ("world_save_1000", world_save_1000),
+    ("world_load_1000", world_load_1000),
 ]
 FLAGS = [
     ("handles_survive_unrelated_script_set", handles_survive_unrelated_script_set),

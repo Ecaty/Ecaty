@@ -837,6 +837,342 @@ def exclusive_ownership():
     return "exclusive claims, release by owner only, flags 2 and 4 in the view stream, cleared when the owner is deleted"
 
 
+# --- ABI 5: sources and kinds ---------------------------------------------------------------------------------------
+# A source is a named script text that defines kinds; applying it again edits them in place (src/Sources.cpp).
+
+source_apply = bind_extra("fu_source_apply", c.c_int32, [P, S, S, S])
+source_undo = bind_extra("fu_source_undo", c.c_int32, [P, S])
+source_remove = bind_extra("fu_source_remove", c.c_int32, [P, S])
+source_text_into = bind_extra("fu_source_text_into", c.c_int32, [P, S, c.c_char_p, c.c_int32])
+error_position = bind_extra("fu_error_position", c.c_int32, [P, c.POINTER(c.c_int32), c.POINTER(c.c_int32)])
+spawn = bind_extra("fu_spawn", c.c_uint64, [P, c.c_uint64, c.c_uint64, S])
+attach = bind_extra("fu_attach", c.c_int32, [P, c.c_uint64])
+
+PROBE_KIND = "prefab Probe {\n  Color: {1,0,0,1}\n  Primitive: {0}\n  prefab part { Color: {0,1,0,1} }\n}"
+
+
+def apply_source(world, name, text):
+    return source_apply(world.ctx, name.encode(), b"library", text.encode())
+
+
+def source_text(world, name):
+    buffer = c.create_string_buffer(8192)
+    length = source_text_into(world.ctx, name.encode(), buffer, 8192)
+    return None if length < 0 else buffer.raw[:length].decode()
+
+
+def color_of(world, entity, field="r"):
+    """One field of the Color an entity has, owned or inherited; None when it has none."""
+    text = World.take(lib.fu_component_json(world.ctx, entity, b"Color"))
+    return json.loads(text)[field] if text else None
+
+
+@check("sources")
+def sources():
+    with isolated_world() as world:
+        assert apply_source(world, "sources.Probe", PROBE_KIND) == 0, world.error()
+        kind, part = world.lookup("library.Probe"), world.lookup("library.Probe.part")
+        assert kind and part, "the kind and its part must exist under the scope"
+        assert world.lookup("library.__fu_staging") == 0, "the staging scope was left behind"
+        instance = spawn(world.ctx, kind, 0, b"i1")
+        assert instance and world.lookup("i1.part"), f"spawn failed: {world.error()}"
+        part_instance = world.lookup("i1.part")
+        # An edit keeps every id and reaches the instance.
+        edited = PROBE_KIND.replace("{1,0,0,1}", "{0.5,0,0,1}")
+        assert apply_source(world, "sources.Probe", edited) == 0, world.error()
+        assert (world.lookup("library.Probe"), world.lookup("library.Probe.part"), world.lookup("i1"), world.lookup("i1.part")) == \
+            (kind, part, instance, part_instance), "an edit changed an entity id"
+        assert color_of(world, instance) == 0.5, "the instance did not read the edited value"
+        assert source_text(world, "sources.Probe") == edited, "the stored text is not the applied text"
+        # A refused text changes nothing and reports its position.
+        before = source_text(world, "sources.Probe")
+        broken = "prefab Probe {\n  Color: {1,0,0,1}\n  Missing: {2}\n}"
+        assert apply_source(world, "sources.Probe", broken) == -1, "an unknown type must be refused"
+        line, column = c.c_int32(0), c.c_int32(0)
+        assert error_position(world.ctx, c.byref(line), c.byref(column)) == 1 and line.value == 3, \
+            f"error position: line {line.value}, column {column.value}"
+        assert world.error(), "a refused text must leave an error message"
+        assert color_of(world, instance) == 0.5 and source_text(world, "sources.Probe") == before, "a refused text changed the kind or its text"
+        assert world.lookup("library.__fu_staging") == 0, "a refused text left the staging scope behind"
+        refused = {
+            "type declaration": "struct Extra(v: f32)\n" + edited,
+            "entity that is not a kind": edited + "\nloose { Color: {0,0,1,1} }",
+        }
+        for label, text in refused.items():
+            assert apply_source(world, "sources.Probe", text) == -1, f"{label} was accepted"
+            assert source_text(world, "sources.Probe") == before and world.lookup("library.loose") == 0, f"{label} changed something"
+        assert apply_source(world, "sources.New", "prefab Fresh { Color: {1,1,1,1} }\nprefab Bad : Missing {}") == -1, "a new source with an error"
+        assert world.lookup("library.Fresh") == 0 and source_text(world, "sources.New") is None, "a refused new source left something"
+        # A kind in use cannot be dropped or removed.
+        assert apply_source(world, "sources.Probe", "prefab Other { Color: {1,1,1,1} }") == -1, "dropping a kind in use must be refused"
+        assert source_remove(world.ctx, b"sources.Probe") == -1, "removing a source whose kind is in use must be refused"
+        assert world.lookup("library.Probe") == kind and color_of(world, instance) == 0.5, "the kind in use was changed"
+        # Undo returns the previous values.
+        assert apply_source(world, "sources.Probe", PROBE_KIND.replace("{1,0,0,1}", "{0.25,0,0,1}")) == 0, world.error()
+        assert color_of(world, instance) == 0.25
+        assert source_undo(world.ctx, b"sources.Probe") >= 0, world.error()
+        assert color_of(world, instance) == 0.5 and source_text(world, "sources.Probe") == edited, "undo did not restore the previous text"
+        assert source_undo(world.ctx, b"sources.Missing") == -1, "undo of an unknown source must return -1"
+        # Text reading: the current text, the full length for a short buffer, -1 for an unknown source.
+        small = c.create_string_buffer(4)
+        assert source_text_into(world.ctx, b"sources.Probe", small, 4) == len(edited.encode()), "a short buffer must return the full length"
+        assert source_text_into(world.ctx, b"sources.Missing", small, 4) == -1, "an unknown source must return -1"
+        # Once nothing uses the kind, the source can be removed with what it defined.
+        assert lib.fu_delete_entity(world.ctx, b"i1") == 1
+        assert source_remove(world.ctx, b"sources.Probe") >= 0, world.error()
+        assert world.lookup("library.Probe") == 0 and source_text(world, "sources.Probe") is None, "the removed source left its kind behind"
+        assert world.lookup("library.__fu_staging") == 0, "the staging scope exists"
+    return ("edit keeps ids; refused texts (script error with line 3, struct, non-prefab, new source, kind in use) change nothing; "
+            "undo restores; text reads full length and -1; removal after the last instance; no staging scope")
+
+
+def instance_is(world, path, base):
+    return world.entity(path).get("pairs", {}).get("flecs.core.IsA") == base
+
+
+@check("kinds")
+def kinds():
+    count = 1000
+    text = ("prefab Craft {\n  Position: {0,0,0}\n  Color: {1,0,0,1}\n  Primitive: {0}\n"
+            "  prefab wing {\n    Position: {1,0,0}\n    Color: {0,1,0,1}\n    prefab tip { Color: {0,0,1,1} }\n  }\n}")
+    with isolated_world() as world:
+        assert apply_source(world, "sources.Craft", text) == 0, world.error()
+        kind = world.lookup("library.Craft")
+        ids = [spawn(world.ctx, kind, 0, f"i{n}".encode()) for n in range(count)]
+        assert all(ids) and len(set(ids)) == count, f"spawn failed: {world.error()}"
+        # Every part follows the kind's part. Built-in components are not inherited: an instance owns a copy.
+        for n in range(count):
+            for path, base in ((f"i{n}", "library.Craft"), (f"i{n}.wing", "library.Craft.wing"), (f"i{n}.wing.tip", "library.Craft.wing.tip")):
+                assert instance_is(world, path, base), f"{path} does not follow {base}"
+        for path in ("i0", "i0.wing", "i999", "i999.wing.tip"):
+            owned = world.entity(path).get("components", {})
+            assert "Color" in owned, f"{path} does not own a copy of Color: {sorted(owned)}"
+        wings = [world.lookup(f"i{n}.wing") for n in range(count)]
+        tips = [world.lookup(f"i{n}.wing.tip") for n in range(count)]
+        assert all(wings) and all(tips), "an instance is missing a part"
+        first, removed = changes(world)
+        assert set(ids) <= set(first) and not removed, f"the first report must contain every instance ({len(first)} views)"
+        # One instance has its own value, then the kind and a part change.
+        assert lib.fu_set_component_json(world.ctx, b"i7", b"Color", b'{"r":0.9,"g":0,"b":0,"a":1}') == 0, world.error()
+        changes(world)
+        edited = text.replace("Color: {1,0,0,1}", "Color: {0.5,0,0,1}").replace("Color: {0,1,0,1}", "Color: {0,0.5,0,1}")
+        assert apply_source(world, "sources.Craft", edited) == 0, world.error()
+        assert world.lookup("library.Craft") == kind, "the kind id changed"
+        wrong = [n for n in range(count) if n != 7 and color_of(world, ids[n]) != 0.5]
+        assert not wrong, f"{len(wrong)} instances did not read the new colour, first {wrong[:3]}"
+        assert abs(color_of(world, ids[7]) - 0.9) < 1e-6, "an instance with its own value lost it"
+        wrong = [n for n in range(count) if color_of(world, wings[n], "g") != 0.5]
+        assert not wrong, f"{len(wrong)} parts did not read the new colour, first {wrong[:3]}"
+        moved, removed = changes(world)
+        assert not removed, f"an edit reported removed views: {removed[:3]}"
+        missing = [n for n in range(count) if n != 7 and (ids[n] not in moved or moved[ids[n]].r != 0.5)]
+        assert not missing, f"fu_view_changes did not resend {len(missing)} instances with the new value, first {missing[:3]}"
+        assert all(wings[n] in moved and moved[wings[n]].g == 0.5 for n in range(count)), "fu_view_changes did not resend every part"
+        # A part added to the kind appears on every instance.
+        grown = edited.replace("  prefab wing", "  prefab fin { Color: {1,1,0,1} }\n  prefab wing")
+        assert apply_source(world, "sources.Craft", grown) == 0, world.error()
+        fins = [world.lookup(f"i{n}.fin") for n in range(count)]
+        assert all(fins), f"{fins.count(0)} instances lack the new part"
+        assert all(instance_is(world, f"i{n}.fin", "library.Craft.fin") for n in (0, 500, 999)), "a new part does not follow the kind's part"
+        assert color_of(world, fins[3]) == 1 and abs(color_of(world, ids[7]) - 0.9) < 1e-6, "values after the part was added"
+        # A direct write to the kind reaches the instances that still hold its old value.
+        assert lib.fu_set_component_json(world.ctx, b"library.Craft", b"Color", b'{"r":0.3,"g":0,"b":0,"a":1}') == 0, world.error()
+        wrong = [n for n in range(count) if n != 7 and abs(color_of(world, ids[n]) - 0.3) > 1e-6]
+        assert not wrong, f"{len(wrong)} instances did not follow a direct write to the kind, first {wrong[:3]}"
+        assert abs(color_of(world, ids[7]) - 0.9) < 1e-6, "an own value was overwritten by a direct write to the kind"
+        # An instance made by a script is attached to its kind.
+        assert lib.fu_run_script(world.ctx, b"x : library.Craft {}") == 0, world.error()
+        assert attach(world.ctx, world.lookup("x")) >= 1, "fu_attach must report the kinds of the instance"
+        assert instance_is(world, "x.wing", "library.Craft.wing") and world.lookup("x.fin"), "the scripted instance does not have its parts"
+        assert attach(world.ctx, 0xDEAD0000) == -1, "a dead entity must return -1"
+        # A component that content declares as inherited is read from the kind and not stored on the instance.
+        assert lib.fu_run_script(world.ctx, b"struct Speed(v: f32)\nSpeed { (OnInstantiate, Inherit) }") == 0, world.error()
+        assert apply_source(world, "sources.Rig", "prefab Rig {\n  Position: {0,0,0}\n  Speed: {5}\n}") == 0, world.error()
+        rig = spawn(world.ctx, world.lookup("library.Rig"), 0, b"r1")
+        assert rig, world.error()
+        assert "Speed" not in world.entity("r1").get("components", {}), "an inherited component is stored on the instance"
+        assert component(world, "r1", "Speed") == {"v": 5}, f"the instance does not read the kind's Speed: {component(world, 'r1', 'Speed')}"
+    return (f"{count} instances: parts follow, each owns a copy of Color, kind and part edits and a direct write reach all, "
+            "fu_view_changes resends all and removes none, an added part reaches all, an own value stays, fu_attach on a scripted instance, "
+            "a declared inherited component stays on the kind")
+
+
+# --- ABI 5: worlds --------------------------------------------------------------------------------------------------
+# A world is the subtree under worlds.<id>: scoped tools, a document, play and rewind (src/Worlds.cpp).
+
+world_create = bind_extra("fu_world_create", c.c_uint64, [P, S])
+world_delete = bind_extra("fu_world_delete", c.c_int32, [P, c.c_uint64])
+world_enter = bind_extra("fu_world_enter", c.c_int32, [P, c.c_uint64])
+world_entered = bind_extra("fu_world_entered", c.c_uint64, [P])
+world_query = bind_extra("fu_world_query_json", P, [P, c.c_uint64, S, c.c_int32])
+world_run = bind_extra("fu_world_run_script", c.c_int32, [P, c.c_uint64, S])
+world_save = bind_extra("fu_world_save_json", P, [P, c.c_uint64])
+world_load = bind_extra("fu_world_load_json", c.c_uint64, [P, S, S])
+world_snapshot = bind_extra("fu_world_snapshot", c.c_int32, [P, c.c_uint64])
+world_rewind = bind_extra("fu_world_rewind", c.c_uint64, [P, c.c_uint64])
+
+WORLD_SCHEMA = "struct Fuel(left: f32)\nstruct Pilot(who: entity)\nLikes {}\nBroken {}"
+PLANE = ("prefab Plane {\n  Position: {0,0,0}\n  Color: {1,0,0,1}\n  Primitive: {0}\n"
+         "  prefab engine { Position: {0,1,0}; Color: {0,1,0,1} }\n}")
+PLANE_CONTENT = ("p1 { Position: {1,2,3}; Fuel: {7} }\np1 { engine { Position: {5,5,5} } }\n"
+                 "bob { Position: {4,0,0}; Label: {\"Bob\"}; (Likes, p1); Broken }\np2 { Pilot: {bob} }")
+
+
+def make_world(world, name):
+    """A world with a kind of its own, two instances (p1 changed), a plain entity with a tag, a pair and an entity reference."""
+    entity = world_create(world.ctx, name.encode())
+    assert entity, world.error()
+    assert source_apply(world.ctx, f"worlds.{name}.sources.Plane".encode(), f"worlds.{name}.kinds".encode(), PLANE.encode()) == 0, world.error()
+    kind = world.lookup(f"worlds.{name}.kinds.Plane")
+    assert spawn(world.ctx, kind, entity, b"p1") and spawn(world.ctx, kind, entity, b"p2"), world.error()
+    assert world_run(world.ctx, entity, PLANE_CONTENT.encode()) == 0, world.error()
+    return entity
+
+
+def world_rows(world, entity, expression):
+    """Paths of the rows of a scoped query, or None with the error left in world.error()."""
+    text = World.take(world_query(world.ctx, entity, expression.encode(), 0))
+    if text is None:
+        return None
+    return sorted((row["parent"] + "." if row.get("parent") else "") + row["name"] for row in json.loads(text)["results"])
+
+
+@check("worlds")
+def worlds():
+    with isolated_world() as world:
+        assert lib.fu_run_script(world.ctx, WORLD_SCHEMA.encode()) == 0, world.error()
+        a, b = make_world(world, "a"), make_world(world, "b")
+        assert a and b and a != b, "two worlds with the same entity names must exist"
+        assert world_create(world.ctx, b"a") == a, "creating a world again must return it"
+        assert world_create(world.ctx, b"not valid") == 0 and world.error(), "a bad id must be refused"
+        assert world_rows(world, a, "Position") == ["worlds.a.bob", "worlds.a.p1", "worlds.a.p1.engine", "worlds.a.p2", "worlds.a.p2.engine"], \
+            f"a query in world a: {world_rows(world, a, 'Position')}"
+        assert world_rows(world, b, "Position") == ["worlds.b.bob", "worlds.b.p1", "worlds.b.p1.engine", "worlds.b.p2", "worlds.b.p2.engine"], \
+            f"a query in world b: {world_rows(world, b, 'Position')}"
+        assert world_rows(world, a, "Fuel") == ["worlds.a.p1"], "a query with a component"
+        assert world_rows(world, a, "Label, (Likes, $who)") == ["worlds.a.bob"], "a query with a pair"
+        assert world_rows(world, a, "not a query (") is None and "Invalid query" in world.error(), \
+            f"an invalid expression must return NULL with an error: {world.error()!r}"
+        assert world_rows(world, a, "Position") is not None, "the world must work after an invalid query"
+        # A script runs under its world only.
+        assert world_run(world.ctx, a, b"only_a { Position: {9,9,9} }") == 0, world.error()
+        assert world.lookup("worlds.a.only_a") and not world.lookup("worlds.b.only_a") and not world.lookup("only_a"), \
+            "a script in world a created an entity outside it"
+        assert world_run(world.ctx, a, b"Missing: {") == -1 and world.error(), "a bad script must be refused with an error"
+        assert world_run(world.ctx, a, b"worlds { b { bob { Position: {77,0,0} } } }") == 0, world.error()
+        assert component(world, "worlds.b.bob", "Position")["x"] == 4, "world b changed"
+        # Entering.
+        assert world_entered(world.ctx) == 0, "no world is entered at first"
+        assert world_enter(world.ctx, a) == 0 and world_entered(world.ctx) == a, "enter a"
+        assert world_enter(world.ctx, b) == 0 and world_entered(world.ctx) == b, "entering another leaves the first"
+        assert world_enter(world.ctx, world.lookup("worlds.a.bob")) == -1, "an entity that is not a world cannot be entered"
+        assert world_entered(world.ctx) == b, "a refused enter changed the entered world"
+        assert world_enter(world.ctx, 0) == 0 and world_entered(world.ctx) == 0, "0 leaves"
+        # Deleting one world leaves the other working.
+        changes(world)
+        old_b = [world.lookup(p) for p in ("worlds.b.bob", "worlds.b.p1", "worlds.b.p1.engine")]
+        assert all(old_b), "world b entities missing"
+        assert world_enter(world.ctx, b) == 0
+        assert world_delete(world.ctx, b) == 1, world.error()
+        assert not world.lookup("worlds.b") and not world.lookup("worlds.b.p1") and not world.lookup("worlds.b.kinds.Plane"), "the world or its content is left"
+        assert source_text(world, "worlds.b.sources.Plane") is None and source_text(world, "worlds.a.sources.Plane"), \
+            "the sources of the deleted world are left, or the other world lost its own"
+        assert world_entered(world.ctx) == 0, "deleting the entered world must leave it"
+        assert world_delete(world.ctx, b) == 0 and world_delete(world.ctx, world.lookup("worlds.a.bob")) == 0, "an entity that is not a world is not deleted"
+        assert world.lookup("worlds.a.p1") and world.lookup("worlds.a.kinds.Plane"), "world a lost something"
+        world.tick(2)
+        gone, removed = changes(world)
+        assert set(old_b) <= set(removed), f"the views of the deleted world were not reported removed: {removed}"
+        assert world_run(world.ctx, a, b"p1 { Position: {8,0,0} }") == 0, world.error()
+        moved, removed = changes(world)
+        assert world.lookup("worlds.a.p1") in moved and moved[world.lookup("worlds.a.p1")].px == 8 and not removed, \
+            f"world a does not report its change after the other was deleted: {sorted(moved)}, removed {removed}"
+        assert world_rows(world, a, "Fuel") == ["worlds.a.p1"], "world a does not answer queries"
+    return ("queries and scripts stay inside their world, invalid query returns NULL with an error, enter/entered/leave, "
+            "a non-world is refused, deleting a world removes its content and sources and leaves the other world working")
+
+
+def saved(world, entity):
+    text = World.take(world_save(world.ctx, entity))
+    assert text, f"fu_world_save_json returned NULL: {world.error()}"
+    return text
+
+
+def refuse(world, name, text, entity, expected_fuel):
+    """Loads a broken document: it must be refused with an error and leave the loaded world as it was."""
+    before = [world.lookup(p) for p in ("worlds.a", "worlds.a.p1", "worlds.a.p1.engine", "worlds.a.bob", "worlds.a.kinds.Plane")]
+    assert world_load(world.ctx, b"a", text.encode()) == 0, f"{name} was accepted"
+    assert world.error(), f"{name} was refused without an error message"
+    after = [world.lookup(p) for p in ("worlds.a", "worlds.a.p1", "worlds.a.p1.engine", "worlds.a.bob", "worlds.a.kinds.Plane")]
+    assert before == after and before[0] == entity, f"{name} changed entity ids"
+    assert component(world, "worlds.a.p1", "Fuel") == {"left": expected_fuel}, f"{name} changed a value"
+    assert not world.lookup("worlds.__loading"), f"{name} left worlds.__loading behind"
+
+
+@check("world-documents")
+def world_documents():
+    with isolated_world() as world:
+        assert lib.fu_run_script(world.ctx, WORLD_SCHEMA.encode()) == 0, world.error()
+        a = make_world(world, "a")
+        document = saved(world, a)
+        parsed = json.loads(document)
+        assert parsed["format"] == 2, f"document format {parsed['format']}"
+        assert any("prefab Plane" in source["text"] for source in parsed["sources"]), "the kind's source text is not in the document"
+        records = {record["path"]: record for record in parsed["entities"]}
+        assert "p1.engine" in records and "p2.engine" not in records, "a part is written only where the instance changed it"
+        assert set(records["p2"]["components"]) == {"Pilot"}, f"p2 writes more than it stores itself: {records['p2']['components']}"
+        assert set(records["p1"]["components"]) == {"Position", "Fuel"}, f"p1 components: {records['p1']['components']}"
+        assert '"Color"' not in document and "Presented" not in document, "a value an instance has from its kind or a run-time result was written"
+        assert records["bob"]["tags"] == ["Broken"] and records["bob"]["pairs"] == [["Likes", "~p1"]], "tag and pair records"
+        assert "Bob" in json.dumps(records["bob"]["components"]), "the string value is not in the document"
+        # Under another id the document gives the same world.
+        copy = world_load(world.ctx, b"copy", document.encode())
+        assert copy and world.lookup("worlds.copy") == copy, f"load failed: {world.error()}"
+        assert component(world, "worlds.copy.p1", "Position") == {"x": 1, "y": 2, "z": 3}, "an own value is not back"
+        assert component(world, "worlds.copy.p1", "Fuel") == {"left": 7}
+        assert component(world, "worlds.copy.p1.engine", "Position")["x"] == 5, "the changed part is not back"
+        assert component(world, "worlds.copy.p2.engine", "Position")["y"] == 1, "the unchanged part is not back with the kind's value"
+        assert component(world, "worlds.copy.p2", "Color")["r"] == 1, "an instance does not hold the kind's value after loading"
+        assert component(world, "worlds.copy.bob", "Label") == {"text": "Bob"}, "the string value is not back"
+        assert component(world, "worlds.copy.p2", "Pilot") == {"who": "worlds.copy.bob"}, "an entity reference does not point inside the loaded world"
+        assert instance_is(world, "worlds.copy.p2", "worlds.copy.kinds.Plane"), "an instance follows another world's kind"
+        assert world.entity("worlds.copy.bob")["pairs"].get("Likes") == "worlds.copy.p1", f"pair: {world.entity('worlds.copy.bob')['pairs']}"
+        # Refused documents change nothing.
+        world_run(world.ctx, a, b"p1 { Fuel: {55} }")
+        cut = document[:len(document) // 2]
+        refused = {
+            "a cut document": cut,
+            "a wrong format": document.replace('"format":2', '"format":9', 1),
+            "an unknown component type": document.replace('"Fuel"', '"Gone"', 1),
+            "a value that does not fit its type": document.replace('{"left":7}', '{"left":[]}', 1),
+        }
+        for name, text in refused.items():
+            assert text != document or name == "a cut document", f"{name}: the replacement did not change the document"
+            refuse(world, name, text, a, 55)
+        # The intact document replaces the loaded world with new entities.
+        old_p1 = world.lookup("worlds.a.p1")
+        loaded = world_load(world.ctx, b"a", document.encode())
+        assert loaded and loaded != a and world.lookup("worlds.a") == loaded, f"load over the existing world failed: {world.error()}"
+        assert world.lookup("worlds.a.p1") != old_p1 and component(world, "worlds.a.p1", "Fuel") == {"left": 7}, "the world was not replaced by the saved one"
+        assert not world.lookup("worlds.__loading"), "worlds.__loading was left behind"
+        # Play and rewind.
+        a = loaded
+        assert world_enter(world.ctx, a) == 0
+        assert world_rewind(world.ctx, a) == 0 and world.error(), "a world without a snapshot cannot be rewound"
+        assert world_snapshot(world.ctx, a) == 0, world.error()
+        assert world_run(world.ctx, a, b"p1 { Fuel: {1}; Position: {50,50,50} }\nextra { Position: {0,0,0} }") == 0, world.error()
+        assert spawn(world.ctx, world.lookup("worlds.a.kinds.Plane"), a, b"p3"), world.error()
+        assert lib.fu_delete_entity(world.ctx, b"worlds.a.p2") == 1
+        restored = world_rewind(world.ctx, a)
+        assert restored and world.lookup("worlds.a") == restored, f"rewind failed: {world.error()}"
+        assert component(world, "worlds.a.p1", "Fuel") == {"left": 7} and component(world, "worlds.a.p1", "Position")["x"] == 1, "changed values are not back"
+        assert world.lookup("worlds.a.p2") and not world.lookup("worlds.a.p3") and not world.lookup("worlds.a.extra"), \
+            "a deleted entity is not back, or a new one is left"
+        assert world_entered(world.ctx) == restored, "the world is not entered after the rewind"
+    return ("format 2 with the kind's text and only what instances store; a copy under another id has the same values and points inside itself; "
+            "a cut, wrong-format, unknown-type and bad-value document are refused and change nothing; load replaces; snapshot and rewind restore")
+
+
 # --- Report --------------------------------------------------------------------------------------------------------
 
 passed = all(row["ok"] for row in results)

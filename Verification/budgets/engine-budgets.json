@@ -110,5 +110,32 @@
     "enforce": true,
     "target": 1,
     "target_step": "1.4"
+  },
+  "source_apply_value_1000": {
+    "description": "fu_source_apply of a kind text with one changed value while 1000 instances exist (the edit commit). Instances hold copies of the built-in components, so the change is pushed to each one. Design goal: under 1 ms absolute (a ratio of 40 at a 25 us empty tick); not met.",
+    "kind": "ratio",
+    "guard": 81.0,
+    "target": 40,
+    "target_step": "3.1"
+  },
+  "source_apply_part_1000": {
+    "description": "fu_source_apply alternately adding and removing one part of a kind with 1000 instances (mean per apply).",
+    "kind": "ratio",
+    "guard": 660.0
+  },
+  "spawn_1000": {
+    "description": "Per-instance cost of fu_spawn for 1000 instances of a kind with three parts (each instance copies the built-in components).",
+    "kind": "ratio",
+    "guard": 2.4
+  },
+  "world_save_1000": {
+    "description": "fu_world_save_json of a world with one kind (three parts) and 1000 instances with one changed value each.",
+    "kind": "ratio",
+    "guard": 790.0
+  },
+  "world_load_1000": {
+    "description": "fu_world_load_json of that document, replacing the loaded world.",
+    "kind": "ratio",
+    "guard": 4600.0
   }
 }

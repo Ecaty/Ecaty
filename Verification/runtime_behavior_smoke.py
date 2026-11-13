@@ -32,7 +32,13 @@ def take(ptr):
     try: return c.string_at(ptr).decode('utf-8')
     finally: free(ptr)
 def inspect(w, path): return json.loads(take(entity(w, path.encode())))
-def components(w, path): return inspect(w,path)['components']
+def components(w, path):
+    # What the entity has: its own values, plus those it inherits from its kinds (own values win).
+    entity = inspect(w,path)
+    merged = {}
+    for base in entity.get('inherited', {}).values(): merged.update(base.get('components', {}))
+    merged.update(entity.get('components', {}))
+    return merged
 def run(w, text): assert script(w,text.encode()) == 0, error(w).decode()
 def load(w, text): assert managed(w,b'AgentBehavior',text.encode()) == 0, error(w).decode()
 def step(w, dt): assert tick(w,dt) == 0, error(w).decode()
