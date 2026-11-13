@@ -30,7 +30,31 @@ namespace Game
             if (world.Session.ManagedScriptSource(Shared) == null)
                 world.Session.SetManagedScript(Shared, "prefab GallerySharedShape { Primitive: {1}; Scale: {1,1,1}; Color: {0.8,0.88,0.79,1} }");
         }
-        public bool Has(string id) => !string.IsNullOrEmpty((string)ReadRecord(id)?["source"]);
+        /// <summary>Most gallery entries a saved arrangement may hold. Checked when a world is created and when one is restored.</summary>
+        public const int MaxEntries = 80;
+        // Has() runs every frame while a world is open. Saved-world records change only through WriteRecord or a
+        // source change (entity deleted or recreated), so the answer is cached until one of those happens.
+        readonly Dictionary<string, bool> hasCache = new();
+        FlecsSession hasCacheSession; int hasCacheRevision;
+        public bool Has(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return false;
+            if (hasCacheSession != world.Session || hasCacheRevision != world.Session.SourceRevision)
+            {
+                hasCache.Clear();
+                hasCacheSession = world.Session;
+                hasCacheRevision = world.Session.SourceRevision;
+            }
+            if (!hasCache.TryGetValue(id, out bool has))
+                hasCache[id] = has = !string.IsNullOrEmpty((string)ReadRecord(id)?["source"]);
+            return has;
+        }
+        void WriteRecord(string id, string json)
+        {
+            world.Session.SetComponentJson(id, "GallerySavedWorld", json);
+            hasCache.Clear();
+        }
         // Capability bindings live under the private root; world-owned behavior sources use this module prefix.
         static string Scope(string id) => id + "Content";
         static string Owned(string id) => "GalleryWorld_" + id + ".";
@@ -76,7 +100,7 @@ namespace Game
             Validate(id, objects, graph);
             var previous = ReadRecord(id);
             string graphText = replaceGraph ? graph?.ToString(Formatting.None) ?? "" : (string)previous?["graph"] ?? "";
-            world.Session.SetComponentJson(id, "GallerySavedWorld", new JObject { ["source"] = Source(id, objects), ["objects"] = objects.ToString(Formatting.None), ["selected"] = selected ?? "", ["revision"] = ((int?)previous?["revision"] ?? 0) + 1, ["graph"] = graphText }.ToString(Formatting.None));
+            WriteRecord(id, new JObject { ["source"] = Source(id, objects), ["objects"] = objects.ToString(Formatting.None), ["selected"] = selected ?? "", ["revision"] = ((int?)previous?["revision"] ?? 0) + 1, ["graph"] = graphText }.ToString(Formatting.None));
         }
         static void Validate(string id, JArray objects, JObject graph = null)
         {
@@ -188,13 +212,13 @@ namespace Game
         public void Restore(JArray records)
         {
             records ??= new JArray();
-            if (records.Count > 80 || records.Select(r => (string)r["id"]).Distinct().Count() != records.Count)
+            if (records.Count > MaxEntries || records.Select(r => (string)r["id"]).Distinct().Count() != records.Count)
                 throw new ArgumentException("Invalid saved world catalog");
             foreach (var row in records)
                 Validate((string)row["id"], JArray.Parse((string)row["record"]["objects"]), Graph(row["record"]));
             Unload();
             foreach (var row in JObject.Parse(world.Session.Query("GallerySavedWorld"))["results"])
-                world.Session.SetComponentJson((string)row["name"], "GallerySavedWorld", new JObject { ["source"] = "", ["objects"] = "[]", ["selected"] = "", ["revision"] = 0, ["graph"] = "" }.ToString());
+                WriteRecord((string)row["name"], new JObject { ["source"] = "", ["objects"] = "[]", ["selected"] = "", ["revision"] = 0, ["graph"] = "" }.ToString());
             foreach (var row in records)
             {
                 string id = (string)row["id"];
@@ -209,7 +233,7 @@ namespace Game
                 return;
             var record = ReadRecord(resident);
             record["selected"] = name;
-            world.Session.SetComponentJson(resident, "GallerySavedWorld", record.ToString());
+            WriteRecord(resident, record.ToString());
         }
         public void Move(string name, Vector3 local)
         {
