@@ -1,6 +1,6 @@
 # Engine plan: review and target architecture
 
-Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phases 0 and 1 are implemented and tested on this branch (see "Phase 0 status" and "Phase 1 status" in section 4): Run-All and Extended pass with the rebuilt native library. Later phases start only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
+Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phases 0, 1 and 2 are implemented and tested on this branch (see the status blocks in section 4): Run-All and Extended pass with the rebuilt native library. One item of Phase 2 is still open (ownership in the world). Later phases start only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
 
 Readable page with pickable decisions: https://claude.ai/artifact/3mxTpAwGuAYdgmeBEE9jrw (private to the owner until shared).
 
@@ -273,8 +273,8 @@ Targets on the development desktop, release DLL. Each becomes an automated check
 |---|---|---|
 | Native tick, idle world | ≤ 50 µs, independent of bindings, splines and trees | Met in Phase 1: 26 µs empty, 26 µs with 1,000 bindings or 256 splines, 31 µs with 256 waiting trees (before: up to 288 µs) [M] |
 | Native tick, 1,000 moving elements | ≤ 0.5 ms | not built; 1,000 `Spin` ≈ 64 µs (audit) |
-| View sync, 10,000 static entities | ≤ 50 µs native, no C# work | 186 µs read + 331 µs ack + full C# apply [M] |
-| Bridge traffic per frame | ≤ 0.2 ms, 0 B managed allocation | gallery ≈ 0.085 ms and < 0.1 KB (audit); capabilities ≈ 22 KB (audit) |
+| View sync, 10,000 static entities | ≤ 50 µs native, no C# work | Met in Phase 2: 29 µs per tick including the change read; C# touches only changed views (before: 186 µs read + 331 µs write-back + a full C# apply) [M] |
+| Bridge traffic per frame | ≤ 0.2 ms, 0 B managed allocation | Capabilities: 0 B in steady state since Phase 2 (PlayMode test); gallery ≈ 0.085 ms and < 0.1 KB (audit). No new Editor profile was taken. |
 | Live value write (drag) | ≤ 5 µs | 1.7 µs [M] |
 | Edit commit (release) | ≤ 1 ms | 0.14 ms to 19 ms, by script size [M] |
 | Kind edit with 1,000 instances | ≤ 5 ms | reload breaks instances; in-place application ≈ 0.1 ms in the spike [M] |
@@ -357,12 +357,27 @@ The benchmark guards were re-measured after Phase 1, so a return to the old cost
 | 2.3 | Typed streams for capability reconcile and tick paths. | PlayMode test asserts 0 B per frame over 300 frames with bodies, audio and layout active. | Config parsing differences; compare applied results on the workshop scene. | M–L, **F→S** |
 | 2.4 | Batched events in. | Python test: a contact event reaches a native observer in the same tick. | Low. | S, **F→S** |
 
+**Phase 2 status (2026-11-13).** Implemented on `feature/engine-architecture-review` (native and bridge branches `feature/bridge-abi4`). Design and review were done here; the C# bridge, the capability conversion, the test updates, the builds and the Unity runs were done by cheaper agents from written briefs. ABI version is 4; Windows and Android libraries rebuilt.
+
+| Step | State | Evidence |
+|---|---|---|
+| 2.1 | Done, without generated mirrors. `fu_type_layout_into` describes a reflected type leaf by leaf. `FlecsSession` checks every managed mirror against it the first time a typed read or write uses it (offset and size of each leaf, float against non-float, swapped names), then caches the result. **Mirrors are still written by hand**; generating them was not needed yet. | Contract check `type-layout`; all typed mirrors in the app passed the check in the Unity runs (no layout mismatch in the Editor log). |
+| 2.2 | Done except ownership. `fu_view_changes` returns the views of tables that changed and the entities that stopped being views; `FlecsWorld.SyncViews` applies only those. A released pose or appearance snaps back to the world's values; pose-owned views are still observed every frame, so `Presented` keeps following physics bodies. New `Orientation` component (quaternion) replaces the Euler `Rotation` for an entity that has it; existing content is unchanged. `Presented` is written for changed and pose-owned views, not for every view (this replaces the planned opt-in tag: nothing has to be tagged). **Still open: pose and appearance ownership are C# dictionaries, not relationships in the world.** | 10,000 static views plus one moving: 29 µs per tick including the change read (target 50 µs); before, 244 µs for the read and 325 µs for the write-back every frame. Contract check `view-changes`. Gallery 132 checks pass on the new sync. |
+| 2.3 | Done. Reconcile reads binding rows as typed data and compares each configuration's bytes; JSON is parsed only for a new or changed binding. Body, navigation, rig, audio, handle and layout tick paths read and publish typed components. `CapState` stays JSON (it has a string member) and is written only when it changes. | PlayMode test `SteadyStateTicksAllocateNothing`: 300 steps with a body, a force, a drag and a light allocate 0 bytes. |
+| 2.4 | Done. `fu_emit_events` delivers a batch of facts (event, entity, other entity, point, value) as Flecs events; `FlecsSession.Emit` wraps it. Nothing sends events yet: the consumers come with links and places (steps 4.3, 4.4). | Core test: an observer receives the fact during the call. Contract check `emit-events`. |
+
+Open-item automation done alongside: `Tools/Sync-WorktreeSubmodules.ps1` (copies a worktree's submodule commits into the main checkout; its fetch path ran for real in this phase) and an AddressSanitizer build (`-DFU_SANITIZE=ON`, MSVC; a separate CI job; tests and smokes pass under it with no report).
+
+**Unity verification (2026-11-13, ABI 4 library loaded):** Run-All passed on head `7f7ce41` (Validator 150, Resources 68, PlayerScripts, EditMode 15, PlayMode 5, Gallery 132). Extended passed 14 of 14 on `8e9b65d`; the only change after it is one number literal in a test script. Both golden saves loaded. The Editor log has no Flecs error, layout mismatch or locked-table message; two `NullReferenceException` lines come from the UniStorm vendor script at start. The first Run-All of this phase failed in the new allocation test because its setup script wrote `.5`, which Flecs Script rejects; the runner reported that as "Tests exceeded three minutes", which hides the real failure and should be fixed in the runner. Not covered: a built player and Android on a device.
+
+Not verified: whether a view is re-sent when a value it inherits from a prefab changes. It matters for kinds (step 3.2) and is listed there.
+
 ### Phase 3: sources, kinds, worlds, saves
 
 | Step | What | Check | Risk | Effort |
 |---|---|---|---|---|
 | 3.1 | Native source manager: in-place application with a staging pass, part sync, refusal to delete a kind in use, structured errors, undo. | The 0.3 matrix as a permanent test; edit-commit budget. | The core of the design. Part sync when an instance changed a part needs a clear rule (keep the instance's part). | L, **F** |
-| 3.2 | Kind system: library scope, traits on engine components, `spawn`, a first part and material library, pouch items as kinds. | Spawn 1,000 instances, edit the kind, verify all follow and saves hold only overrides. | Child-part policy when a kind changes (decision 2). | L, **F** |
+| 3.2 | Kind system: library scope, traits on engine components (set natively at registration), `spawn`, a first part and material library, pouch items as kinds. Check that a view is re-sent when an inherited value changes on its kind. | Spawn 1,000 instances, edit the kind, verify all follow (also on screen) and saves hold only overrides. | Child-part policy when a kind changes (decision 2). | L, **F** |
 | 3.3 | World scope: `worlds.<id>` subtree, `(Entered, world)`, scoped queries and Script. | Two worlds loaded; a tool call in one cannot see the other. | Gallery private-root code must move to the same model. | M, **F→S** |
 | 3.4 | World document v2, migration from both v1 formats, atomic load, Play snapshot and rewind. | Golden v1 files load; round trip equals; a corrupted file leaves the world untouched. | Save compatibility is the highest user-facing risk; keep the v1 reader until the user confirms their saves load. | L, **F** |
 | 3.5 | Retire what the above replaces: `RuntimeEdits.*` modules, the `models` registry, the duplicated clay schema, the frozen-schema path, the component whitelist. | Suites; grep shows no references. | Remove only after the replacement is verified, per AGENTS.md. | M, **S** |
