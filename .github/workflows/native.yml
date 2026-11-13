@@ -23,14 +23,16 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
-      - name: Keep line endings (vendored Flecs is hash-checked)
-        run: git config --global core.autocrlf false
+      - name: Keep upstream line endings in vendor submodules
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
       - uses: actions/checkout@v4
         with:
           submodules: false
           lfs: false
-      - name: Native submodules only (Store/ is private)
-        run: git submodule update --init --recursive Native/Core Native/App
+      - name: Native submodules only, incl. their vendor forks (Store/ is private)
+        run: git submodule update --init --recursive --depth 1 Native/Core Native/App
       - name: Cache the sound bank (LFS)
         uses: actions/cache@v4
         with:
