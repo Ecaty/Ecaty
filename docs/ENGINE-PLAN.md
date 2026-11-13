@@ -1,6 +1,6 @@
 # Engine plan: review and target architecture
 
-Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Nothing here is implemented; each phase starts only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review-6a5706`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
+Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Nothing here is implemented; each phase starts only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
 
 Readable page with pickable decisions: https://claude.ai/artifact/3mxTpAwGuAYdgmeBEE9jrw (private to the owner until shared).
 
@@ -210,7 +210,7 @@ app.gallery ring and tree motion (Native/App)
 - **A native source manager owns every managed script.** One script per kind (or per recipe or rule set), never one script per world. It records which instances use a kind, and after a kind reload it re-attaches `IsA`, spawns newly added parts and reports what changed. It returns structured errors (script, line, message) and keeps a bounded undo stack per script.
 - **Edit protocol**: while a value is dragged, write the component (live). On release, commit: for an instance nothing more is needed; for a kind, apply the source edit and let the manager re-attach. Target: commit under 1 ms.
 - **Schema scripts are never reloaded in place.** Player- or AI-defined types live in their own scripts and change by adding a new version.
-- This needs a spike before it is built (plan step 0.3), and one question to Sander Mertens: is an in-place update of a prefab script (keeping entity ids and instances) planned upstream? If yes, the manager gets simpler.
+- This needs a spike before it is built (plan step 0.3). If a later Flecs version updates a prefab script in place (keeping entity ids and instances), we adopt it and remove our re-attach step.
 
 ### 3.4 Bridge (ABI 4)
 
@@ -359,7 +359,7 @@ Each is a native module, an adapter and its tests. They can run one at a time af
 
 Recommended option first in each. **Decided by the user on 2026-11-13: the recommended option in all ten (marked).**
 
-Question to send to Sander Mertens (decision 2, drafted for the user to send): "When a managed script that defines a prefab is reloaded, `ecs_script_clear` deletes the prefab, so existing instances lose `(IsA, prefab)` and new prefab children never reach them (Flecs 4.2.0, commit 6879066). Is an in-place update of a script's entities planned, one that keeps entity ids and instances? Until then we plan to re-add `IsA` and spawn new children ourselves after a reload. Is there a better supported way?"
+Changed by the user on 2026-11-13: do not ask Sander Mertens. We build our own re-attach step (decision 2, option A); if a later Flecs version updates a script's entities in place, we move to that version and remove ours.
 
 **1. Where do a world's things live?**
 - [x] **A. Kinds are Script, instances are data holding only overrides** (recommended). Ids stay stable while editing, edits cost microseconds, saves hold differences.
@@ -367,7 +367,7 @@ Question to send to Sander Mertens (decision 2, drafted for the user to send): "
 - [ ] C. Keep today's model (large scripts plus a state overlay). No work now; kinds and fast edits stay blocked.
 
 **2. How do kinds survive a reload?**
-- [x] **A. A native source manager re-attaches instances and adds new parts after a kind reload, and I ask Sander whether an in-place update is planned** (recommended).
+- [x] **A. A native source manager re-attaches instances and adds new parts after a kind reload** (recommended). It is removed if a later Flecs version does this itself.
 - [ ] B. Never reload for value edits: write the world live and keep the source text in our own store. Faster, but text and world can drift.
 - [ ] C. Wait for an upstream answer before building kinds.
 
