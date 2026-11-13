@@ -16,8 +16,8 @@ struct GalleryCameraMeasure(zoom: f32)
 struct GalleryRecenterState(weight: f32)
 struct GalleryGlassIntent(started: f32, entering: bool)
 struct GalleryGlassState(epoch: f32, progress: f32)
-struct GallerySavedWorld(source: string, objects: string, selected: string, revision: i32, graph: string)
-GalleryContentOf {}
+// document: the world as a format 2 document; state: capability adapter state (JSON) for the bindings in it.
+struct GallerySavedWorld(format: i32, document: string, selected: string, revision: i32, state: string)
 GalleryOnLayer {}
 GalleryTreeSettings {
     GalleryTreeConfig: {1.65, 0.77, 2.9, 1, 0.5, 0.2, 0.72, 1, 0.98, 0.017, 7, 4, 0.35}

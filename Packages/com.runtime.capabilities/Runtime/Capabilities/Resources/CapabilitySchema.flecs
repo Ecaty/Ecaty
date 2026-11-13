@@ -13,6 +13,12 @@ struct CapAudioMeter(peak: f32, samples: u64)
 struct CapRigResult(x: f32, y: f32, z: f32, error: f32)
 struct CapPath(x: f32, y: f32, z: f32, status: i32)
 struct CapBounds(minX: f32, minY: f32, minZ: f32, maxX: f32, maxY: f32, maxZ: f32)
+// Results published at run time are rebuilt after a load and are not written to world documents.
+CapReadback { NotSaved }
+CapAudioMeter { NotSaved }
+CapRigResult { NotSaved }
+CapPath { NotSaved }
+CapBounds { NotSaved }
 struct CapAsset(key: string, type: string)
 struct NativeTreeNode(ports: string, description: string)
 NativeTreeNodes {

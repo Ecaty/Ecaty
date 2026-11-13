@@ -103,14 +103,14 @@ namespace Runtime.Capabilities
         }
         readonly Dictionary<string, JObject> pendingRestore = new();
         public JObject CaptureState() => CaptureState(null);
-        /// <summary>Selected adapter state of bindings whose entity path is within <paramref name="scope"/> (all when null).</summary>
+        /// <summary>Selected adapter state of bindings whose entity path is within <paramref name="scope"/> (all outside worlds when null).</summary>
         public JObject CaptureState(string scope)
         {
             var result = new JObject();
             foreach (var p in bindings)
             {
                 string path = p.Value.Context.Path;
-                if (!string.IsNullOrEmpty(scope) && path != scope && !path.StartsWith(scope + ".", StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(scope) ? path.StartsWith(CapabilityGraph.WorldsPrefix, StringComparison.Ordinal) : path != scope && !path.StartsWith(scope + ".", StringComparison.Ordinal))
                     continue;
                 var state = p.Value.Instance?.CaptureState();
                 if (state != null)

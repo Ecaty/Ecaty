@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Runtime.Agents;
@@ -17,10 +19,14 @@ namespace Game
             var tools = new List<IAgentTool> {
                 new Tool("query", "Inspect the live world with a native Flecs query. Example: Position, ?Primitive, ?Color, ?Scale, ?Spin, ?Presented. Query Clock for native time.", "expression", main,
                     a => Query(world, (string)a["expression"])),
-                new Tool("inspect_entity", "Inspect an entity/component by full path with reflected types and values. Example: diorama.Ground", "path", main,
-                    a => world.Session.EntityJson((string)a["path"])),
+                new Tool("inspect_entity", "Inspect an entity/component by full path with reflected types and values. Example: diorama.Ground. In an entered world the path is relative to it.", "path", main,
+                    a => Inspect(world, (string)a["path"])),
                 new Tool("apply_script", "Apply one-time upstream Flecs Script edits. Example: scene { Cube { Color: {0, 0, 1, 1}; Scale: {2, 2, 2} } }. Use nested entity scopes, not dotted entity declarations. Separate statements by semicolons or newlines. Define runtime types as struct Temperature(value: f32). Use apply_behavior for ongoing motion or reactive rules. Errors are not transactional; inspect after failure.", "code", main,
-                    a => { if (experience) experience.ApplyEdit((string)a["code"]); else world.Session.RunScript((string)a["code"]); world.SyncViews(); return Observe(world, engine); }),
+                    a => ApplyScript(world, experience, (string)a["code"], engine)),
+                new Tool("define_kind", "Define or replace a kind in the entered world. code declares the kind; later scripts create instances with x : kinds.Name {}. Returns removed, or the error with line and column.", "name", main,
+                    a => DefineKind(world, (string)a["name"], (string)a["code"]), null, new[] { "code" }),
+                new Tool("undo_kind", "Restore the previous text of a kind in the entered world.", "name", main,
+                    a => UndoKind(world, (string)a["name"])),
                 new Tool("observe_world", "Refresh actual presentation readback. Presented contains measured transforms/color and an applied frame counter. Photo actors are in runtime_actor with measured ActorMotion/PoseObserved. This is actual transform data, not screen perception.", null, main,
                     a => { world.SyncViews(); return Observe(world, engine); }),
                 new ObserveOverTime(world, main)
@@ -55,9 +61,95 @@ namespace Game
             return tools;
         }
 
+        private static readonly Regex KindName = new(@"\A[A-Za-z][A-Za-z0-9_]{0,47}\z", RegexOptions.CultureInvariant);
+
+        private static string Error(string message) => new JObject { ["error"] = message }.ToString(Formatting.None);
+
+        private static string WorldPrefix(FlecsSession session, ulong entered) => "worlds." + session.EntityName(entered);
+
+        // Resolves a path inside the entered world; null with a reason when it points outside.
+        private static string Resolve(FlecsSession session, string path, out string error)
+        {
+            error = null;
+            ulong entered = session.EnteredWorld;
+            if (entered == 0)
+                return path;
+            string prefix = WorldPrefix(session, entered);
+            if (path.Contains("::") || path.Split('.').Any(segment => segment.Length == 0))
+            {
+                error = "Invalid path.";
+                return null;
+            }
+            if (path == prefix || path.StartsWith(prefix + ".", StringComparison.Ordinal))
+                return path;
+            if (path == "worlds" || path.StartsWith("worlds.", StringComparison.Ordinal))
+            {
+                error = "Path is outside the entered world.";
+                return null;
+            }
+            return prefix + "." + path;
+        }
+
+        private static string Inspect(FlecsWorld world, string path)
+        {
+            string full = Resolve(world.Session, path, out string error);
+            return full == null ? Error(error) : world.Session.EntityJson(full);
+        }
+
+        private static string ApplyScript(FlecsWorld world, RuntimeExperience experience, string code, DioramaRuntime engine)
+        {
+            var session = world.Session;
+            ulong entered = session.EnteredWorld;
+            if (entered != 0)
+            {
+                if (!session.TryRunWorldScript(entered, code, out string error, out int line, out int column))
+                    return new JObject { ["error"] = error, ["line"] = line, ["column"] = column }.ToString(Formatting.None);
+            }
+            else if (experience)
+            {
+                // Each edit is one saved source and a load accepts at most 256.
+                if (session.ManagedPaths.Count(p => p != "RuntimeFaults") >= 256)
+                    return Error("The experience already has 256 sources, the most it can save. Remove behaviors or definitions first.");
+                experience.ApplyEdit(code);
+            }
+            else
+                session.RunScript(code);
+            world.SyncViews();
+            return Observe(world, engine);
+        }
+
+        private static string DefineKind(FlecsWorld world, string name, string code)
+        {
+            var session = world.Session;
+            ulong entered = session.EnteredWorld;
+            if (entered == 0)
+                return Error("Enter a world first.");
+            if (!KindName.IsMatch(name))
+                return Error("Use a simple kind name.");
+            string prefix = WorldPrefix(session, entered);
+            if (!session.TryApplySource(prefix + ".sources." + name, prefix + ".kinds", code ?? "", out bool removed, out string error, out int line, out int column))
+                return new JObject { ["error"] = error, ["line"] = line, ["column"] = column }.ToString(Formatting.None);
+            return new JObject { ["removed"] = removed }.ToString(Formatting.None);
+        }
+
+        private static string UndoKind(FlecsWorld world, string name)
+        {
+            var session = world.Session;
+            ulong entered = session.EnteredWorld;
+            if (entered == 0)
+                return Error("Enter a world first.");
+            if (!KindName.IsMatch(name))
+                return Error("Use a simple kind name.");
+            string source = WorldPrefix(session, entered) + ".sources." + name;
+            if (!session.TryUndoSource(source, out string error))
+                return Error(error);
+            return new JObject { ["undone"] = true, ["text"] = session.SourceText(source) }.ToString(Formatting.None);
+        }
+
         private static string Query(FlecsWorld world, string expression)
         {
-            string result = world.Session.QueryOnce(expression); // a model-written expression must not take a feature query slot
+            ulong entered = world.Session.EnteredWorld;
+            string result = entered != 0 ? world.Session.QueryWorld(entered, expression) : world.Session.QueryOnce(expression); // a model-written expression must not take a feature query slot
             return result.Length <= 60000 ? result : new JObject
             {
                 ["error"] = "Too many matches. Optional-only queries include engine internals. Add a required component, e.g. Position, ?Primitive, ?Color, ?Scale; or inspect_entity with an exact entity path. Do not repeat this query unchanged."
@@ -66,7 +158,11 @@ namespace Game
 
         private static string Observe(FlecsWorld world, DioramaRuntime engine = null)
         {
-            var result = JObject.Parse(world.Session.Query("Position, ?Primitive, ?Color, ?Scale, ?Spin, ?Presented"));
+            ulong entered = world.Session.EnteredWorld;
+            var result = JObject.Parse(entered != 0 ? world.Session.QueryWorld(entered, "Position, ?Primitive, ?Color, ?Scale, ?Spin, ?Presented") :
+                world.Session.Query("Position, ?Primitive, ?Color, ?Scale, ?Spin, ?Presented"));
+            if (entered != 0)
+                return result.ToString(Formatting.None);
             if (engine != null && engine.Motor)
                 result["runtime_actor"] = JObject.Parse(engine.Inspect());
             if (world.TryGetComponent<RuntimeExperience>(out var experience))
@@ -92,6 +188,10 @@ namespace Game
                 if (args["path"]?.Type != JTokenType.String || string.IsNullOrWhiteSpace((string)args["path"]))
                     throw new ArgumentException("Missing tool argument: path");
                 string path = (string)args["path"];
+                string resolved = null, refused = null;
+                await main.RunAsync(() => { resolved = Resolve(world.Session, path, out refused); return ""; }, cancellationToken).ConfigureAwait(false);
+                if (resolved == null)
+                    return Error(refused);
                 var samples = new JArray();
                 for (int i = 0; i < 3; i++)
                 {
@@ -103,7 +203,7 @@ namespace Game
                         return new JObject
                         {
                             ["clock"] = JObject.Parse(world.Session.EntityJson("Clock"))["components"]?["Clock"],
-                            ["entity"] = JObject.Parse(world.Session.EntityJson(path))
+                            ["entity"] = JObject.Parse(world.Session.EntityJson(resolved))
                         };
                     }, cancellationToken).ConfigureAwait(false));
                 }
@@ -142,11 +242,13 @@ namespace Game
                 get;
             }
             private readonly string field;
+            private readonly string[] extra;
             private readonly bool acceptsObject;
             private readonly AgentMainThread main;
             private readonly Func<JObject, string> action;
-            public Tool(string name, string description, string field, AgentMainThread main, Func<JObject, string> action, JObject fieldSchema = null)
+            public Tool(string name, string description, string field, AgentMainThread main, Func<JObject, string> action, JObject fieldSchema = null, string[] extra = null)
             {
+                this.extra = extra ?? Array.Empty<string>();
                 acceptsObject = fieldSchema != null;
                 Name = name;
                 Description = description;
@@ -160,6 +262,11 @@ namespace Game
                     properties[field] = fieldSchema ?? new JObject { ["type"] = "string" };
                     required.Add(field);
                 }
+                foreach (string extraName in this.extra)
+                {
+                    properties[extraName] = new JObject { ["type"] = "string" };
+                    required.Add(extraName);
+                }
                 InputJsonSchema = new JObject { ["type"] = "object", ["properties"] = properties, ["required"] = required, ["additionalProperties"] = false }.ToString(Formatting.None);
             }
             public Task<string> ExecuteAsync(string argumentsJson, CancellationToken cancellationToken)
@@ -168,6 +275,9 @@ namespace Game
                 if (field != null && !(acceptsObject && arguments[field] is JObject) &&
                     (arguments[field]?.Type != JTokenType.String || string.IsNullOrWhiteSpace((string)arguments[field])))
                     throw new ArgumentException("Missing tool argument: " + field);
+                foreach (string name in extra)
+                    if (arguments[name]?.Type != JTokenType.String)
+                        throw new ArgumentException("Missing tool argument: " + name);
                 return main.RunAsync(() => action(arguments), cancellationToken);
             }
         }

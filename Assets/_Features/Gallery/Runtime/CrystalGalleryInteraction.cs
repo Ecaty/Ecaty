@@ -718,12 +718,14 @@ namespace Game
             var savedActivity = (JObject)activity.DeepClone();
             savedActivity["elapsed"] = motionTime;
             savedActivity["started"] = 0;
-            return new JObject { ["version"] = 1, ["worlds"] = experiences.Capture(), ["view"] = view, ["returnView"] = Read("GalleryTreeReturn", "GalleryView"), ["focus"] = focus, ["activity"] = savedActivity, ["navigation"] = navigation, ["cameraAnchor"] = Read("GalleryTreeSettings", "GalleryCameraAnchor"), ["portal"] = new JObject { ["world"] = Read("GalleryTreeSettings", "GalleryPortal"), ["gallery"] = Read("GalleryEntryPortal", "GalleryView"), ["local"] = Read("GalleryPortalWorld", "GalleryView") }, ["layers"] = new JArray(Enumerable.Range(1, 6).Select(i => (JToken)CaptureLayer(i))), ["entries"] = new JArray(items.Select(i => new JObject { ["id"] = i.Entry.Id, ["state"] = Read(i.Entry.Id, "GalleryEntry"), ["track"] = Read(i.Entry.Id, "GalleryTrack"), ["camera"] = InsideWorld && CurrentWorldId == i.Entry.Id && stage.ActualView != null ? stage.ActualView : Read(i.Entry.Id, "GalleryView"), ["sample"] = Read(i.Entry.Id, "GallerySample"), ["residence"] = new JObject { ["elapsed"] = WorldTime(i.Entry.Id), ["started"] = 0, ["target"] = (int)Read(i.Entry.Id, "GalleryResidence")["target"] } })) }.ToString();
+            return new JObject { ["version"] = 2, ["worlds"] = experiences.Capture(), ["view"] = view, ["returnView"] = Read("GalleryTreeReturn", "GalleryView"), ["focus"] = focus, ["activity"] = savedActivity, ["navigation"] = navigation, ["cameraAnchor"] = Read("GalleryTreeSettings", "GalleryCameraAnchor"), ["portal"] = new JObject { ["world"] = Read("GalleryTreeSettings", "GalleryPortal"), ["gallery"] = Read("GalleryEntryPortal", "GalleryView"), ["local"] = Read("GalleryPortalWorld", "GalleryView") }, ["layers"] = new JArray(Enumerable.Range(1, 6).Select(i => (JToken)CaptureLayer(i))), ["entries"] = new JArray(items.Select(i => new JObject { ["id"] = i.Entry.Id, ["state"] = Read(i.Entry.Id, "GalleryEntry"), ["track"] = Read(i.Entry.Id, "GalleryTrack"), ["camera"] = InsideWorld && CurrentWorldId == i.Entry.Id && stage.ActualView != null ? stage.ActualView : Read(i.Entry.Id, "GalleryView"), ["sample"] = Read(i.Entry.Id, "GallerySample"), ["residence"] = new JObject { ["elapsed"] = WorldTime(i.Entry.Id), ["started"] = 0, ["target"] = (int)Read(i.Entry.Id, "GalleryResidence")["target"] } })) }.ToString();
         }
-        public void RestoreArrangement(string json, bool launching = false)
+        public void RestoreArrangement(string json, bool launching = false) => RestoreArrangement(json, launching, true);
+        void RestoreArrangement(string json, bool launching, bool recover)
         {
             var data = JObject.Parse(json);
-            if ((int?)data["version"] != 1 || data["entries"] is not JArray entries || entries.Count > GalleryExperienceStore.MaxEntries)
+            int version = (int?)data["version"] ?? 0;
+            if ((version != 1 && version != 2) || data["entries"] is not JArray entries || entries.Count > GalleryExperienceStore.MaxEntries)
                 throw new ArgumentException("Invalid layered gallery arrangement");
             foreach (var token in entries)
             {
@@ -734,6 +736,59 @@ namespace Game
             }
             if (data["worlds"] is JArray definitions && definitions.Any(d => !entries.Any(e => (string)e["id"] == (string)d["id"])))
                 throw new ArgumentException("Saved content is missing its gallery entry");
+            // Version 1 rows are converted at once, so a file is never mixed. Every document is checked before anything changes.
+            JArray worlds = null;
+            if (data["worlds"] is JArray saved)
+            {
+                worlds = new JArray();
+                foreach (var row in saved)
+                {
+                    if (version == 1)
+                    {
+                        string id = (string)row["id"];
+                        var converted = GalleryWorldDocument.FromV1(id, (JObject)row["record"]);
+                        converted["id"] = id;
+                        worlds.Add(converted);
+                    }
+                    else
+                        worlds.Add(row.DeepClone());
+                }
+            }
+            experiences.Check(worlds);
+            string entryCapture = null;
+            if (recover)
+            {
+                try
+                {
+                    entryCapture = CaptureArrangement();
+                }
+                catch (Exception)
+                {
+                    // Nothing to return to yet (the first restore while the gallery starts).
+                }
+            }
+            try
+            {
+                ApplyArrangement(data, entries, worlds, launching);
+            }
+            catch (Exception)
+            {
+                if (entryCapture != null)
+                {
+                    try
+                    {
+                        RestoreArrangement(entryCapture, launching, false);
+                    }
+                    catch (Exception again)
+                    {
+                        Debug.LogWarning("Layered gallery could not return to its earlier state: " + again.Message);
+                    }
+                }
+                throw;
+            }
+        }
+        void ApplyArrangement(JObject data, JArray entries, JArray worlds, bool launching)
+        {
             CancelDrag();
             stage.ResetContexts();
             foreach (var token in entries)
@@ -741,7 +796,7 @@ namespace Game
                 var state = (JObject)token["state"];
                 EnsureEntity((string)token["id"], (int)state["order"], (int)state["kind"], (bool)state["active"]);
             }
-            experiences.Restore(data["worlds"] as JArray);
+            experiences.Restore(worlds);
             navigation = (JObject)Read("GalleryTreeSettings", "GalleryTreeNavigation").DeepClone();
             if (data["navigation"] is JObject savedNavigation)
                 navigation.Merge(savedNavigation);
@@ -849,11 +904,27 @@ namespace Game
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SavePath));
             string temp = SavePath + ".tmp";
-            File.WriteAllText(temp, CaptureArrangement());
+            string text = CaptureArrangement();
+            KeepVersion1(SavePath);
+            File.WriteAllText(temp, text);
             if (File.Exists(SavePath))
                 File.Replace(temp, SavePath, null);
             else
                 File.Move(temp, SavePath);
+        }
+        // The first version 2 write over a version 1 file keeps the old file beside it.
+        static void KeepVersion1(string path)
+        {
+            try
+            {
+                if (!File.Exists(path))
+                    return;
+                string backup = Path.Combine(Path.GetDirectoryName(path), "tree-arrangement.v1.json");
+                if (File.Exists(backup) || (int?)JObject.Parse(File.ReadAllText(path))["version"] != 1)
+                    return;
+                File.Copy(path, backup);
+            }
+            catch (Exception e) { Debug.LogWarning("Version 1 arrangement could not be copied: " + e.Message); }
         }
         static string PreviousArrangementPath => Path.Combine(Application.persistentDataPath, "GalleryPrototype", "arrangement.json");
         void LoadArrangement()

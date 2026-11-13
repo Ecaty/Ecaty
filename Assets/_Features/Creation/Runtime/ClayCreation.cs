@@ -341,10 +341,7 @@ namespace Game
         {
             var session = Session;
             if (session.ManagedScriptSource("ClayBrushSchema") == null)
-                session.SetManagedScript("ClayBrushSchema",
-                    "struct ClayRest(px: f32, py: f32, pz: f32, rx: f32, ry: f32, rz: f32, sx: f32, sy: f32, sz: f32)\n" +
-                    "struct ClayPart(id: string, order: i32)\nMudModel {}\n" +
-                    "struct ClayStyle(kind: i32, r: f32, g: f32, b: f32, metallic: f32, smoothness: f32, glow: f32, dye: bool, blend: f32)\n");
+                session.SetManagedScript("ClayBrushSchema", Resources.Load<TextAsset>("Runtime/Schemas/ClaySchema").text);
 
             var structure = new StringBuilder(EntityPath + " {\n");
             var data = new StringBuilder(EntityPath + " {\nMudModel\nClayRest: {0, 0.75, -1, 0, 0, 0, 1, 1, 1}\n");

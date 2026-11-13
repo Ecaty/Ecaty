@@ -170,14 +170,10 @@ namespace Game.Editor
                 Require(!alpha.Creation.FindPart("extra"), "Removing a runtime entity did not remove its brush.");
                 checks.Add("Native Script creates and removes a brush without a recipe-tool round trip");
                 string saved = experience.Capture();
-                // Golden save: seeded once from this fixture scenario (no user data), then committed. Later builds must keep loading it.
+                // Golden save: committed fixture, never written by this check. Later builds must keep loading it.
                 string goldenPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Tests/Fixtures/Saves/experience-v1.json"));
-                if (!File.Exists(goldenPath))
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(goldenPath));
-                    File.WriteAllText(goldenPath, saved);
-                    report["goldenSeeded"] = goldenPath;
-                }
+                Require(File.Exists(goldenPath), "The golden save is missing: " + goldenPath + ". Restore Tests/Fixtures/Saves/experience-v1.json from version control.");
+                byte[] goldenBytes = File.ReadAllBytes(goldenPath);
                 string savePath =Path.GetFullPath(Path.Combine(Application.dataPath, "../Native/build-flecs-audit/experience-test.json"));
                 int revision = world.Session.SourceRevision;
                 experience.Save(savePath);
@@ -216,6 +212,89 @@ namespace Game.Editor
                 Require(((JArray)golden["sources"]).All(s => world.Session.ManagedScriptSource((string)s["path"]) != null), "Golden save: a source module was not restored.");
                 Require(((JArray)golden["actors"]).All(a => experience.Models.TryGetValue((string)a["entity"], out var model) && model.Creation.PresentationRoot), "Golden save: a model was not restored.");
                 checks.Add("The committed version 1 experience save (Tests/Fixtures/Saves/experience-v1.json) still loads with every source and model");
+                Require((int)golden["version"] == 1 && File.ReadAllBytes(goldenPath).SequenceEqual(goldenBytes), "The golden save is not the unchanged version 1 file.");
+                string upgradedText = experience.Capture();
+                var upgraded = JObject.Parse(upgradedText);
+                Require((int)upgraded["version"] == 2 && (string)upgraded["engine"] == FlecsSession.Version && (int)upgraded["abi"] == FlecsSession.AbiVersion, "A capture after loading version 1 is not version 2 with engine and abi.");
+                (string[] Models, string[] Sources, string[] States) Shape(string text)
+                {
+                    var d = JObject.Parse(text);
+                    return (((JArray)d["actors"]).Select(a => (string)a["entity"]).OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                        ((JArray)d["sources"]).Select(x => (string)x["path"] + "\n" + (string)x["code"]).OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                        ((JArray)d["states"]).Select(x => (string)x["entity"] + ":" + string.Join(",", ((JObject)x["components"]).Properties().Select(c => c.Name).OrderBy(c => c, StringComparer.Ordinal))).OrderBy(x => x, StringComparer.Ordinal).ToArray());
+                }
+                var shapeBefore = Shape(upgradedText);
+                experience.Load(upgradedText);
+                var shapeAfter = Shape(experience.Capture());
+                Require(shapeBefore.Models.SequenceEqual(shapeAfter.Models) && shapeBefore.Sources.SequenceEqual(shapeAfter.Sources) && shapeBefore.States.SequenceEqual(shapeAfter.States),
+                    "Saving and loading a version 2 capture changed its models, sources or states.");
+                await Frames(10);
+                checks.Add("A version 1 file loads unchanged on disk; the next capture is version 2 with engine and abi and reloads to the same models, sources and state components");
+                var broken = JObject.Parse(experience.Capture());
+                broken["controlled"] = "NoSuchModel";
+                var modelsBefore = experience.Models.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray();
+                var pathsBefore = world.Session.ManagedPaths.Where(x => x != "RuntimeFaults").OrderBy(x => x, StringComparer.Ordinal).ToArray();
+                string clayBefore = JObject.Parse(world.Session.EntityJson("Beta"))["components"]["ClayRest"].ToString(Formatting.None);
+                string controlledBefore = experience.ControlledEntity;
+                bool refused = false;
+                try { experience.Load(broken.ToString(Formatting.None)); }
+                catch (Exception) { refused = true; }
+                Require(refused, "A load that fails after the world was replaced did not throw.");
+                Require(modelsBefore.SequenceEqual(experience.Models.Keys.OrderBy(k => k, StringComparer.Ordinal)), "A failed load changed the bound models.");
+                Require(pathsBefore.SequenceEqual(world.Session.ManagedPaths.Where(x => x != "RuntimeFaults").OrderBy(x => x, StringComparer.Ordinal)), "A failed load changed the managed sources.");
+                Require(JObject.Parse(world.Session.EntityJson("Beta"))["components"]["ClayRest"].ToString(Formatting.None) == clayBefore && experience.ControlledEntity == controlledBefore, "A failed load changed a state value.");
+                await Frames(3);
+                checks.Add("A load that fails after the world was replaced throws and restores the previous models, sources and state");
+                Require(!experience.Rewind(), "Rewind without a snapshot did not report it.");
+                Require(world.Session.ManagedScriptSource("RuntimeBehaviors.beta") != null, "The beta behavior is missing before the snapshot.");
+                experience.Snapshot();
+                experience.RemoveBehavior("beta");
+                await Frames(2);
+                Require(world.Session.ManagedScriptSource("RuntimeBehaviors.beta") == null, "The behavior was not removed.");
+                Require(experience.Rewind() && world.Session.ManagedScriptSource("RuntimeBehaviors.beta") != null, "Rewind did not return to the snapshot.");
+                await Frames(3);
+                checks.Add("Snapshot and rewind return the experience to its kept state");
+                // Agent tools inside an entered world.
+                var kindArgs = new Func<string, string, Task<string>>(async (name, code) =>
+                    await tools.Single(t => t.Name == "define_kind").ExecuteAsync(new JObject { ["name"] = name, ["code"] = code }.ToString(Formatting.None), CancellationToken.None));
+                var toolSession = world.Session;
+                int RuntimeEdits() => toolSession.ManagedPaths.Count(x => x.StartsWith("RuntimeEdits.", StringComparison.Ordinal));
+                ulong lab = toolSession.CreateWorld("tool_check");
+                try
+                {
+                    toolSession.EnterWorld(lab);
+                    int editsBefore = RuntimeEdits();
+                    var applied = JObject.Parse(await Call("apply_script", "code", "inside_one { Position: {1,2,3} }"));
+                    Require(applied["error"] == null && toolSession.Lookup("worlds.tool_check.inside_one") != 0, "apply_script did not create the entity inside the world.");
+                    Require(RuntimeEdits() == editsBefore, "apply_script inside a world wrote a RuntimeEdits module.");
+                    var scoped = JObject.Parse(await Call("query", "expression", "Position"));
+                    var names = scoped["results"].Select(r => (string)r["name"]).ToArray();
+                    Require(names.Length == 1 && names[0] == "inside_one", "query inside a world returned entities from outside it.");
+                    Require(JObject.Parse(await Call("inspect_entity", "path", "inside_one"))["components"]?["Position"] != null, "inspect_entity did not resolve a path inside the world.");
+                    Require(JObject.Parse(await Call("inspect_entity", "path", "worlds.other_world.thing"))["error"] != null, "inspect_entity accepted a path outside the world.");
+                    var bad = JObject.Parse(await Call("apply_script", "code", "fine_one {}\nbroken { Position: {1, ) }"));
+                    Require(bad["error"] != null && (int)bad["line"] > 0, "A script error inside a world did not report its line.");
+                    string kindOne = "prefab Hut {\n  Position: {0,0,0}\n  Scale: {1,1,1}\n  Color: {1,0,0,1}\n  Primitive: {0}\n}";
+                    string kindTwo = kindOne.Replace("{1,0,0,1}", "{0,1,0,1}");
+                    Require(JObject.Parse(await kindArgs("Hut", kindOne))["error"] == null, "define_kind refused a valid kind.");
+                    Require(JObject.Parse(await Call("apply_script", "code", "hut_one : kinds.Hut {}"))["error"] == null && toolSession.Lookup("worlds.tool_check.hut_one") != 0, "A spawn of the defined kind failed.");
+                    Require(JObject.Parse(await kindArgs("Hut", kindTwo))["error"] == null, "define_kind refused an edit.");
+                    Require(((string)JObject.Parse(await Call("undo_kind", "name", "Hut"))["text"]).Trim() == kindOne.Trim(), "undo_kind did not return the previous text.");
+                    Require(JObject.Parse(await kindArgs("Hut", "prefab Hut { ) }"))["error"] != null, "define_kind accepted an invalid kind.");
+                    Require(JObject.Parse(await Call("save_experience"))["error"] != null, "An experience tool ran inside an entered world.");
+                    toolSession.EnterWorld(0);
+                    Require(JObject.Parse(await Call("query", "expression", "Position"))["results"].Count() > 1, "query outside a world is scoped.");
+                    int outsideBefore = RuntimeEdits();
+                    await Call("apply_script", "code", "outside_one { Position: {0,0,0} }");
+                    Require(RuntimeEdits() == outsideBefore + 1 && toolSession.Lookup("outside_one") != 0, "apply_script outside a world changed its behavior.");
+                    Require(JObject.Parse(await kindArgs("Hut", kindOne))["error"] != null, "define_kind worked with no world entered.");
+                }
+                finally
+                {
+                    toolSession.EnterWorld(0);
+                    toolSession.DeleteWorld(lab);
+                }
+                checks.Add("Agent tools scope to an entered world (query, inspect, script, kinds, undo, errors with line) and behave as before outside one");
                 Require(errors.Count == 0, "Runtime exceptions: " + string.Join("; ", errors.Take(3)));
                 report["passed"] = true;
             }

@@ -22,10 +22,12 @@ namespace Runtime.Capabilities
         /// <summary>Components saved for a graph entity besides registered capability configurations.</summary>
         static readonly string[] Contracts = { "CapBinding", "NativeTree" };
         static IEnumerable<string> Saved() => Contracts.Concat(CapabilityCatalog.All.Select(d => d.Info.Component));
-        static bool InScope(string path, string scope) => string.IsNullOrEmpty(scope) || path == scope || path.StartsWith(scope + ".", StringComparison.Ordinal);
+        /// <summary>Bindings of a world live in its document; an unscoped capture leaves them out.</summary>
+        public const string WorldsPrefix = "worlds.";
+        static bool InScope(string path, string scope) => string.IsNullOrEmpty(scope) ? !path.StartsWith(WorldsPrefix, StringComparison.Ordinal) : path == scope || path.StartsWith(scope + ".", StringComparison.Ordinal);
         static string RowPath(JToken row) => row["parent"] == null ? (string)row["name"] : (string)row["parent"] + "." + (string)row["name"];
         /// <summary>
-        /// Captures every binding/tree entity within <paramref name="scope"/> (all when null) and the managed sources whose
+        /// Captures every binding/tree entity within <paramref name="scope"/> (all outside worlds when null) and the managed sources whose
         /// path starts with <paramref name="sourcePrefix"/> (none when null).
         /// </summary>
         public static JObject Capture(FlecsSession session, CapabilityRuntime runtime, string scope, string sourcePrefix = null)

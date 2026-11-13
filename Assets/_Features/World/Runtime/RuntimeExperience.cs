@@ -55,11 +55,15 @@ namespace Game
             models[ClayCreation.RootName] = new Model { Creation = creation, Actor = actor, Host = owner.gameObject };
             InstallFoundation();
         }
-        private void InstallFoundation()
+        private static void InstallFoundationSources(FlecsSession session)
         {
             foreach (var pair in new[] { ("ClayBrushSchema", "Runtime/Schemas/ClaySchema"), ("PoseSchema", "Runtime/Schemas/PoseSchema"), ("EngineSchema", "Runtime/Schemas/EngineSchema"), ("RuntimeLibrary", "Runtime/Catalog/RuntimeLibrary") })
-                if (world.Session.ManagedScriptSource(pair.Item1) == null)
-                    world.Session.SetManagedScript(pair.Item1, Resources.Load<TextAsset>(pair.Item2).text);
+                if (session.ManagedScriptSource(pair.Item1) == null)
+                    session.SetManagedScript(pair.Item1, Resources.Load<TextAsset>(pair.Item2).text);
+        }
+        private void InstallFoundation()
+        {
+            InstallFoundationSources(world.Session);
             if (monitored != world.Session)
             {
                 monitored = world.Session;
@@ -492,7 +496,9 @@ namespace Game
             }
             return new JObject
             {
-                ["version"] = 1,
+                ["version"] = ExperienceMigrations.Current,
+                ["engine"] = FlecsSession.Version,
+                ["abi"] = FlecsSession.AbiVersion,
                 ["capabilities"] = capabilityRuntime?.CaptureState(),
                 // Bindings, dependency relations and trees, including entities created without a saved source.
                 ["capabilityGraph"] = capabilityRuntime != null ? Runtime.Capabilities.CapabilityGraph.Capture(world.Session, null, null) : null,
@@ -519,7 +525,7 @@ namespace Game
             }
             finally { if (File.Exists(staged)) File.Delete(staged); }
         }
-        private static List<JObject> ValidateSources(JArray sources, JArray states)
+        private static List<JObject> OrderSources(JArray sources)
         {
             var remaining = sources.Select(entry => entry as JObject ?? throw new ArgumentException("Invalid source module.")).ToList();
             var ordered = new List<JObject>(remaining.Count);
@@ -553,23 +559,78 @@ namespace Game
                     if (remaining.Count == before)
                         throw unresolved;
                 }
-                foreach (var state in states)
-                {
-                    string path = (string)state["entity"];
-                    if (probe.Lookup(path) == 0)
-                        continue;
-                    foreach (var component in ((JObject)state["components"]).Properties())
-                        probe.SetComponentJson(path, component.Name, component.Value.ToString(Formatting.None));
-                }
                 return ordered;
             }
             finally { probe.Dispose(); }
         }
 
-        public void Load(string json)
+        // Session-level restore steps, run on the probe session and on the live one so the probe exercises the live restore.
+        // Live-only parts (adapter state, models and actors) are skipped when live is false.
+        private void RestoreSession(FlecsSession session, JObject data, List<JObject> ordered, JObject graph, JArray states, JArray actors, Runtime.Capabilities.CapabilityRuntime capabilities, bool live)
         {
+            if (data["clock"] is JObject clock && session.Lookup("Clock") != 0)
+                session.SetComponentJson("Clock", "Clock", clock.ToString(Formatting.None));
+            foreach (var entry in ordered)
+                session.SetManagedScript((string)entry["path"], (string)entry["code"]);
+            if (live)
+                InstallFoundation();
+            else
+                InstallFoundationSources(session);
+            if (capabilities != null)
+                Runtime.Capabilities.CapabilityRuntime.InstallSchema(session);
+            if (live)
+                capabilities?.QueueRestore(data["capabilities"] as JObject);
+            if (graph != null)
+            {
+                int module = 0;
+                while (session.ManagedScriptSource("CapabilityGraphRestore" + module) != null)
+                    module++;
+                foreach (string issue in Runtime.Capabilities.CapabilityGraph.Restore(session, live ? capabilities : null, graph, null, "CapabilityGraphRestore" + module))
+                    if (live)
+                        Debug.LogWarning(issue);
+            }
+            // Apply authored geometry before binding controllers; restore behavioral state last.
+            foreach (var state in states)
+            foreach (var component in ((JObject)state["components"]).Properties())
+                if (new[] { "ClayRest", "ClayStyle", "ClayPart" }.Contains(component.Name) && session.Lookup((string)state["entity"]) != 0)
+                    session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
+            if (live)
+                foreach (var entry in actors)
+                {
+                    var model = BindModel((string)entry["entity"]);
+                    model.Creation.ReconcileNow();
+                    model.Actor.Initialize(world, model.Creation);
+                    if (entry["configuration"] is JObject config)
+                        model.Actor.Configure(config.ToString(Formatting.None));
+                    if (entry["position"] is JArray p)
+                        model.Actor.RestoreMotorPose(new Vector3((float)p[0], (float)p[1], (float)p[2]), Quaternion.Euler(0, (float)entry["yaw"], 0));
+                }
+            foreach (var state in states)
+            foreach (var component in ((JObject)state["components"]).Properties())
+                if (session.Lookup((string)state["entity"]) != 0)
+                    session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
+        }
+
+        private string snapshot;
+        // Keeps the current experience in memory for Rewind.
+        public void Snapshot() => snapshot = Capture();
+        public bool Rewind()
+        {
+            if (snapshot == null)
+                return false;
+            Load(snapshot);
+            return true;
+        }
+
+        public void Load(string json) => Load(json, true);
+
+        private void Load(string json, bool rollback)
+        {
+            if (json.Length > 4000000)
+                throw new ArgumentException("Invalid experience document.");
             var data = JObject.Parse(json, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
-            if (json.Length > 4000000 || (int?)data["version"] != 1 || data["sources"] is not JArray sources || sources.Count > 256 ||
+            ExperienceMigrations.Upgrade(data);
+            if (data["sources"] is not JArray sources || sources.Count > 256 ||
                 data["actors"] is not JArray actors || actors.Count > 64 || data["states"] is not JArray states || states.Count > 4096)
                 throw new ArgumentException("Invalid experience document.");
             if (sources.Select(s => (string)s["path"]).Distinct().Count() != sources.Count)
@@ -579,9 +640,15 @@ namespace Game
             if (invalidGraph != null)
                 throw new ArgumentException(invalidGraph);
             // Resolve dependencies and state types in an isolated world before replacing the session.
-            var orderedSources = ValidateSources(sources, states);
+            var orderedSources = OrderSources(sources);
+            var capabilities = GetComponent<Runtime.Capabilities.CapabilityRuntime>();
+            var probe = new FlecsSession(0);
+            try { RestoreSession(probe, data, orderedSources, graph, states, null, capabilities, false); }
+            finally { probe.Dispose(); }
+            // Rollback, not staging: the live world is replaced, and a failure afterwards restores the previous capture.
+            string previous = rollback ? Capture() : null;
             loading = true;
-            GetComponent<Runtime.Capabilities.CapabilityRuntime>()?.ResetBindings();
+            capabilities?.ResetBindings();
             try
             {
                 foreach (var pair in models.ToArray())
@@ -596,44 +663,50 @@ namespace Game
                     }
                 }
                 world.Initialize(world.EffectiveRestPort);
-                if (data["clock"] is JObject clock)
-                    world.Session.SetComponentJson("Clock", "Clock", clock.ToString(Formatting.None));
-                foreach (var entry in orderedSources)
-                    world.Session.SetManagedScript((string)entry["path"], (string)entry["code"]);
-                InstallFoundation();
-                var capabilities = GetComponent<Runtime.Capabilities.CapabilityRuntime>();
-                capabilities?.QueueRestore(data["capabilities"] as JObject);
-                if (graph != null)
-                {
-                    int module = 0;
-                    while (world.Session.ManagedScriptSource("CapabilityGraphRestore" + module) != null)
-                        module++;
-                    foreach (string issue in Runtime.Capabilities.CapabilityGraph.Restore(world.Session, capabilities, graph, null, "CapabilityGraphRestore" + module))
-                        Debug.LogWarning(issue);
-                }
-                // Apply authored geometry before binding controllers; restore behavioral state last.
-                foreach (var state in states)
-                foreach (var component in ((JObject)state["components"]).Properties())
-                    if (new[] { "ClayRest", "ClayStyle", "ClayPart" }.Contains(component.Name) && world.Session.Lookup((string)state["entity"]) != 0)
-                        world.Session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
-                foreach (var entry in actors)
-                {
-                    var model = BindModel((string)entry["entity"]);
-                    model.Creation.ReconcileNow();
-                    model.Actor.Initialize(world, model.Creation);
-                    if (entry["configuration"] is JObject config)
-                        model.Actor.Configure(config.ToString(Formatting.None));
-                    if (entry["position"] is JArray p)
-                        model.Actor.RestoreMotorPose(new Vector3((float)p[0], (float)p[1], (float)p[2]), Quaternion.Euler(0, (float)entry["yaw"], 0));
-                }
-                foreach (var state in states)
-                foreach (var component in ((JObject)state["components"]).Properties())
-                    if (world.Session.Lookup((string)state["entity"]) != 0)
-                        world.Session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
+                RestoreSession(world.Session, data, orderedSources, graph, states, actors, capabilities, true);
                 SelectControl((string)data["controlled"]);
                 Error = null;
             }
+            catch (Exception)
+            {
+                if (rollback)
+                {
+                    try { Load(previous, false); }
+                    catch (Exception restore) { Debug.LogError("Experience rollback failed: " + restore.Message); }
+                }
+                throw;
+            }
             finally { loading = false; }
+        }
+    }
+
+    // Upgrades older experience documents one version at a time.
+    public static class ExperienceMigrations
+    {
+        public const int Current = 2;
+        // Step i upgrades version i+1 to i+2.
+        private static readonly Action<JObject>[] steps =
+        {
+            data =>
+            {
+                data["engine"] = FlecsSession.Version;
+                data["abi"] = FlecsSession.AbiVersion;
+            }
+        };
+        public static void Upgrade(JObject data)
+        {
+            if (data["version"]?.Type != JTokenType.Integer)
+                throw new ArgumentException("The experience document has no version.");
+            int version = (int)data["version"];
+            if (version < 1)
+                throw new ArgumentException("Unknown experience version " + version + ".");
+            if (version > Current)
+                throw new ArgumentException("This experience was saved by a newer version (" + version + "); this build reads up to " + Current + ".");
+            for (; version < Current; version++)
+            {
+                steps[version - 1](data);
+                data["version"] = version + 1;
+            }
         }
     }
 }

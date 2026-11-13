@@ -153,7 +153,7 @@ namespace Game.Editor
                 string created = g.CreateFirstObject();
                 Check(g.Items.Count == 31 && world.Session.Lookup(created) != 0 && g.InsideWorld, "First object promotes the invitation to a native world");
                 Check((int)Read(created, "GalleryEntry")["order"] == 0 && (int)Read(created, "GalleryPlacement")["layer"] == 1, "New worlds enter the first ring and shift existing native order");
-                var contentPath = created + "Content.Object1";
+                var contentPath = "worlds." + created + ".Object1";
                 Check(g.Experiences.ResidentId == created && world.Session.Lookup(contentPath) != 0, "Creation loads real owned native entities, not only preview geometry");
                 float nativeRotation = (float)Read(contentPath, "Rotation")["y"];
                 await Task.Delay(200);
@@ -172,7 +172,7 @@ namespace Game.Editor
                 var emptyPixel = new Vector2(emptyProjection.x * g.ViewCamera.pixelWidth, emptyProjection.y * g.ViewCamera.pixelHeight);
                 g.StepPointer(emptyPixel, true);
                 g.StepPointer(emptyPixel, false);
-                Check(world.Session.Lookup(created + "Content.Object2") != 0, "Clicking empty world space creates an owned native shape");
+                Check(world.Session.Lookup("worlds." + created + ".Object2") != 0, "Clicking empty world space creates an owned native shape");
                 g.Experiences.Move("Object1", new Vector3(.7f, .2f, -.3f));
                 g.Experiences.Select("Object1");
                 var realSnapshot = g.CaptureArrangement();
@@ -201,11 +201,11 @@ namespace Game.Editor
                 Check(g.Experiences.Features(secondReal).Any(o => (string)o["name"] == reuse), "Another world reuses the saved object definition");
                 Check(g.EnterWorld(created), "Saved first world can reopen after unloading");
                 Check(JToken.DeepEquals(nativeObject, Read(contentPath, "Position")), "Unloaded world reconstructs its latest authored placement");
-                // Capability graph persistence: world-owned bindings with a dependency survive unload, re-entry and a disk reload.
+                // Capability persistence: bindings are entities of the world, so its document holds them. They survive unload, re-entry and a disk reload.
                 {
-                    string glow = created + "Content.Glow";
-                    string glow2 = created + "Content.Glow2";
-                    string owned = "GalleryWorld_" + created + ".Lights";
+                    string worldPath = "worlds." + created;
+                    string glow = worldPath + ".Glow";
+                    string glow2 = worldPath + ".Glow2";
                     var warnings = new List<string>();
                     Application.LogCallback capture = (message, stack, type) =>
                     {
@@ -231,30 +231,33 @@ namespace Game.Editor
                         int Lights() => world.FindView(world.Session.Lookup(contentPath))?.GetComponentsInChildren<Light>(true).Length ?? 0;
                         async Task<bool> Resident(string id)
                         {
-                            if (g.Experiences.ResidentId != id || world.Session.Lookup(id + "Content") == 0)
+                            if (g.Experiences.ResidentId != id || world.Session.Lookup("worlds." + id) == 0)
                                 g.EnterWorld(id);
                             await Task.Delay(150);
                             return g.Experiences.ResidentId == id && world.Session.Lookup(contentPath) != 0;
                         }
-                        world.Session.SetManagedScript(owned, created + "Content {\n" +
-                            "    Glow { CapBinding: {target: " + contentPath + ", enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 2, range: 5, colorR: 1, colorG: 0.6, colorB: 0.2} }\n" +
-                            "    Glow2 { CapBinding: {target: " + contentPath + ", enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 3, colorR: 1, colorG: 1, colorB: 1}; (CapDependsOn, " + glow + ") }\n}\n");
+                        JObject SavedDocument() => JObject.Parse((string)Read(created, "GallerySavedWorld")["document"]);
+                        bool NoOldScripts() => !world.Session.ManagedPaths.Any(p => p.StartsWith("GalleryWorld_", StringComparison.Ordinal) || p.StartsWith("GalleryContent_", StringComparison.Ordinal) || p.StartsWith("GalleryGraph_", StringComparison.Ordinal));
+                        world.Session.RunWorldScript(world.Session.Lookup(worldPath),
+                            "Glow { CapBinding: {target: Object1, enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 2, range: 5, colorR: 1, colorG: 0.6, colorB: 0.2} }\n" +
+                            "Glow2 { CapBinding: {target: Object1, enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 3, colorR: 1, colorG: 1, colorB: 1}; (CapDependsOn, Glow) }\n");
                         Check(await Applied() && Lights() >= 2, "World-owned capability bindings apply real Unity lights");
                         var light = Read(glow, "CapLight");
                         var light2 = Read(glow2, "CapLight");
                         Check(DependsOn() == glow, "World-owned binding declares its dependency");
-                        // Leaving for another world captures the graph and unloads it with the private scope.
+                        // Leaving for another world captures the document and unloads the world.
                         Check(g.EnterWorld(secondReal), "Another world opens while capability bindings are resident");
-                        var graphText = (string)Read(created, "GallerySavedWorld")["graph"];
-                        var graph = string.IsNullOrEmpty(graphText) ? null : JObject.Parse(graphText);
-                        Check(graph != null && graph["entities"].Count() == 2 && graph["entities"].Any(e => (string)e["path"] == glow2 && e["dependsOn"].Any(t => (string)t == glow)) && graph["sources"].Any(s => (string)s["path"] == owned),
-                            "Saved world records its bindings, dependency relation and owned source");
-                        Check(world.Session.Lookup(glow) == 0 && world.Session.ManagedScriptSource(owned) == null, "Unloading removes world-owned bindings and sources");
+                        string documentText = (string)Read(created, "GallerySavedWorld")["document"];
+                        var records = (JArray)JObject.Parse(documentText)["entities"];
+                        JObject Record(string path) => records.OfType<JObject>().FirstOrDefault(r => (string)r["path"] == path);
+                        Check(Record("Glow") != null && Record("Glow2") != null && Record("Glow2")["pairs"] is JArray pairs && pairs.Any(p => (string)p[0] == "CapDependsOn" && (string)p[1] == "~Glow") && !documentText.Contains("CapState") && NoOldScripts(),
+                            "Saved world document records its bindings and dependency relation, no run-time state and no managed script");
+                        Check(world.Session.Lookup(glow) == 0 && world.Session.Lookup(worldPath) == 0, "Unloading removes the world with its bindings");
                         // Re-entering reconstructs the same configuration, relation and applied state.
                         Check(await Resident(created) && await Applied(), "Re-entered world reapplies its capability bindings");
                         Check(JToken.DeepEquals(light, Read(glow, "CapLight")) && JToken.DeepEquals(light2, Read(glow2, "CapLight")) && DependsOn() == glow && Lights() >= 2,
                             "Re-entered bindings keep configuration, dependency and real output");
-                        // Disk round trip: the saved arrangement file reconstructs the graph after the world is unloaded.
+                        // Disk round trip: the saved arrangement file reconstructs the bindings after the world is unloaded.
                         g.SaveArrangement();
                         string onDisk = File.ReadAllText(CrystalWorldGallery.SavePath);
                         g.EnterWorld(secondReal);
@@ -262,15 +265,21 @@ namespace Game.Editor
                         await Task.Delay(150);
                         Check(await Resident(created) && await Applied() && JToken.DeepEquals(light, Read(glow, "CapLight")) && DependsOn() == glow,
                             "Saved arrangement file reconstructs capability bindings and dependency");
-                        // A record written before graphs existed (no graph member) still loads and enters.
+                        // A version 1 arrangement built from the current worlds (objects only, no graph) still loads and enters.
                         var legacy = JObject.Parse(g.CaptureArrangement());
-                        foreach (var row in legacy["worlds"])
-                            ((JObject)row["record"]).Remove("graph");
+                        legacy["version"] = 1;
+                        var legacyWorlds = new JArray();
+                        foreach (var row in (JArray)legacy["worlds"])
+                        {
+                            string rowId = (string)row["id"];
+                            legacyWorlds.Add(new JObject { ["id"] = rowId, ["record"] = new JObject { ["source"] = rowId + "Content { Position: {0,0,0} }", ["objects"] = GalleryWorldDocument.Features(row["document"].ToString()).ToString(Newtonsoft.Json.Formatting.None), ["selected"] = (string)row["selected"], ["revision"] = 1, ["graph"] = "" } });
+                        }
+                        legacy["worlds"] = legacyWorlds;
                         g.EnterWorld(secondReal);
                         g.RestoreArrangement(legacy.ToString());
                         await Task.Delay(150);
-                        Check((string)Read(created, "GallerySavedWorld")["graph"] == "" && await Resident(created) && world.Session.Lookup(glow) == 0,
-                            "Legacy saved world without a capability graph loads and enters");
+                        Check(!string.IsNullOrEmpty((string)Read(created, "GallerySavedWorld")["document"]) && await Resident(created) && world.Session.Lookup(glow) == 0,
+                            "Version 1 saved world without a capability graph loads and enters");
                         Check(warnings.Count == 0, "Capability graph restore reports no problems: " + string.Join(" | ", warnings));
                     }
                     finally
@@ -279,21 +288,97 @@ namespace Game.Editor
                     }
                 }
                 g.ReturnToGallery();
-                // Golden save: seeded once from this fixture state (no user data), then committed. Later builds must keep loading it.
+                // Golden save: a committed version 1 file. It is never re-seeded or edited; later builds must keep loading it.
                 string goldenPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Tests/Fixtures/Saves/gallery-arrangement-v1.json"));
                 if (!File.Exists(goldenPath))
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(goldenPath));
-                    File.WriteAllText(goldenPath, g.CaptureArrangement());
-                    report["goldenSeeded"] = goldenPath;
-                }
+                    throw new Exception("Golden arrangement missing: " + goldenPath);
+                byte[] goldenBytes = File.ReadAllBytes(goldenPath);
                 string goldenText = File.ReadAllText(goldenPath);
                 var golden = JObject.Parse(goldenText);
+                var goldenWorlds = ((JArray)golden["worlds"]).Where(w => JArray.Parse((string)w["record"]["objects"]).Count > 0).ToArray();
+                string[] sixTypes = { "Position", "Rotation", "Scale", "Color", "Primitive", "Spin" };
+                bool Close(JToken a, JToken b) => ((JObject)a).Properties().All(p => b[p.Name] != null && Mathf.Abs((float)p.Value - (float)b[p.Name]) <= 1e-5f);
+                // A running world spins its shapes: when time passed since the load, the rotation of a spinning shape is not compared.
+                bool Same(JToken expected, JObject values, bool timePassed) => sixTypes.All(type => (timePassed && type == "Rotation" && ((JObject)expected["Spin"]).Properties().Any(p => (float)p.Value != 0)) || Close(expected[type], values[type]));
+                // Values of a shape in the world that is entered, by path. Read at once: a running world spins its shapes.
+                JObject ShapeValues(string path)
+                {
+                    var values = new JObject();
+                    foreach (string type in sixTypes)
+                        values[type] = Read(path, type);
+                    return values;
+                }
                 g.RestoreArrangement(goldenText);
                 await Task.Delay(150);
-                Check(g.Items.Count == ((JArray)golden["entries"]).Count &&
-                    ((JArray)golden["worlds"]).Where(w => !string.IsNullOrEmpty((string)w["record"]?["source"])).All(w => g.Experiences.Has((string)w["id"])),
-                    "Committed version 1 arrangement (Tests/Fixtures/Saves/gallery-arrangement-v1.json) restores every entry and saved world");
+                Check(g.Items.Count == ((JArray)golden["entries"]).Count && goldenWorlds.Length >= 2 && goldenWorlds.All(w => g.Experiences.Has((string)w["id"])) && File.ReadAllBytes(goldenPath).SequenceEqual(goldenBytes),
+                    "Committed version 1 arrangement (Tests/Fixtures/Saves/gallery-arrangement-v1.json) restores every entry and saved world and stays unchanged");
+                var goldenShapes = new Dictionary<string, JObject>();
+                foreach (var w in goldenWorlds)
+                {
+                    string id = (string)w["id"];
+                    Check(g.EnterWorld(id), "Golden saved world " + id + " can be entered");
+                    bool waited = world.Session.Lookup("worlds." + id) == 0;
+                    if (waited)
+                        await Task.Delay(150);
+                    bool same = world.Session.Lookup(id + "Content") == 0;
+                    foreach (JObject shape in JArray.Parse((string)w["record"]["objects"]))
+                    {
+                        string path = "worlds." + id + "." + (string)shape["name"];
+                        if (world.Session.Lookup(path) == 0)
+                        {
+                            same = false;
+                            continue;
+                        }
+                        var values = ShapeValues(path);
+                        goldenShapes[path] = values;
+                        same &= Same(shape, values, waited);
+                    }
+                    Check(same, "Golden saved world " + id + " loads every version 1 object at worlds." + id + " with equal values and no private root");
+                }
+                // The next write is version 2: documents instead of records.
+                string goldenSelected = (string)Read((string)goldenWorlds[0]["id"], "GallerySavedWorld")["selected"];
+                g.SaveArrangement();
+                var written = JObject.Parse(File.ReadAllText(CrystalWorldGallery.SavePath));
+                var writtenWorlds = (JArray)written["worlds"];
+                Check((int?)written["version"] == 2 && writtenWorlds.Count == goldenWorlds.Length && writtenWorlds.All(r => r["document"] is JObject d && (int?)d["format"] == 2 && r["record"] == null),
+                    "Saving writes version 2 with one format 2 document per saved world");
+                // Restoring that file gives the same shapes and selection, compared by path.
+                g.RestoreArrangement(written.ToString());
+                await Task.Delay(150);
+                bool restoredSame = (string)Read((string)goldenWorlds[0]["id"], "GallerySavedWorld")["selected"] == goldenSelected;
+                foreach (var w in goldenWorlds)
+                {
+                    string id = (string)w["id"];
+                    Check(g.EnterWorld(id), "Version 2 saved world " + id + " can be entered");
+                    if (world.Session.Lookup("worlds." + id) == 0)
+                        await Task.Delay(150);
+                    foreach (var pair in goldenShapes.Where(p => p.Key.StartsWith("worlds." + id + ".", StringComparison.Ordinal)))
+                    {
+                        if (world.Session.Lookup(pair.Key) == 0)
+                        {
+                            restoredSame = false;
+                            continue;
+                        }
+                        var values = ShapeValues(pair.Key);
+                        restoredSame &= Same(pair.Value, values, true);
+                    }
+                }
+                Check(restoredSame, "The version 2 file restores the same shapes and selection");
+                // A document that is cut is refused before anything changes.
+                g.ReturnToGallery();
+                for (int wait = 0; wait < 80 && (g.Returning || g.Stage.Shown != null); wait++)
+                    await Task.Delay(100);
+                string residentId = g.Experiences.ResidentId;
+                Check(residentId != null && !g.Experiences.Visible, "A hidden saved world stays resident before the refused restore");
+                ulong residentEntity = world.Session.Lookup("worlds." + residentId);
+                string beforeRefusal = g.CaptureArrangement();
+                var cut = (JObject)written.DeepClone();
+                ((JArray)((JObject)cut["worlds"][0])["document"]["entities"]).Add(new JObject { ["path"] = "Cut1", ["kinds"] = new JArray("NoSuchKind") });
+                bool refused = false;
+                try { g.RestoreArrangement(cut.ToString()); }
+                catch (Exception) { refused = true; }
+                Check(refused && g.CaptureArrangement() == beforeRefusal && world.Session.Lookup("worlds." + residentId) == residentEntity,
+                    "A cut document makes the restore throw and leaves the arrangement and the resident world untouched");
                 g.RestoreArrangement(snapshot);
                 await Task.Delay(150);
                 Check(g.Items.Count == 30 && world.Session.Lookup(created) == 0, "Snapshot reconstruction releases test-owned creation");
