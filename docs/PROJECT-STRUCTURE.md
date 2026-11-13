@@ -21,6 +21,7 @@ Packages/
   com.runtime.ai-agent/       # reusable agent/UI/providers, separate runtime/editor asmdefs
   com.runtime.capabilities/   # reusable lifecycle/schema/Unity adapters, runtime asmdef
 Native/Core, Native/App    # unchanged native ownership and stable C ABI
+  Core/vendor/{flecs,behaviortree,clipper2,tinysoundfont}  # submodules of Ecaty forks (pin = commit)
 Tests/, Tools/, docs/      # runners/manifests, developer utilities and handoff
 ```
 

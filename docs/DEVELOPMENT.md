@@ -4,7 +4,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 ## Start / resume
 
-- Clone recursively, or `git submodule update --init --recursive`. Install Git LFS. Use Unity 6000.6.7f1 on Windows x64.
+- Clone recursively, or `git submodule update --init --recursive` (on Windows set `git config --global core.longpaths true` first; Native/Core's third-party libraries are nested submodules; see [Updating third-party forks](#updating-third-party-forks)). Install Git LFS. Use Unity 6000.6.7f1 on Windows x64.
 - Open the Ecaty checkout. Read `AGENTS.md`, `docs/PROJECT.md`, this file, `docs/STATUS.md` (current state and next action), `docs/BACKLOG.md`. Inspect parent and submodule Git status first. Code and scripts must not depend on the checkout location or a particular account.
 - Unity CLI (`com.unity.pipeline`) gives the live Editor connection. If missing: `unity pipeline install --project-path <checkout>`; focus/refresh the Editor. Always pin `--project-path <checkout>`; never drive another project's Editor or start a second Editor on this folder. Discover commands with `unity command --query <topic>`; do not guess signatures.
 - Codex discovers `AGENTS.md` automatically; other chat tools need the context supplied. The in-app agent gets tools/capabilities explicitly, not developer docs.
@@ -83,6 +83,21 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 - Commit/push a changed child first, then commit the updated pointer in Ecaty; the pointer must name a commit on the public child remote. Task branches `codex/<task>`; no force pushes or global Git config changes. `.meta` files travel with assets.
 - Before publishing, review the staged diff in each repo for credentials/local data; do not stage unrelated files. Pushes need current-task authorization.
+
+## Updating third-party forks
+
+- The only outside GitHub code is in `Native/Core/vendor`, each a submodule of our fork in the Ecaty org; the submodule commit is the pin. Never edit these sources in place.
+
+| Path | Fork | Original tracked | Fork branch holding the pin |
+|---|---|---|---|
+| `vendor/flecs` | Ecaty/flecs | SanderMertens/flecs | master |
+| `vendor/behaviortree` | Ecaty/BehaviorTree.CPP | BehaviorTree/BehaviorTree.CPP | master |
+| `vendor/clipper2` | Ecaty/Clipper2 | PolyClipping/Clipper2 (our fork comes from AngusJohnson/Clipper2, which lacks these commits) | ecaty |
+| `vendor/tinysoundfont` | Ecaty/TinySoundFont | schellingb/TinySoundFont | main |
+
+- `.github/workflows/upstream-check.yml` runs weekly (or by hand) and opens or updates one `upstream` issue per library when the original has new commits or a new release. It changes nothing.
+- To update: `gh repo sync Ecaty/<fork>` (for Clipper2, push the wanted PolyClipping commit to the fork's `ecaty` branch instead) → `git -C Native/Core/vendor/<lib> fetch origin <commit>` and `checkout <commit>` → rebuild (`./Native/Build.ps1`; the binary reports `FLECS_VERSION+<flecs short commit>`) → run `Tests/Run-Native.cmd` (and `Run-All.cmd` for Flecs) → commit the pin in Native/Core, then the Native/Core pointer in Ecaty → close the issue. If we ever must patch a library, commit the patch on an `ecaty` branch in its fork and pin that.
+- Windows: Flecs has very long test paths, so run `git config --global core.longpaths true` once before cloning. Use `git submodule update --init --recursive --depth 1` (or `git clone --recurse-submodules --shallow-submodules`): without `--depth 1`, a pin behind the fork's tip pulls full history (Flecs alone is ~230 MB instead of ~30 MB).
 
 ## Workflow rules
 
