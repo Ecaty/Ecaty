@@ -84,6 +84,7 @@ namespace Game
                 capabilities.Initialize(world);
                 capabilities.RegisterDiscovered();
                 world.gameObject.AddComponent<LookAdapter>().Initialize(world, camera);
+                world.gameObject.AddComponent<BodyAdapter>().Initialize(world);
                 capabilities.TargetResolver = id =>
                 {
                     foreach (var model in experience.Models.Values)
