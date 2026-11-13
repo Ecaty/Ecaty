@@ -1,6 +1,6 @@
 # Branding
 
-Name, store texts and voice. Store text lives in the private `Store/` submodule (`steam/`, `play/`, `epic/` listing.json); this file holds the reasoning.
+Name, store texts and voice. Store text lives in the private `Store/` submodule (`store.json`); this file holds the reasoning.
 
 ## Status (2026-11-13)
 
@@ -76,11 +76,13 @@ The texts describe the intended game at release (user direction 2026-11-13), not
 | Play together, visit friends' creations, share with anyone | Not built; no networking authorized yet |
 | Everything stays yours, return any time | Real (saved worlds, resume) |
 
-| Store | File | Limits |
+Texts live in `Store/store.json`: shared `short` and `description`, per-store text under `overrides.<store>` (Release Desk flags text over a store's limit).
+
+| Store | Uses | Limits |
 |---|---|---|
-| Steam | `Store/steam/listing.json` | short 300 (current 205), about multiline |
-| Google Play | `Store/play/listing.json` | title 30, short 80 (current 67), full 4000 |
-| Epic | `Store/epic/listing.json` | not yet in Release Desk rules; verify in the Epic Developer Portal |
+| Steam | shared short (210) and description | short 300 |
+| Google Play | override short (72), shared description | title 30, short 80, full 4000 |
+| Epic | shared description | about 10000 |
 
 ## Next branding tasks
 
