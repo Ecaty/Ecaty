@@ -829,6 +829,11 @@ def exclusive_ownership():
         assert view_after.flags == 0, f"deleting the owners must clear both flags, got {view_after.flags}"
         assert claim(world.ctx, view, pose, b) == -1, "a deleted owner is a bad argument"
         assert claim(world.ctx, 0, pose, a) == -1 and release(world.ctx, view, pose, 0) == -1, "zero ids are bad arguments"
+        # A component entity as owner (the app module owns a saved world's origin): the pair must carry no data.
+        module = world.lookup("app")
+        assert module and claim(world.ctx, view, pose, module) == 1, "a module entity must be able to own"
+        assert lib.fu_tick(world.ctx, 0.016) == 0 and changes(world)[0][view].flags == 2
+        assert release(world.ctx, view, pose, module) == 1
     return "exclusive claims, release by owner only, flags 2 and 4 in the view stream, cleared when the owner is deleted"
 
 
