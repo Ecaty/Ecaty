@@ -35,22 +35,6 @@
         "com.unity.visualeffectgraph": "17.0.4"
       }
     },
-    "com.runtime.ai-agent": {
-      "version": "file:com.runtime.ai-agent",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.2"
-      }
-    },
-    "com.runtime.flecs": {
-      "version": "file:com.runtime.flecs",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.2"
-      }
-    },
     "com.projectdawn.cozy-builder": {
       "version": "file:com.projectdawn.cozy-builder",
       "depth": 0,
@@ -70,6 +54,14 @@
       "dependencies": {},
       "hash": "72962cef269030b799176fe7d0fd01e4f0380c84"
     },
+    "com.runtime.ai-agent": {
+      "version": "file:com.runtime.ai-agent",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.2"
+      }
+    },
     "com.runtime.capabilities": {
       "version": "file:com.runtime.capabilities",
       "depth": 0,
@@ -84,6 +76,14 @@
         "com.unity.visualeffectgraph": "17.6.0",
         "com.unity.nuget.newtonsoft-json": "3.2.2",
         "com.runtime.flecs": "0.2.1"
+      }
+    },
+    "com.runtime.flecs": {
+      "version": "file:com.runtime.flecs",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.2"
       }
     },
     "com.unity.ai.navigation": {
@@ -196,7 +196,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.pipeline": {
-      "version": "0.10.0-exp.1",
+      "version": "1.0.0",
       "depth": 0,
       "source": "registry",
       "dependencies": {

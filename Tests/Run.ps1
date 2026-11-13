@@ -41,6 +41,8 @@ try {
         if($raw.Code -ne 0){throw "Unity command failed: $($CommandArgs[0]) $($CommandArgs[1]). $($raw.Output) $($raw.Error)"}
         $result=$raw.Output | ConvertFrom-Json
         if($result.success -eq $false){throw ($result | ConvertTo-Json -Depth 10)}
+        # Pipeline 1.0 returns the eval value itself; callers read it as .result.
+        if($CommandArgs[0] -eq 'script' -and $CommandArgs[1] -eq 'eval'){return [pscustomobject]@{result=$result}}
         return $result
     }
     # Extended: run one registered verifier (Tests/Extended.json) and return its pass/fail and report.
@@ -187,10 +189,12 @@ try {
                 if($current -eq 'PlayMode'){Clear-GallerySave}
                 $filter=if($current -eq 'Native'){'NativeGalleryTests'}else{'Game.Tests'}
                 $run=Invoke-Editor @('test','run','--','--mode',$mode,'--filter',$filter,'--async-tests','true')
-                $statusFile=Join-Path $projectPath $run.StatusPath;$deadline=[DateTime]::UtcNow.AddMinutes(3)
+                # Pipeline 0.10 returned a status file; 1.0 returns nothing and reports through 'test status'.
+                $statusFile=if($run -and $run.StatusPath){Join-Path $projectPath $run.StatusPath}else{$null};$deadline=[DateTime]::UtcNow.AddMinutes(3)
                 do {
                     Start-Sleep -Milliseconds 700;$test=$null
-                    if(Test-Path -LiteralPath $statusFile){try{$test=Get-Content -LiteralPath $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json}catch [System.ArgumentException]{}catch [IO.IOException]{}}
+                    if($statusFile){if(Test-Path -LiteralPath $statusFile){try{$test=Get-Content -LiteralPath $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json}catch [System.ArgumentException]{}catch [IO.IOException]{}}}
+                    else{try{$test=Invoke-Editor @('test','status')}catch{$test=$null}}
                     if($null -eq $test){$test=[pscustomobject]@{status='pending'}}
                     if([DateTime]::UtcNow -gt $deadline){throw 'Tests exceeded three minutes; inspect the Unity Test Runner.'}
                 } while($test.status -in @('running','pending','inprogress','in_progress'))
