@@ -1,6 +1,6 @@
 # Engine plan: review and target architecture
 
-Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phases 0, 1 and 2 are implemented and tested on this branch (see the status blocks in section 4): Run-All and Extended pass with the rebuilt native library. Later phases start only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
+Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phases 0, 1 and 2 are implemented, tested and merged to `main`. Phase 3: the engine side is implemented on this branch (see its status block in section 4); the product code does not use it yet.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
 
 Readable page with pickable decisions: https://claude.ai/artifact/3mxTpAwGuAYdgmeBEE9jrw (private to the owner until shared).
 
@@ -383,6 +383,41 @@ Not verified: whether a view is re-sent when a value it inherits from a prefab c
 | 3.3 | World scope: `worlds.<id>` subtree, `(Entered, world)`, scoped queries and Script. | Two worlds loaded; a tool call in one cannot see the other. | Gallery private-root code must move to the same model. | M, **F→S** |
 | 3.4 | World document v2, migration from both v1 formats, atomic load, Play snapshot and rewind. | Golden v1 files load; round trip equals; a corrupted file leaves the world untouched. | Save compatibility is the highest user-facing risk; keep the v1 reader until the user confirms their saves load. | L, **F** |
 | 3.5 | Retire what the above replaces: `RuntimeEdits.*` modules, the `models` registry, the duplicated clay schema, the frozen-schema path, the component whitelist. | Suites; grep shows no references. | Remove only after the replacement is verified, per AGENTS.md. | M, **S** |
+
+**Phase 3 status (2026-11-13).** The engine side of steps 3.1 to 3.4 is implemented (native library, bridge, checks; ABI version 5; parent commit `df3a3fb`, Native/Core `d41669e`, bridge `2b326b3`, branches `feature/sources-kinds-worlds`). The product code under `Assets/` does not use it yet: that is the open part of 3.2 to 3.4 and all of 3.5. Design, the native code and the review were done here; the C# bridge, the Python checks, the benchmarks, the builds and the Unity runs were done by cheaper agents from written briefs.
+
+| Step | State | What exists, and what is open |
+|---|---|---|
+| 3.1 | Done. | `Native/Core/src/Sources.cpp`: `fu_source_apply` evaluates a kind's text over the existing entities after a staging pass, so a refused text (script error with line and column, a type declaration, an entity that is not a kind or template, a kind still in use) changes nothing. What a new text no longer defines is removed; an instance that changed a removed part keeps it with the values it had. `fu_source_undo` (16 steps per source), `fu_source_remove`, `fu_source_text_into`, `fu_error_position`. The step 0.3 matrix is a permanent C++ test (`tests/source_tests.cpp`), run for texts with and without a tree annotation. |
+| 3.2 | Engine part done. | `fu_spawn` creates an instance whose parts follow the kind's parts by name (`plane1.engine` is an instance of `Plane.engine`); `fu_attach` does the same for an instance a script made. A kind that gains or loses a part passes that on to every instance. Values: see "Changed against the plan" below. Checked with 1,000 instances natively and on screen in a PlayMode test. **Open (product):** a first part and material library, pouch items as kinds. |
+| 3.3 | Engine part done. | `Native/Core/src/Worlds.cpp`: a world is the subtree `worlds.<id>`; `fu_world_create`, `fu_world_delete`, `fu_world_enter` / `fu_world_entered` (`(Entered, world)` on the `viewer` entity), `fu_world_query_json` (returns only entities inside the world), `fu_world_run_script` (evaluated under the world). Two worlds with the same names are tested: a query or a script in one does not reach the other. **Open (product):** gallery saved worlds still use their private roots; the AI tools are not scoped yet. |
+| 3.4 | Engine part done. | World document, format 2: the texts of the world's sources, then one record per entity with its kinds and only what differs from them. `fu_world_load_json` builds the document under a separate root and replaces the loaded world only when all of it was accepted: a cut document, another format, an unknown type, a bad value, a source that does not apply and a missing kind are each refused and leave the loaded world untouched (tested). `fu_world_snapshot` / `fu_world_rewind` for Play and Stop. A tag `NotSaved` marks components that are not written (results such as `Presented`, `CapState`, ownership). **Open (product):** the two v1 formats are not migrated; nothing writes format 2 yet. |
+| 3.5 | Not started. | Depends on the product moving to the above. |
+
+**Checks.** Native: 337 C++ checks in a Debug build (`flecs_unity_core_tests`), 52 contract checks against the Release library (new: `sources`, `kinds`, `worlds`, `world-documents`), all smokes, benchmark within its guards. Unity: see the run noted at the end of this block.
+
+**Measured** (Release library, best of three processes; empty tick 24.5 µs):
+
+| What | Time |
+|---|---|
+| Apply a kind's text with one changed value, 1,000 instances | 1.3 ms |
+| Apply a text that adds or removes one part, 1,000 instances | 10.8 ms |
+| `fu_spawn`, kind with three parts | 39 µs per instance |
+| Save a world with 1,000 instances | 12.9 ms |
+| Load that document | 74 ms |
+
+The 1 ms target for a value edit (section 3.3) is not met with 1,000 instances; see the next paragraph for why. All five have guards in `Verification/budgets/engine-budgets.json`.
+
+**Changed against the plan, with the reasons.**
+
+- **Built-in components are copied to instances, not inherited.** The plan had `Position`, `Scale`, `Color` and the others inherited through `IsA`. That was built first and it worked (an inherited change was re-sent to Unity), but it exposed a defect in the pinned Flecs revision: a cached query that matches an entity through `IsA` can keep a stale entry when that entity's table is deleted. Deleting one of two worlds whose instances inherited their position hit an internal assert and then crashed. Every cached query on an inherited component would be exposed, also the ones features and tools create. So instances keep their own copies, as before this phase, and the source manager gives a kind's changed value to every instance that still holds the old value; an instance that changed its value keeps it. A write to a kind through the bridge does the same. Consequences: a value edit costs about 1.3 µs per instance; an instance value that happens to equal the kind's follows the kind; existing systems, queries and JSON readers see no change. A component that content declares with `(OnInstantiate, Inherit)` is still read from the kind. Documents write only what differs either way. Check again when Flecs is updated.
+- **Kinds are always stored with `@tree ChildOf`.** Flecs stores a prefab's children with its newer `Parent` storage by default. With it, a prefab's children cannot change once it was instantiated (Debug builds abort, Release builds keep instantiating the old set), and instance parts get no names. The manager adds the annotation to a text that has none and refuses `@tree Parent`.
+- **Evaluating under a scope.** Flecs Script does not use the world's current scope, and a base kind in `Kind : Base` is looked up in the root only. The manager wraps the text in its scope and names the scope with `using`; reported lines are mapped back to the author's text.
+- **Not expressible in a document:** that an instance removed something its kind has. It comes back on load.
+- **Rewind is a reload.** Entities get new ids, so Unity rebuilds its objects for that world. Restoring in place is left for Phase 6.
+- **Scoped scripts isolate writes, not reads.** A script in one world cannot create or change entities of another, but it can name them by full path in a pair or a value.
+
+**Flecs facts found here** (also in the shared notes): `ecs_get_target(e, IsA, i)` continues into the kinds of e's kinds; two children must never share a name, even briefly (deleting one leaves the other unreachable by name); a query that combines a fixed term with an invalid expression asserts, so the expression is validated alone first.
 
 ### Phase 4: runtimes for the concepts
 
