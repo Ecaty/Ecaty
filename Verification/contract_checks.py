@@ -127,6 +127,8 @@ SIGNATURES = {
     "fu_document": (c.c_int32, [P, S, S]), "fu_script_capture": (c.c_int32, [P, S]),
     "fu_pointer": (c.c_int32, [P, c.c_uint64, c.c_float, c.c_float, c.c_uint32, c.c_uint32]),
     "fu_keyboard": (c.c_int32, [P, S, c.c_int32, c.c_int32, c.c_uint32]),
+    "fu_run_script": (c.c_int32, [P, S]), "fu_component_json": (P, [P, c.c_uint64, S]),
+    "fu_component_size": (c.c_int32, [P, c.c_uint64]), "fu_bridge_diagnostics": (P, [P]),
 }
 for _name, (_result, _args) in SIGNATURES.items():
     _function = getattr(lib, _name)
@@ -463,6 +465,101 @@ def pointer_and_keyboard():
         assert state["activations"] == 1, f"on.activate did not fire once: {state}"
         assert (state["downs"], state["key"]) == (1, "a"), f"on.key_down did not deliver the focused key: {state}"
     return "invalid entity and null key -> -1; click raised on.activate once and key 'a' reached on.key_down of the focused entity"
+
+
+# --- Type redeclaration guard ---------------------------------------------------------------------------------------
+# A script that redeclares a type entities already use, with another layout, would change the component size under
+# live data (docs/ENGINE-PLAN.md finding N12). The native entry points must refuse it and leave stored values intact.
+
+def run_script(world, code):
+    """Returns None on success, else the error text."""
+    return None if lib.fu_run_script(world.ctx, code.encode()) == 0 else (world.error() or "failed")
+
+
+def component(world, entity, kind):
+    text = World.take(lib.fu_component_json(world.ctx, world.lookup(entity), kind.encode()))
+    return json.loads(text) if text else None
+
+
+def layout_faults(world):
+    return json.loads(World.take(lib.fu_bridge_diagnostics(world.ctx)))["layoutFaults"]
+
+
+WINGS = "struct Wings(span: f32)\nstruct Tail(len: f32)\na { Wings: {1}; Tail: {7} }\nb { Wings: {2}; Tail: {8} }"
+
+
+@check("type-guard-rejects-layout-change")
+def type_guard_rejects():
+    with isolated_world() as world:
+        assert run_script(world, WINGS) is None, world.error()
+        refused = {
+            "extra member": "struct Wings(span: f32, sweep: f32)",
+            "other member type": "struct Wings(span: i32)",
+            "renamed member": "struct Wings(reach: f32)",
+            "compiled component": "struct Position(x: f32)",
+        }
+        for label, code in refused.items():
+            problem = run_script(world, code)
+            assert problem and "cannot be redeclared" in problem, f"{label} was accepted: {problem!r}"
+        problem = world.load("OtherSource", "struct Wings(span: f32, sweep: f32)")
+        assert problem and "Wings" in problem, f"another managed script redeclared Wings: {problem!r}"
+        assert lib.fu_component_size(world.ctx, world.lookup("Wings")) == 4, "the size of Wings changed"
+        assert (component(world, "a", "Wings"), component(world, "b", "Wings")) == ({"span": 1}, {"span": 2}), "stored values changed"
+        assert layout_faults(world) == 0, "Flecs reported a component changed while in use"
+        assert world.lookup("__fu_type_check") == 0, "the staging scope was left behind"
+    return "in-use and compiled types keep their layout; one-shot and managed scripts are both refused; values intact"
+
+
+@check("type-guard-allows-safe-declarations")
+def type_guard_allows():
+    with isolated_world() as world:
+        assert run_script(world, WINGS) is None, world.error()
+        allowed = {
+            "identical redeclaration": "struct Wings(span: f32)",
+            "keyword in a comment and a string": '// struct Wings(a: f32, b: f32)\nnote { Label: {"struct Wings(a: f32, b: f32)"} }',
+            "new type": "struct Unused(v: f32)",
+            "type nothing uses": "struct Unused(v: f32, w: f32)",
+            "nested declaration of another type": "holder { struct Wings(span: f32, sweep: f32) }",
+        }
+        for label, code in allowed.items():
+            problem = run_script(world, code)
+            assert problem is None, f"{label} was refused: {problem}"
+        # A managed script may change its own types: the reload deletes them (and their values) before evaluating.
+        world.require_load("Schema", "struct Fin(h: f32)\nf1 { Fin: {3} }")
+        world.require_load("Schema", "struct Fin(h: f32, k: f32)\nf1 { Fin: {3, 4} }")
+        assert component(world, "f1", "Fin") == {"h": 3, "k": 4}, component(world, "f1", "Fin")
+        # A module-scoped type is found under its module.
+        world.require_load("Shop", "module shop\nstruct Price(v: f32)\nitem { Price: {5} }")
+        problem = run_script(world, "module shop\nstruct Price(v: f32, tax: f32)")
+        assert problem and "Price" in problem, f"module-scoped redeclaration was accepted: {problem!r}"
+        assert layout_faults(world) == 0
+    return "identical, unused, new, nested and own-script declarations pass; a module-scoped change is refused"
+
+
+@check("type-guard-templates")
+def type_guard_templates():
+    with isolated_world() as world:
+        assert run_script(world, "struct Tail(len: f32)\ntemplate Tree { prop height: f32 = 2\n trunk { Tail: {height} } }\nt1 { Tree: {height: 3} }") is None, world.error()
+        assert run_script(world, "template Tree { prop height: f32 = 2\n trunk { Tail: {height * 10} } }") is None, world.error()
+        world.tick(1)
+        assert component(world, "t1.trunk", "Tail") == {"len": 30}, "a body-only change did not reach the instance"
+        problem = run_script(world, "template Tree { prop height: f32 = 2\n prop width: f32 = 1\n trunk { Tail: {height} } }")
+        assert problem and "Tree" in problem, f"a prop was added to a template in use: {problem!r}"
+        assert component(world, "t1", "Tree") == {"height": 3}
+    return "a template body may change in place; its props may not while instances exist"
+
+
+@check("type-guard-reports-unchecked-forms")
+def type_guard_fault_hook():
+    with isolated_world() as world:
+        assert run_script(world, WINGS) is None, world.error()
+        before = layout_faults(world)
+        # A member entity changes the struct without a declaration statement: the check cannot see it,
+        # so the call must at least fail and say the world may be inconsistent.
+        problem = run_script(world, "Wings { sweep { flecs.meta.member: {type: f32} } }")
+        assert problem and "changed layout" in problem, f"the layout fault was not reported: {problem!r}"
+        assert layout_faults(world) == before + 1
+    return "a layout change through a member entity fails the call and is counted in the diagnostics"
 
 
 # --- Report --------------------------------------------------------------------------------------------------------
