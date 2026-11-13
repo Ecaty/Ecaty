@@ -2,7 +2,7 @@
 
 Reference sweep of official Flecs resources, judged against what Ecaty does today. Companion to [FLECS-ARCHITECTURE-AUDIT](FLECS-ARCHITECTURE-AUDIT.md), which holds the measurements and the native/Script split. This file holds the API reference and the recommendations. Date: 2026-11-12.
 
-**Version.** We vendor Flecs **4.2.0**, master commit `6879066` from 2026-11-05 (submodule `Native/Core/vendor/flecs`, `vendor/flecs/distr/flecs.h:30-32`). No release newer than 4.2.0 was found. Notes marked **[4.2]** are new or changed in 4.2.0. Claims marked **[tested]** were checked in a scratch world against our own DLL (`4.2.0+6879066`, Python ctypes, outside the repo).
+**Version.** We vendor Flecs **4.2.0**, master commit `b718658` from 2026-11-11 (submodule `Native/Core/vendor/flecs`, `vendor/flecs/distr/flecs.h:30-32`). No release newer than 4.2.0 was found. Notes marked **[4.2]** are new or changed in 4.2.0. Claims marked **[tested]** were checked in a scratch world against our own DLL (`4.2.0+6879066`, the previous pin; `b718658` only adds the C++ change below; Python ctypes, outside the repo).
 
 **Sources.** Unless a topic gives another link, the source is the Flecs manual at `https://www.flecs.dev/flecs/<Page>.html`. The old `md_docs_2*.html` links redirect there. Release notes: <https://github.com/SanderMertens/flecs/releases>. Medium returns 403 to fetchers, so Sander's blog posts were not read directly. Discord was not used.
 
@@ -519,4 +519,5 @@ Repos: <https://github.com/orgs/flecs-hub/repositories>. Read through `gh api` o
 **Version watch:**
 
 - Mossvale's `event`/`emit` Script keywords are unreleased (not on any public Flecs branch as of 2026-11-12). Watch the release notes.
-- Revisit this file when we update past `6879066`.
+- `b718658` (pinned 2026-11-13) adds one C++ API change over `6879066`: `set`/`assign` convert the value to the component type. Nothing else in these notes changes.
+- Revisit this file on the next Flecs update.
