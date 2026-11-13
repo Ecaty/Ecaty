@@ -112,14 +112,23 @@ namespace Game
             creation.Rebuilt -= OnModelRebuilt;
             creation.Rebuilding += SuspendAnimations;
             creation.Rebuilt += OnModelRebuilt;
+            syncedFrame = -1; // a new model needs its views now, even if another actor already synced this frame
             SyncGround();
         }
 
+        // Actors share one world: refresh its views once per frame here, not once per actor.
+        static FlecsWorld syncedWorld;
+        static int syncedFrame = -1;
         public void SyncGround()
         {
             if (world == null || world.Session == null || world.Session.IsDisposed)
                 return;
-            world.SyncViews();
+            if (syncedWorld != world || syncedFrame != Time.frameCount)
+            {
+                world.SyncViews();
+                syncedWorld = world;
+                syncedFrame = Time.frameCount;
+            }
             // Runs every frame: re-check only when the ground entity or the sources changed (no per-view names or JSON).
             ulong id = world.Session.Lookup("diorama.Ground");
             if (id == groundEntity && world.Session.SourceRevision == groundRevision && (ground || !groundTagged))
