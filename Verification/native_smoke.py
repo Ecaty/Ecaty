@@ -50,6 +50,7 @@ json_into = bind("fu_component_json_into", c.c_int32, P, c.c_uint64, c.c_uint64,
 label_into = bind("fu_label_into", c.c_int32, P, c.c_uint64, c.c_char_p, c.c_int32)
 lookup = bind("fu_lookup", c.c_uint64, P, c.c_char_p)
 diagnostics = bind("fu_bridge_diagnostics", P, P)
+type_layout = bind("fu_type_layout", c.c_int32, P, c.c_uint64, c.c_char_p, c.c_int32)
 checks = []
 
 def value(ptr):
@@ -295,6 +296,27 @@ Full : Base { Position: {2,0,0}; Rotation: {0,45,0}; Color: {0.5,0.25,0,1}; Prim
     assert any(v.has_label for v in views(w))
     destroy(w); w = None
     checks.append("UnityViews cached query: optional fields, defaults and inherited values")
+
+    # Native systems live in engine.<feature> modules; components stay at the root.
+    w = create(0)
+    for path in [b"engine.spin.SpinSystem", b"engine.gallery.GalleryRingMotionSystem", b"engine.gallery.GalleryTreeActivityObserver",
+                 b"engine.capabilities.CapabilityPhase", b"engine.capabilities.CapabilityCoordinationSystem", b"Position", b"GalleryLayerIntent"]:
+        assert lookup(w, path), path
+    assert not lookup(w, b"engine.gallery.GalleryLayerIntent")
+    # Reflected layout export (managed mirrors check member offsets with it).
+    buf = c.create_string_buffer(1024)
+    n = type_layout(w, lookup(w, b"GalleryLayerIntent"), buf, 1024)
+    layout = json.loads(buf.raw[:n].decode())
+    assert layout["size"] == 20 and [m["offset"] for m in layout["members"]] == [0, 4, 8, 12, 16], layout
+    assert layout["members"][3]["name"] == "glowPhase" and layout["members"][0]["type"] == "flecs.meta.f32"
+    assert type_layout(w, lookup(w, b"engine"), buf, 1024) == -1
+    assert type_layout(w, lookup(w, b"Position"), buf, 4) > 4  # reports the full length when truncated
+    # Exclusive relationships replace the previous target.
+    run(w, "Rel { Exclusive }\nL1 {}\nL2 {}\nX { (Rel, L1) }")
+    run(w, "X { (Rel, L2) }")
+    assert value(entity(w, b"X"))["pairs"] == {"Rel": "L2"}
+    destroy(w); w = None
+    checks.append("native modules, fu_type_layout export and Exclusive relationships")
 
     report["passed"]=True
 except BaseException as exc:

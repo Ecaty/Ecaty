@@ -509,6 +509,8 @@ Repos: <https://github.com/orgs/flecs-hub/repositories>. Read through `gh api` o
 | 9 | **Audit native writers for `modified()`.** Name loop-created entities in AI Script. | Medium: prevents silent reactivity bugs | Low | 3 |
 | 10 | Optional: release native build without REST/HTTP; `CanToggle` for frequent UI state; `group_by` per world; IR runtime A/B. | Low–Medium | Low–Medium | 8, 12, 14 |
 
+**Status:** Done 2026-11-13 (T11): items 4 (partly), 5, 6, 7 and 9. Native systems and observers live in modules `engine.gallery`, `engine.spin` and `engine.capabilities` (components stay at the root: Script, C# and JSON use bare names); capability coordination runs in the pipeline as `CapabilityCoordinationSystem` (immediate, own `CapabilityPhase` after OnStore) instead of after `progress`; `GalleryOnLayer` is `Exclusive`, `CapDependsOn` has `(OnDeleteTarget, Remove)`; `fu_type_layout` exports member offsets/types/units/ranges and `FlecsSession` checks each managed mirror against it once; the `modified()` audit found no missing call (the only iterator write, SpinSystem, has it) and the agent instructions ask for named loop entities. Not done, on purpose: the OnSet observer + dirty list + 10 Hz timer for capabilities (Cap* components are Script-defined and may be redefined, which deletes observers and orphans cached queries; per-tick polling costs a few µs today), `DontFragment` on GalleryOnLayer (entity JSON and the gallery checks read the pair), member ranges on tunable fields, and `module` lines in content files (would change the entity paths C# looks up).
+
 **Things to verify on 4.2.0 before relying on them:**
 
 - `(ChildOf, $p)` queries matching `Parent` children.
