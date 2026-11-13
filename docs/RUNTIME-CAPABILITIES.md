@@ -90,7 +90,8 @@ Windows x64 Editor/development player is the current target; Android/iOS/XR need
 
 ## Code map
 
-- `Native/Core/src/RuntimeCapabilities.cpp`: dependency readiness/dirty propagation, trees, footprints, synthesizer, geometry ABI.
+- `Native/Core/src`: `Capabilities.cpp` (CapBinding/CapState, dependency readiness and dirty marks), `BehaviorTrees.cpp` (NativeTree), `Geometry.cpp` (footprints, outline ABI), `Audio.cpp` (synthesizer). Their systems live in the modules `core.cap`, `core.tree` and `core.geometry`; the phase map is in `Modules.hpp`.
+- Native coordination reacts to changes: a binding gets `CapState` and its first `CapDirty` together with `CapBinding`; a consumer is marked again when it gains or loses a prerequisite or when a prerequisite reports a different generation or phase. Marks are applied once per frame and before every `fu_cap_*` call. Footprints are recomputed when a `CapSpline` value is set; a tree is compiled when its definition is set and is not ticked while it only waits for simulation time.
 - `Packages/com.runtime.capabilities/Runtime/Capabilities`: runtime lifecycle (CapabilityRuntime), typed contracts (CapabilityCatalog), persistence (CapabilityGraph), built-in adapters.
 - `Assets/_Adapters/Runtime/Vendor`: gated optional plugin adapters (Assembly-CSharp because licensed plugins live there). `Assets/_Adapters/Editor`: plugin discovery, asset setup, workshop verification. `Assets/_Adapters/Tests`: generic tests.
 - The host supplies audio bank bytes via `CapabilityRuntime.AudioBankProvider`; the asset catalog is referenced by RuntimeComposition (`Assets/_Adapters/Adapters.asset`).

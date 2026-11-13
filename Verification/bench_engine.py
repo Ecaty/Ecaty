@@ -47,6 +47,7 @@ error = bind("fu_last_error", c.c_char_p, P)
 version = bind("fu_version", c.c_char_p)
 free = bind("fu_free", None, P)
 query_json = bind("fu_query_json", P, P, c.c_char_p)
+query_once = bind("fu_query_once_json", P, P, c.c_char_p, c.c_int32)
 set_json = bind("fu_set_component_json", c.c_int32, P, c.c_char_p, c.c_char_p, c.c_char_p)
 read_views = bind("fu_read_views", c.c_int32, P, P, c.c_int32)
 write_presented = bind("fu_write_presented", c.c_int32, P, P, c.c_int32, c.c_int32)
@@ -240,7 +241,7 @@ def tool_query_new():
     counter = itertools.count()
     with world() as w:
         tool_world(w)
-        query = lambda: read_json(query_json(w, b"A, ?B, !(ChildOf, t%d)" % next(counter)), w)
+        query = lambda: read_json(query_once(w, b"A, ?B, !(ChildOf, t%d)" % next(counter), 0), w)
         return best_calls(query, 150)
 
 
@@ -294,8 +295,9 @@ def handles_survive_unrelated_script_set():
         set_script(w, "schema", "struct A(v: f32)")
         set_script(w, "data", "\n".join(f"e{i} {{ A: {{{i}}} }}" for i in range(1000)))
         handle = query_create(w, b"[in] A")
-        query_changed(w, handle)
-        query_changed(w, handle)
+        entities = (c.c_uint64 * 1024)()
+        values = (c.c_float * 1024)()
+        query_read(w, handle, None, entities, None, values, 4, 1024)  # a read consumes the pending change report
         set_script(w, "other", "x { Position: {0,0,0} }")
         return int(query_changed(w, handle) == 0)
 
@@ -307,7 +309,7 @@ def tool_queries_keep_feature_slots():
         tool_world(w)
         read_json(query_json(w, b"A"), w)
         for i in range(40):
-            read_json(query_json(w, b"A, ?B, !(ChildOf, t%d)" % i), w)
+            read_json(query_once(w, b"A, ?B, !(ChildOf, t%d)" % i, 0), w)
         before = builds(w)
         read_json(query_json(w, b"A"), w)
         return int(builds(w) == before)

@@ -83,6 +83,7 @@ Current gallery evidence: Tests/Results/2026-11-09_20-08-58_486/index.html (108 
 ## Contract checks, benchmark budgets and golden saves (2026-11-13)
 
 - `python Verification/contract_checks.py`: header, DLL exports and C# imports agree; ABI constants; every `.flecs` file loads. Add a prerequisite row in the script when a new `.flecs` file depends on another.
+- Native C++ tests: `flecs_unity_core_tests` (built with `-DFU_BUILD_TESTS=ON`, see DEVELOPMENT "Native rebuild"). CI builds Debug with warnings, fails on a warning in our own sources, runs these tests and repeats the smokes on the Debug library.
 - `python Verification/bench_engine.py`: budgets from docs/ENGINE-PLAN.md section 3.9. Guards fail the run on a regression; targets are reported until their step lands. Both run in the Extended suite; CI runs the contract checks as a gate and the benchmark as a report.
 - Golden saves: `Tests/Fixtures/Saves/experience-v1.json` (Runtime experience verifier) and `gallery-arrangement-v1.json` (Gallery suite). Each file is written once, from the verifier's own fixture scenario, the first time the verifier runs without it; commit it. From then on the verifier loads the committed file, so a format change must keep it loading (add a migration, never edit or re-seed the file). They hold fixture data only, never a user's saves.
 

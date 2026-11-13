@@ -49,6 +49,8 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 ## Native rebuild
 
+Native layout: `Native/Core/src/Modules.hpp` documents the modules (`core.cap`, `core.tree`, `core.geometry`, `app`) and the one phase map every native system follows. Public component names stay at the root scope; a reaction to a changed component starts in an observer that only notes the change, and a system applies it once per frame (Flecs locks tables inside observers). Before committing native work, also build Debug with our warnings and the core tests, and run the smokes against it (a Debug build checks things Release skips): `cmake -S Native -B Native/build-tests -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DFU_WARNINGS=ON -DFU_BUILD_TESTS=ON -DUNITY_PLUGIN_DIR=<any folder>`, `cmake --build Native/build-tests`, run `Native/build-tests/Core/flecs_unity_core_tests.exe`, then the Python smokes with `FLECS_UNITY_LIBRARY=<that folder>/flecs_unity.dll` and `FLECS_UNITY_DEBUG_BUILD=1`. CI does the same.
+
 - Close the Ecaty Editor/player first (a stopped Play session may keep the DLL loaded).
 - MinGW-w64: `./Native/Build.ps1 -Compiler GCC`; MSVC: `./Native/Build.ps1 -Compiler MSVC`; direct: `cmake -S Native -B Native/build` then `cmake --build Native/build --config Release`.
 - Output: `Assets/Plugins/Flecs/x86_64/flecs_unity.dll` (Core + App in one library). Keep ABI version/layout in sync with C#; no C++ classes/STL strings across it; free owned UTF-8 with `fu_free`. Product-specific systems go in `Native/App` (`flecs_unity::register_application`), never Core.

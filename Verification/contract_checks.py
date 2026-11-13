@@ -129,6 +129,9 @@ SIGNATURES = {
     "fu_keyboard": (c.c_int32, [P, S, c.c_int32, c.c_int32, c.c_uint32]),
     "fu_run_script": (c.c_int32, [P, S]), "fu_component_json": (P, [P, c.c_uint64, S]),
     "fu_component_size": (c.c_int32, [P, c.c_uint64]), "fu_bridge_diagnostics": (P, [P]),
+    "fu_cap_has": (c.c_int, [P, c.c_uint64, S]), "fu_cap_ack": (None, [P, c.c_uint64]),
+    "fu_cap_ready": (c.c_int, [P, c.c_uint64]), "fu_delete_entity": (c.c_int32, [P, S]),
+    "fu_query_once_json": (P, [P, S, c.c_int32]),
 }
 for _name, (_result, _args) in SIGNATURES.items():
     _function = getattr(lib, _name)
@@ -551,6 +554,9 @@ def type_guard_templates():
 
 @check("type-guard-reports-unchecked-forms")
 def type_guard_fault_hook():
+    # A Debug build of Flecs aborts the process on this fault by design; the report matters for Release builds.
+    if os.environ.get("FLECS_UNITY_DEBUG_BUILD"):
+        return "skipped: FLECS_UNITY_DEBUG_BUILD is set"
     with isolated_world() as world:
         assert run_script(world, WINGS) is None, world.error()
         before = layout_faults(world)
@@ -560,6 +566,107 @@ def type_guard_fault_hook():
         assert problem and "changed layout" in problem, f"the layout fault was not reported: {problem!r}"
         assert layout_faults(world) == before + 1
     return "a layout change through a member entity fails the call and is counted in the diagnostics"
+
+
+# --- Native modules ------------------------------------------------------------------------------------------------
+# Capability coordination, footprints and behaviour trees react to changes (docs/ENGINE-PLAN.md steps 1.1 to 1.3).
+
+def dirty(world, entity):
+    return lib.fu_cap_has(world.ctx, world.lookup(entity), b"CapDirty") == 1
+
+
+def set_state(world, entity, phase, generation):
+    state = json.dumps({"phase": phase, "appliedRevision": 1, "generation": generation, "message": ""}).encode()
+    assert lib.fu_set_component_json(world.ctx, entity.encode(), b"CapState", state) == 0, world.error()
+
+
+@check("modules-own-their-systems")
+def modules_own_systems():
+    with isolated_world() as world:
+        systems = ["core.cap.MarkDirty", "core.geometry.UpdateFootprints", "core.tree.TickTrees", "app.SpinSystem", "app.GalleryRingMotionSystem"]
+        missing = [name for name in systems if not world.lookup(name)]
+        assert not missing, f"not found: {missing}"
+        public = ["CapBinding", "CapState", "CapDependsOn", "CapDirty", "NativeTree", "NativeTreeResult", "NativeFootprint", "Position", "Spin", "GalleryLayerIntent"]
+        moved = [name for name in public if not world.lookup(name)]
+        assert not moved, f"public names must stay at the root scope: {moved}"
+    return "systems live in core.cap, core.geometry, core.tree and app; public component names stay at the root"
+
+
+@check("capability-coordination-reacts-to-changes")
+def capability_coordination():
+    with isolated_world() as world:
+        assert run_script(world, "T { Position: {0,0,0} }\nA { CapBinding: {target: T, enabled: true, revision: 1} }\n"
+                                 "B { CapBinding: {target: T, enabled: true, revision: 1}; (CapDependsOn, A) }\n"
+                                 "C { CapBinding: {target: T, enabled: true, revision: 1} }") is None, world.error()
+        a, b = world.lookup("A"), world.lookup("B")
+        assert component(world, "A", "CapState") == {"phase": 0, "appliedRevision": 0, "generation": 0, "message": None}, \
+            f"a new binding must report a state at once: {component(world, 'A', 'CapState')}"
+        assert dirty(world, "A") and dirty(world, "B"), "a new binding must start dirty"
+        assert lib.fu_cap_ready(world.ctx, a) == 1 and lib.fu_cap_ready(world.ctx, b) == 0, "B must wait for A"
+        for entity in ("A", "B", "C"):
+            lib.fu_cap_ack(world.ctx, world.lookup(entity))
+        world.tick(1)
+        assert not dirty(world, "B"), "an acknowledged binding became dirty with no change"
+        set_state(world, "A", 1, 1)
+        world.tick(1)
+        assert dirty(world, "B") and lib.fu_cap_ready(world.ctx, b) == 1, "a prerequisite result must mark its consumer"
+        assert not dirty(world, "C"), "an unrelated binding was marked"
+        lib.fu_cap_ack(world.ctx, b)
+        set_state(world, "A", 1, 1)
+        world.tick(1)
+        assert not dirty(world, "B"), "the same result again must not mark the consumer"
+        set_state(world, "A", -1, 1)
+        world.tick(1)
+        assert dirty(world, "B") and lib.fu_cap_ready(world.ctx, b) == -1, "a failed prerequisite must mark and fail its consumer"
+        lib.fu_cap_ack(world.ctx, b)
+        assert run_script(world, "C { (CapDependsOn, A) }") is None, world.error()
+        world.tick(1)
+        assert dirty(world, "C"), "a new prerequisite must mark the binding"
+        lib.fu_cap_ack(world.ctx, world.lookup("C"))
+        assert lib.fu_delete_entity(world.ctx, b"A") == 1
+        world.tick(1)
+        assert dirty(world, "B") and dirty(world, "C"), "a deleted prerequisite must mark its consumers"
+        assert lib.fu_cap_ready(world.ctx, b) == 1, "a binding without prerequisites is ready"
+    return "new bindings start dirty with a state; results, added and deleted prerequisites mark consumers; repeats do not"
+
+
+@check("trees-rest-while-waiting")
+def trees_rest():
+    xml = ('<root BTCPP_format="4"><BehaviorTree ID="Main"><Sequence><SimWait seconds="0.5"/>'
+           '<FlecsSet entity="Value" component="Position" value="{&quot;x&quot;:7,&quot;y&quot;:0,&quot;z&quot;:0}"/>'
+           '</Sequence></BehaviorTree></root>').replace('"', '\\"').replace("{", "\\{")
+    with isolated_world() as world:
+        assert run_script(world, 'Value { Position: {0,0,0} }\nWaiter { NativeTree: {xml: "' + xml + '", revision: 1, enabled: true, loop: false} }') is None, world.error()
+        world.tick(2)
+        first = component(world, "Waiter", "NativeTreeResult")
+        world.tick(10)                       # 0.24 s of simulation time: still waiting
+        resting = component(world, "Waiter", "NativeTreeResult")
+        assert first["status"] == 1 and resting["ticks"] == first["ticks"], f"a waiting tree was ticked: {first} -> {resting}"
+        assert component(world, "Value", "Position")["x"] == 0
+        world.tick(20)                       # past 0.5 s
+        done = component(world, "Waiter", "NativeTreeResult")
+        assert done["status"] == 2 and component(world, "Value", "Position")["x"] == 7, f"the tree did not finish on time: {done}"
+        # Setting the same definition again must not restart a finished tree.
+        assert run_script(world, 'Waiter { NativeTree: {xml: "' + xml + '", revision: 1, enabled: true, loop: false} }') is None, world.error()
+        world.tick(2)
+        assert component(world, "Waiter", "NativeTreeResult")["ticks"] == done["ticks"], "an identical definition restarted the tree"
+    return "a tree waiting for simulation time is not ticked, finishes on time, and is not restarted by an identical definition"
+
+
+@check("query-once-takes-no-slot")
+def query_once():
+    with isolated_world() as world:
+        assert run_script(world, "; ".join(f"p{i} {{ Position: {{{i},0,0}} }}" for i in range(5))) is None, world.error()
+        slots = lambda: json.loads(World.take(lib.fu_bridge_diagnostics(world.ctx)))["cachedQueries"]
+        before = slots()
+        rows = json.loads(World.take(lib.fu_query_once_json(world.ctx, b"Position", 0)))["results"]
+        assert len(rows) == 5, f"expected 5 rows, got {len(rows)}"
+        limited = json.loads(World.take(lib.fu_query_once_json(world.ctx, b"Position", 2)))["results"]
+        assert len(limited) == 2, f"a limit of 2 returned {len(limited)} rows"
+        assert not lib.fu_query_once_json(world.ctx, b"Position, (", 0), "an invalid expression must return NULL"
+        assert "Invalid query" in world.error(), world.error()
+        assert slots() == before, "a one-off query took a query slot"
+    return "all rows, a row limit, NULL with an error for an invalid expression, and no query slot used"
 
 
 # --- Report --------------------------------------------------------------------------------------------------------

@@ -28,7 +28,10 @@ try:
  script(w,'A { CapBinding: {target:Value,enabled:true,revision:1} }\nB { CapBinding: {target:Value,enabled:true,revision:1}; (CapDependsOn,A) }')
  a=lookup(w,b'A');b=lookup(w,b'B');tick(w,.01);assert has(w,b,b'CapDirty') and ready(w,b)==0
  assert setjson(w,b'A',b'CapState',b'{"phase":1,"appliedRevision":1,"generation":1,"message":""}')==0
- ack(w,b);tick(w,.01);assert ready(w,b)==1 and has(w,b,b'CapDirty')
+ # A prerequisite result marks its consumer; once acknowledged it stays clean until the result changes again.
+ assert ready(w,b)==1 and has(w,b,b'CapDirty');ack(w,b);tick(w,.01);assert not has(w,b,b'CapDirty')
+ assert setjson(w,b'A',b'CapState',b'{"phase":1,"appliedRevision":1,"generation":2,"message":""}')==0
+ tick(w,.01);assert has(w,b,b'CapDirty')
  checks.append('Flecs dependency results propagate dirty generations and gate consumers until prerequisites are ready')
  assert setjson(w,b'A',b'CapBinding',b'{"target":"Value","enabled":false,"revision":1}')==0
  assert ready(w,b)==0
