@@ -1,9 +1,9 @@
 """Native reactive Script integration: no AI service, Unity Editor or new behavior code."""
 import ctypes as c
-import hashlib
 import json
 import math
 import os
+import subprocess
 from pathlib import Path
 import tempfile
 import time
@@ -77,12 +77,15 @@ report=dict(passed=False, flecs=version().decode(), checks=checks,
             'No live inference service request; generated Script supplied by test fixture'])
 w=None
 try:
-    provenance=json.loads((ROOT/'Native/Core/vendor/UPSTREAM.json').read_text())
-    assert provenance['commit'].startswith(report['flecs'].split('+')[1])
-    for name,digest in provenance['files'].items():
-        assert hashlib.sha256((ROOT/'Native/Core/vendor'/name).read_bytes()).hexdigest()==digest
-    report['upstream_commit']=provenance['commit']
-    checks.append('Pinned upstream revision and unmodified distribution hashes match the binary')
+    core=ROOT/'Native/Core'
+    pinned=subprocess.run(['git','-C',str(core),'rev-parse','HEAD:vendor/flecs'],capture_output=True,text=True,check=True).stdout.strip()
+    checked_out=subprocess.run(['git','-C',str(core/'vendor/flecs'),'rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
+    assert checked_out==pinned, f'vendor/flecs checkout {checked_out} differs from pin {pinned}'
+    assert pinned.startswith(report['flecs'].split('+')[1]), f'binary {report["flecs"]} was not built from pin {pinned}'
+    dirty=subprocess.run(['git','-C',str(core/'vendor/flecs'),'status','--porcelain','--','distr'],capture_output=True,text=True,check=True).stdout.strip()
+    assert not dirty, 'vendor/flecs/distr has local edits'
+    report['upstream_commit']=pinned
+    checks.append('Flecs submodule pin, its unmodified checkout and the binary revision match')
 
     w=world()
     sphere_id=inspect(w,'scene.Sphere')['id']

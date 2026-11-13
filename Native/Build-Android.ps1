@@ -7,8 +7,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $nativeRoot = $PSScriptRoot
 $projectRoot = (Resolve-Path (Join-Path $nativeRoot '..')).Path
-if (!(Test-Path -LiteralPath (Join-Path $nativeRoot 'Core/vendor/flecs.c'))) {
-    throw 'Missing Core submodule. Run git submodule update --init --recursive.'
+if (!(Test-Path -LiteralPath (Join-Path $nativeRoot 'Core/vendor/flecs/distr/flecs.c'))) {
+    throw 'Missing Native/Core or its vendor submodules. Run: git -c core.longpaths=true submodule update --init --recursive --depth 1 Native/Core Native/App'
 }
 if (!$UnityEditor) {
     $version = (Select-String -Path (Join-Path $projectRoot 'ProjectSettings/ProjectVersion.txt') -Pattern '^m_EditorVersion: (.+)$').Matches[0].Groups[1].Value.Trim()

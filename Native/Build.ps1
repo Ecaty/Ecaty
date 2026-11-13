@@ -3,8 +3,8 @@ $ErrorActionPreference='Stop'
 $nativeRoot=$PSScriptRoot
 $output=Join-Path $nativeRoot '../Assets/Plugins/Flecs/x86_64'
 New-Item -ItemType Directory -Path $output -Force | Out-Null
-if (!(Test-Path -LiteralPath (Join-Path $nativeRoot 'Core/vendor/flecs.c'))) {
-    throw 'Missing Core submodule. Run git submodule update --init --recursive.'
+if (!(Test-Path -LiteralPath (Join-Path $nativeRoot 'Core/vendor/flecs/distr/flecs.c'))) {
+    throw 'Missing Native/Core or its vendor submodules. Run: git -c core.longpaths=true submodule update --init --recursive --depth 1 Native/Core Native/App'
 }
 if ($Compiler -eq 'GCC' -or ($Compiler -eq 'Auto' -and (Get-Command gcc -ErrorAction SilentlyContinue) -and (Get-Command g++ -ErrorAction SilentlyContinue))) {
     $objects=Join-Path $nativeRoot 'build-gcc'
