@@ -24,6 +24,7 @@ Default read before changing code: [AGENTS](../AGENTS.md), [STATUS](STATUS.md), 
 
 ## Product
 - [PRODUCT-DIRECTION](PRODUCT-DIRECTION.md), [GALLERY-WORLDS](GALLERY-WORLDS.md), [WORKSHOP-CHAIN](WORKSHOP-CHAIN.md), [DISTRIBUTION](DISTRIBUTION.md).
+- [BRANDING](BRANDING.md): name search, tagline, voice, store texts.
 
 ## Process
 - [DEVELOPMENT](DEVELOPMENT.md): builds and workflow. [TESTING](TESTING.md): runners, suites, verifier inventory. [RESOURCES](RESOURCES.md). [QUICKSTART](QUICKSTART.md).
