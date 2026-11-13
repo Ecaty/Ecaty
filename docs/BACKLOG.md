@@ -19,6 +19,7 @@ Retained ideas, not immediate implementation:
 - Future filmmaking/timelines, sharing, glTF export, cloud previews and 3D printing; no delivery/platform rights implied.
 - AI/advanced authoring composes supported definitions and rules; casual players compose recognizable capabilities. Games and interactive experiences in scope, with versioned patches and future permission-aware multiplayer.
 - Known separate vendor issue: unused Cavity Lit/URP shader incompatibility (no vendor patch applied).
+- **Runtime engine as the shared core of future products.** When a second product starts, the runtime engine (Native/Core, `com.runtime.flecs`, `com.runtime.capabilities`, `com.runtime.ai-agent`) is its central part and must serve any product type: modular, with no product assumptions (already submodules/packages). Docs must be modular too: each reusable repo carries its own engine docs (e.g. FLECS-NOTES, FLECS-ARCHITECTURE-AUDIT, RUNTIME-ENGINE move into the engine repos) with its own AGENTS/STATUS entry point, so other projects and AI sessions can use them without this repo; product docs, plans and status stay here. Do the docs move when the second product starts, not before.
 
 ## Decisions
 
@@ -31,3 +32,4 @@ Retained ideas, not immediate implementation:
 - 2026-11-11: Docs index and smaller mandatory read set approved (PROPOSAL-docs-index-and-trim.md sections 1-2): add docs/README.md index; agents read only AGENTS, STATUS, BACKLOG, PROJECT-STRUCTURE by default; rest on demand.
 - 2026-11-11: The "walking actor" is really the motion system for created models (drivers idle/player/follow/script, ground or hover; Flecs ActorSchema/ActorBehavior + C# DioramaRuntime; optional procedural legs via Legs Animator). Keep it; later refactor/rename to a generic **Motion** capability during creation-tools design, with legs as an optional look and the gait step check dropped. Snapshot: git tag `archive/walking-actor` (see docs/history/ARCHIVE-walking-actor.md).
 - 2026-11-11: Renamed `Assets/Plugins/Ecaty` to `Assets/Plugins/Flecs` (done).
+- 2026-11-13: Docs stay central in this repo for now (one place for status/backlog/plan, same commit as code). Engine docs move into the reusable engine repos when a second product starts (see retained ideas).
