@@ -47,11 +47,12 @@ Steam was searched directly; Play, Epic, App Store, social handles and `.game` w
 
 ## Tagline
 
-**Draw it, build it, or just say it, and it comes alive.** (Earlier draft: "Make a world. Bring it to life.")
+**Draw it, build it, or just say it, and give it life.** (Earlier draft: "Make a world. Bring it to life.")
 
 ## Voice
 
 - **The player is the creator.** Lead with what they bring to life (drawings, ideas, stories, games) and sharing with friends, not with how the tools work.
+- Always name what gets life: the creations, never the players. Avoid a loose "each one" after "You are the creator". The player gives life ("give it life").
 - Life, not just motion: say "give it a life of its own", not "watch it move".
 - Poetic and short over literal: "just say it", not "say it in your own words"; no obvious details ("on paper"); no ambiguous ones ("shape it by hand").
 - Not only sharing: playing together with friends.
@@ -68,7 +69,7 @@ The texts describe the intended game at release (user direction 2026-11-13), not
 
 | Claim in the text | State 2026-11-13 |
 |---|---|
-| Build it, it comes alive | Partly: place, move, spin and the motion system are real; creation tools are designed, not built |
+| Build it and give it life | Partly: place, move, spin and the motion system are real; creation tools are designed, not built |
 | Say it | Real (local/cloud AI, text and dictation) |
 | Draw it (real-world drawings) | Not yet: player photo picker pending, drawing-to-creature quality untested |
 | Games, adventures, stories of every kind | Not yet: rules/links are in creation-tools design, not built |
@@ -77,8 +78,8 @@ The texts describe the intended game at release (user direction 2026-11-13), not
 
 | Store | File | Limits |
 |---|---|---|
-| Steam | `Store/steam/listing.json` | short 300 (current 212), about multiline |
-| Google Play | `Store/play/listing.json` | title 30, short 80 (current 74), full 4000 |
+| Steam | `Store/steam/listing.json` | short 300 (current 205), about multiline |
+| Google Play | `Store/play/listing.json` | title 30, short 80 (current 67), full 4000 |
 | Epic | `Store/epic/listing.json` | not yet in Release Desk rules; verify in the Epic Developer Portal |
 
 ## Next branding tasks
