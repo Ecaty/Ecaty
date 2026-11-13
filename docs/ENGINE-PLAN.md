@@ -1,6 +1,6 @@
 # Engine plan: review and target architecture
 
-Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phases 0 and 1 are implemented on this branch (see "Phase 0 status" and "Phase 1 status" in section 4). Later phases start only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
+Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phases 0 and 1 are implemented and tested on this branch (see "Phase 0 status" and "Phase 1 status" in section 4): Run-All and Extended pass with the rebuilt native library. Later phases start only on the user's go.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
 
 Readable page with pickable decisions: https://claude.ai/artifact/3mxTpAwGuAYdgmeBEE9jrw (private to the owner until shared).
 
@@ -345,6 +345,8 @@ Consequences: section 3.3 now uses in-place application; step 3.1 builds that (p
 Found on the way: the Debug build showed that writing a component inside an add, remove or set observer changes a locked table (Flecs asserts in Debug and says nothing in Release). The new modules avoid it; **the existing gallery observers in `Native/App/src/Application.cpp` write `GalleryLayerState` and `GalleryTreeMotion` inside `OnSet` observers** and are only safe because Script creates those components first. They are listed for step 6.3.
 
 The benchmark guards were re-measured after Phase 1, so a return to the old costs now fails the run.
+
+**Unity verification (2026-11-13, rebuilt DLL loaded, temporary test branch in the main checkout):** Run-All passed (Validator 150, Resources 68, PlayerScripts, EditMode 15, PlayMode 4, Gallery 132) and Extended passed 14 of 14. Both golden saves loaded without being rewritten. The Editor log has no Flecs error, layout fault or locked-table message. Not covered: a built player and Android (the `.so` is rebuilt but has not run on a device).
 
 ### Phase 2: bridge ABI 4
 
