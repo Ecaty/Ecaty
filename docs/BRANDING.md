@@ -5,7 +5,7 @@ Name, store texts and voice. Store text lives in the private `Store/` submodule 
 ## Status (2026-11-13)
 
 - **Name: open.** "Ecaty" stays the working name in `Store/store.json`. Naming paused by the user after five rounds; resume with fresh eyes, possibly with names shown in context (title on key art and a Steam capsule).
-- **Store texts: written, name-neutral.** They do not use the game's name, so they survive the rename.
+- **Store texts: written, name-neutral, creator-first** (user direction 2026-11-13). They do not use the game's name, so they survive the rename.
 - Renaming code identifiers waits for the final name (BACKLOG decision 2026-11-11).
 
 ## Product essence (confirmed with the user)
@@ -47,26 +47,35 @@ Steam was searched directly; Play, Epic, App Store, social handles and `.game` w
 
 ## Tagline
 
-**Make a world. Bring it to life.**
+**Bring your ideas to life.** (Earlier draft: "Make a world. Bring it to life.")
 
 ## Voice
 
-- Plain, warm, short sentences. Say what the player does, not what the game is.
+- **The player is the creator.** Lead with what they bring to life (drawings, ideas, stories, games) and sharing with friends, not with how the tools work.
+- Convey the feeling, not a manual: no step-by-step mechanics, no interface terms (sphere, tree, helper, typed/spoken).
+- Plain, warm, short sentences.
 - No hype words (amazing, epic, revolutionary, ultimate), no exclamation marks, no feature lists in capitals.
-- Describe only what ships. AI is an optional helper, never required, never the headline.
+- AI is one way in among drawing and building by hand; never the headline, never named as AI in the short text.
 - Avoid "tiny"/"miniature" as a promise of scale; worlds may grow.
 - No technical terms (engine, ECS, Flecs, Script, model names) in player-facing text.
 
 ## Store texts
 
-The current texts cover only implemented features: placing and moving shapes, setting them in motion, the optional typed/spoken helper, the crystal tree of saved worlds and resuming a world where you left off. Before each store submission, recheck them against STATUS.
+The texts describe the intended game at release (user direction 2026-11-13), not today's build. Store pages must match the shipped game, so before each submission check every claim against STATUS and cut or soften what is not real yet:
 
-Add to the texts once each is real and verified: bringing real drawings/photos to life (the player photo picker is pending), the creation tools, sharing and combining with others, multiplayer, AR preview, 3D printing, the archive.
+| Claim in the text | State 2026-11-13 |
+|---|---|
+| Shape by hand, watch it move | Real (place, move, spin; motion system) |
+| Describe an idea in your own words | Real (local/cloud AI, text and dictation) |
+| Draw on paper and watch it wake up | Not yet: player photo picker pending, drawing-to-creature quality untested |
+| React, play together, little games, stories | Partly: reactions/links and rules are in creation-tools design, not built |
+| Share with friends | Not built; no networking authorized yet |
+| Worlds stay with you, step back in | Real (saved worlds, resume) |
 
 | Store | File | Limits |
 |---|---|---|
-| Steam | `Store/steam/listing.json` | short 300 (current 243), about multiline |
-| Google Play | `Store/play/listing.json` | title 30, short 80 (current 65), full 4000 |
+| Steam | `Store/steam/listing.json` | short 300 (current 209), about multiline |
+| Google Play | `Store/play/listing.json` | title 30, short 80 (current 76), full 4000 |
 | Epic | `Store/epic/listing.json` | not yet in Release Desk rules; verify in the Epic Developer Portal |
 
 ## Next branding tasks
