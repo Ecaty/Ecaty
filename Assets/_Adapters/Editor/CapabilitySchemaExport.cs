@@ -1,8 +1,8 @@
 using System.IO;
-using Ecaty.Flecs.Capabilities;
+using Runtime.Capabilities;
 using UnityEditor;
 using UnityEngine;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     // Keeps the committed configuration schema export in step with the [Capability] classes after each compile.
     // The runtime generates its schema from the classes; the export serves tools that run without Unity.

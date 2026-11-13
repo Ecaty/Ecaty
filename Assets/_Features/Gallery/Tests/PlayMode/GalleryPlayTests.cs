@@ -1,10 +1,10 @@
 using System.Collections;
 using System.Linq;
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-namespace Ecaty.Tests
+namespace Game.Tests
 {
     public sealed class GalleryPlayTests
     {
@@ -14,7 +14,7 @@ namespace Ecaty.Tests
             yield return null;
             yield return null;
             var world = Object.FindAnyObjectByType<FlecsWorld>();
-            Assert.That(world, Is.Not.Null, "Run from the Ecaty sample scene");
+            Assert.That(world, Is.Not.Null, "Run from the sample scene");
             int frame = Time.frameCount;
             yield return new WaitForSecondsRealtime(.15f);
             Assert.That(Time.frameCount, Is.GreaterThan(frame));

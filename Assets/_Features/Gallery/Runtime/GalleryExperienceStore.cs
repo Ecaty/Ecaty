@@ -1,15 +1,15 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using Ecaty.Flecs;
-using Ecaty.Flecs.Capabilities;
+using Runtime.Flecs;
+using Runtime.Capabilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
-namespace Ecaty
+namespace Game
 {
     // Orchestrates source ownership/presentation only. Definitions, selection and simulation are native data.
     public sealed class GalleryExperienceStore : IDisposable

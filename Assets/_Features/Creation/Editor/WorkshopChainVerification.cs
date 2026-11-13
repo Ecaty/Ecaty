@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Ecaty.Flecs;
-using Ecaty.Agents.UI;
+using Runtime.Flecs;
+using Runtime.Agents.UI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
@@ -14,11 +14,11 @@ using UnityEngine.Rendering.Universal;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class WorkshopChainVerification
     {
-        private const string Pending = "Ecaty.WorkshopChainVerification";
+        private const string Pending = "Game.WorkshopChainVerification";
         private static bool running;
 
         [InitializeOnLoadMethod]
@@ -38,7 +38,7 @@ namespace Ecaty.Editor
         {
             var experience = Object.FindAnyObjectByType<RuntimeExperience>();
             if (!experience)
-                throw new InvalidOperationException("Ecaty has no running experience.");
+                throw new InvalidOperationException("No running experience.");
             Require(experience.Dock && experience.Dock.StartBellAndGate(), "Could not open the Bell & Gate example.");
         }
 
@@ -352,7 +352,7 @@ namespace Ecaty.Editor
                 world.Session.SetManagedScript("SecondWorkshopLook",
                     "SecondWorkshopLookBinding { CapBinding: {target: diorama, enabled: true, revision: 1}; " +
                     "CapPostProcessing: {exposure: 0.1, bloom: 0.1, threshold: 0.9} }");
-                var capabilities = world.GetComponent<Ecaty.Flecs.Capabilities.CapabilityRuntime>();
+                var capabilities = world.GetComponent<Runtime.Capabilities.CapabilityRuntime>();
                 capabilities.Reconcile();
                 Require(JObject.Parse(world.Session.ComponentJson(world.Session.Lookup("SecondWorkshopLookBinding"), "CapState"))
                     .Value<int>("phase") == 1, "A second grade did not bind.");
@@ -366,7 +366,7 @@ namespace Ecaty.Editor
                 ClickIcon(WorkshopIcon.Honey);
                 await Until(() => FindLook(out _), "The primary grade did not reactivate.");
 
-                var savedLook = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "-ecaty-look.json");
+                var savedLook = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "-look.json");
                 try
                 {
                     experience.Save(savedLook);
@@ -593,7 +593,7 @@ namespace Ecaty.Editor
                     running = false;
                     if (owned)
                     {
-                        if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ecatyWorkshopChainVerify") >= 0)
+                        if (Array.IndexOf(Environment.GetCommandLineArgs(), "-workshopChainVerify") >= 0)
                         {
                             SessionState.SetBool(Pending + ".exit", true);
                             SessionState.SetInt(Pending + ".code", (bool)report["passed"] ? 0 : 1);

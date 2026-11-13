@@ -1,21 +1,22 @@
-using Ecaty.Flecs.Capabilities;
-#if ECATY_CAP_FEEL
+using Runtime.Capabilities;
+#if CAP_FEEL
 using System;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using MoreMountains.Feedbacks;
 #endif
-namespace Ecaty.Flecs.PluginAdapters
+using Runtime.Flecs;
+namespace Game.Adapters
 {
     // Always compiled: the schema and saved configurations stay valid without the plugin.
-    [Capability("CapSequence", "feedback sequencing", 45, Gate = "ECATY_CAP_FEEL", Probe = "Assets/Feel/MMFeedbacks/MMFeedbacks/Sequencing/Scripts/MMSoundSequencer.cs")]
+    [Capability("CapSequence", "feedback sequencing", 45, Gate = "CAP_FEEL", Probe = "Assets/Feel/MMFeedbacks/MMFeedbacks/Sequencing/Scripts/MMSoundSequencer.cs")]
     public sealed class SequenceConfig
     {
         public string pattern = "";
         public float bpm = 120;
         public bool playing;
     }
-#if ECATY_CAP_FEEL
+#if CAP_FEEL
     public sealed class SequenceCapability : CapabilityInstance<SequenceConfig>
     {
         MMSoundSequencer sequencer; MMSequence sequence;

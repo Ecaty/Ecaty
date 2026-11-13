@@ -5,7 +5,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEditorInternal;
 using UnityEngine;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class GalleryPerformanceProbe
     {

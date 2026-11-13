@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     // Boing finishes at 10000, this layer at 15000, MudBun at 20000, observations at 25000.
     [DefaultExecutionOrder(15000)]

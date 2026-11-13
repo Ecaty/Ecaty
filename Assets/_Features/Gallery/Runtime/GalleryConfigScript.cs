@@ -4,10 +4,10 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     /// <summary>
     /// Gallery tuning values as Flecs Script. In the Editor, Gallery.asset (GalleryLayoutProfile) is the authoring UI and is

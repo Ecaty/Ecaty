@@ -1,6 +1,6 @@
 using UnityEditor;
 using UnityEngine;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class GalleryDesignerMenu
     {

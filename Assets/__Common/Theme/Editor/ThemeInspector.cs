@@ -1,9 +1,9 @@
 #if ODIN_INSPECTOR
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
-    [CustomEditor(typeof(EcatyTheme)), CanEditMultipleObjects]
+    [CustomEditor(typeof(GameTheme)), CanEditMultipleObjects]
     public sealed class ThemeInspector : OdinEditor
     {
     }

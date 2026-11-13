@@ -1,5 +1,5 @@
-using Ecaty.Flecs.Capabilities;
-#if ECATY_CAP_SPLINES
+using Runtime.Capabilities;
+#if CAP_SPLINES
 using System;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -7,10 +7,11 @@ using UnityEngine.Splines;
 using Unity.Mathematics;
 using sc.splinemesher.pro.runtime;
 #endif
-namespace Ecaty.Flecs.PluginAdapters
+using Runtime.Flecs;
+namespace Game.Adapters
 {
     // Always compiled: the schema and saved configurations stay valid without the plugin.
-    [Capability("CapSpline", "spline geometry", 0, Gate = "ECATY_CAP_SPLINES", Probe = "Packages/xyz.staggart-creations.splinemesher-pro/package.json")]
+    [Capability("CapSpline", "spline geometry", 0, Gate = "CAP_SPLINES", Probe = "Packages/xyz.staggart-creations.splinemesher-pro/package.json")]
     public sealed class SplineConfig
     {
         public string points = "";
@@ -18,7 +19,7 @@ namespace Ecaty.Flecs.PluginAdapters
         [AssetKey] public string profile = "";
         public bool closed, fill;
     }
-#if ECATY_CAP_SPLINES
+#if CAP_SPLINES
     public sealed class SplineCapability : CapabilityInstance<SplineConfig>
     {
         readonly SplineContainer container; SplineMesher mesher; bool fill;

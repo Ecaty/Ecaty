@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public sealed class WorkshopSeedArt : EditorWindow
     {

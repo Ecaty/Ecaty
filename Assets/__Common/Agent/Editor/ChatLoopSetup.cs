@@ -1,9 +1,9 @@
-using Ecaty.Agents.UI;
+using Runtime.Agents.UI;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class ChatLoopSetup
     {
@@ -26,7 +26,7 @@ namespace Ecaty.Editor
                 assets = ScriptableObject.CreateInstance<AgentUiAssets>();
                 AssetDatabase.CreateAsset(assets, folder + "Agent.asset");
             }
-            assets.Layout = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.ecaty.ai-agent/Runtime/UI/AgentChat.uxml");
+            assets.Layout = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.runtime.ai-agent/Runtime/UI/AgentChat.uxml");
             assets.Panel = panel;
             EditorUtility.SetDirty(assets);
             AssetDatabase.SaveAssetIfDirty(panel);

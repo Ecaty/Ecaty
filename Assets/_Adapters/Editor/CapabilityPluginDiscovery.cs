@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
-using Ecaty.Flecs.Capabilities;
-namespace Ecaty.Editor
+using Runtime.Capabilities;
+namespace Game.Editor
 {
     [InitializeOnLoad]
     public static class CapabilityPluginDiscovery
@@ -42,7 +42,7 @@ namespace Ecaty.Editor
             foreach (var gate in gates)
                 Set(gate.Key, gate.Value);
             // Drawing support without a capability adapter.
-            Set("ECATY_CAP_ALINE", File.Exists("Packages/com.arongranberg.aline/package.json"));
+            Set("CAP_ALINE", File.Exists("Packages/com.arongranberg.aline/package.json"));
             if (changed)
                 PlayerSettings.SetScriptingDefineSymbols(target, string.Join(";", symbols.OrderBy(s => s)));
         }

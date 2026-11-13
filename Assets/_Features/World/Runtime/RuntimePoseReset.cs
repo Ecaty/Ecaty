@@ -1,5 +1,5 @@
 using UnityEngine;
-namespace Ecaty
+namespace Game
 {
     [DefaultExecutionOrder(-30000)]
     public sealed class RuntimePoseReset : MonoBehaviour

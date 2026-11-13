@@ -2,12 +2,12 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Ecaty.Agents;
-using Ecaty.Agents.Providers.Local;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Agents.Providers.Local;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
-namespace Ecaty
+namespace Game
 {
     // Explicit development-player check. Never runs during normal play or records a microphone.
     public sealed class LocalAiSmoke : MonoBehaviour
@@ -27,7 +27,7 @@ namespace Ecaty
             {
                 using var model = new LlamaCppProvider(services.LlamaEndpoint, services.StartLlamaAsync, services.StopLlama);
                 await model.SignInAsync(lifetime.Token);
-                var tools = EcatyAgentTools.Create(world, new AgentMainThread(), world.GetComponent<ClayCreation>(), world.GetComponent<DioramaRuntime>());
+                var tools = WorldAgentTools.Create(world, new AgentMainThread(), world.GetComponent<ClayCreation>(), world.GetComponent<DioramaRuntime>());
                 var timer = System.Diagnostics.Stopwatch.StartNew();
                 string reply = await model.ReplyAsync(new AgentRequest(Resources.Load<TextAsset>("Agent/Prompts/AgentInstructions").text, new[] { new AgentMessage(AgentRole.User, "Inspect the world. Make the ground blue. Verify the result. Reply briefly.") }, tools), null, lifetime.Token);
                 world.SyncViews();

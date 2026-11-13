@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Ecaty.Flecs.Capabilities;
-#if ECATY_CAP_FEEL
+using Runtime.Capabilities;
+#if CAP_FEEL
 using MoreMountains.Feedbacks;
 #endif
-#if ECATY_CAP_COZY
+#if CAP_COZY
 using ProjectDawn.CozyBuilder;
 #endif
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.VFX;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class CapabilitySetup
     {
@@ -48,7 +48,7 @@ namespace Ecaty.Editor
                     AssetDatabase.CopyAsset(package.assetPath + "/Editor/Templates/Minimal_System.vfx", fxPath);
             }
             Add("particles", AssetDatabase.LoadAssetAtPath<VisualEffectAsset>(fxPath));
-#if ECATY_CAP_FEEL
+#if CAP_FEEL
             const string burstPath = "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/BurstFeedback.prefab";
             if (!File.Exists(burstPath))
             {
@@ -71,7 +71,7 @@ namespace Ecaty.Editor
             }
             Add("burst", AssetDatabase.LoadAssetAtPath<GameObject>(burstPath));
 #endif
-#if ECATY_CAP_COZY
+#if CAP_COZY
             const string constructionMaterialPath = "Assets/_Features/World/Resources/Runtime/Examples/Capabilities/ConstructionMaterial.mat";
             var constructionMaterial = AssetDatabase.LoadAssetAtPath<Material>(constructionMaterialPath);
             if (!constructionMaterial)
@@ -132,7 +132,7 @@ namespace Ecaty.Editor
             finally { PrefabUtility.UnloadPrefabContents(contents); }
             Add("building", AssetDatabase.LoadAssetAtPath<GameObject>(kitPath));
 #endif
-#if ECATY_CAP_BROCCOLI
+#if CAP_BROCCOLI
             Add("tree", Resources.Load<Broccoli.Pipe.Pipeline>("BroccoliRuntimeExamplePipeline") ?? AssetDatabase.LoadAssetAtPath<Broccoli.Pipe.Pipeline>("Assets/Waldemarst/Broccoli/Catalog/Pipelines/br_lp_birch_01.asset"));
 #endif
             Add("chime", AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Features/World/Resources/Runtime/Examples/Capabilities/Chime.wav"));

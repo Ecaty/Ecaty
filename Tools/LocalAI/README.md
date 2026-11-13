@@ -6,6 +6,6 @@ Unity Play -> account -> On device -> Start. Microphone -> stop -> review draft 
 
 For a Windows player: `python Tools/LocalAI/stage.py Build/Ecaty.exe`. Alternatively launch with `-localAiRoot <absolute pack directory>`.
 
-Actual local inference test: Ecaty > Verification > Verify local AI and speech. Protocol/dictation test: Verify local AI protocols and dictation. Neither automatically records your microphone.
+Actual local inference test: Runtime > Verification > Verify local AI and speech. Protocol/dictation test: Verify local AI protocols and dictation. Neither automatically records your microphone.
 
 Read ../../docs/LOCAL-AI.md for model replacement, performance, privacy, current test coverage and mobile limitations. Nothing here promises frontier-cloud parity or a completed safety sandbox.

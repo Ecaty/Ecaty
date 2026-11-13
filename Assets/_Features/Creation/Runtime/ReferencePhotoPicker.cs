@@ -1,10 +1,10 @@
 #if UNITY_EDITOR
 using System.IO;
-using Ecaty.Agents;
+using Runtime.Agents;
 using UnityEditor;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     internal static class ReferencePhotoPicker
     {

@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d410ee9ae89829647a71dbe070f36041, type: 3}
   m_Name: Gallery
-  m_EditorClassIdentifier: Assembly-CSharp::Ecaty.GalleryLayoutProfile
+  m_EditorClassIdentifier: Assembly-CSharp::Game.GalleryLayoutProfile
   WorldDiameter: 1.65
   WorldSpacing: 0.77
   LayerSpacing: 2.9

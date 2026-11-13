@@ -1,13 +1,13 @@
 using System;
 using System.IO;
 using System.Linq;
-using Ecaty.Agents.UI;
-using Ecaty.Flecs;
+using Runtime.Agents.UI;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     // Manual, opt-in real-provider check. Requires the owner to connect in the app first.
     public static class LiveProviderVerification

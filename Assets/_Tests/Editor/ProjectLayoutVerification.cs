@@ -1,11 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
-using Ecaty.Flecs.Capabilities;
+using Runtime.Capabilities;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class ProjectLayoutVerification
     {
@@ -30,14 +30,14 @@ namespace Ecaty.Editor
                 if (AssetDatabase.AssetPathToGUID(path) != (string)row["guid"])
                     failures.Add("GUID mismatch: " + path);
             }
-            foreach (string old in new[] { "Assets/Ecaty", "Assets/Scenes", "Assets/Settings", "Packages/com.ecaty.flecs-unity/Runtime/Capabilities" })
+            foreach (string old in new[] { "Assets/Scenes", "Assets/Settings", "Packages/com.runtime.flecs/Runtime/Capabilities" })
                 if (Directory.Exists(old))
                     failures.Add("Old owner remains: " + old);
             if (typeof(CapabilityRuntime).Assembly.GetName().Name != "Runtime.Capabilities")
                 failures.Add("Capabilities were not extracted to their own assembly.");
-            if (typeof(Ecaty.Flecs.FlecsWorld).Assembly.GetReferencedAssemblies().Any(a => a.Name == "Runtime.Capabilities"))
+            if (typeof(Runtime.Flecs.FlecsWorld).Assembly.GetReferencedAssemblies().Any(a => a.Name == "Runtime.Capabilities"))
                 failures.Add("Bridge depends on capabilities.");
-            if (typeof(Ecaty.Agents.UI.AgentChatPanel).Assembly.GetReferencedAssemblies().Any(a => a.Name.StartsWith("Ecaty.Flecs") || a.Name == "Runtime.Capabilities"))
+            if (typeof(Runtime.Agents.UI.AgentChatPanel).Assembly.GetReferencedAssemblies().Any(a => a.Name.StartsWith("Runtime.Flecs") || a.Name == "Runtime.Capabilities"))
                 failures.Add("Generic agent depends on Flecs.");
             var catalog = RuntimeComposition.Current.Capabilities;
             if (!catalog || catalog.Entries.Length == 0)

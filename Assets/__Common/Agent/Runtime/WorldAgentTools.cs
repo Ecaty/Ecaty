@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Ecaty
+namespace Game
 {
-    public static class EcatyAgentTools
+    public static class WorldAgentTools
     {
         public static IReadOnlyList<IAgentTool> Create(FlecsWorld world, AgentMainThread main, ClayCreation clay = null, DioramaRuntime engine = null)
         {

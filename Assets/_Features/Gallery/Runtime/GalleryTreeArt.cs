@@ -1,10 +1,10 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
-namespace Ecaty
+namespace Game
 {
     public sealed class GalleryTreeArt : IDisposable
     {

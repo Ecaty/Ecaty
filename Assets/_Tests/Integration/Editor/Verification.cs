@@ -1,4 +1,4 @@
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class Verification
     {
@@ -36,7 +36,7 @@ namespace Ecaty.Editor
                 report.flecs = FlecsSession.Version;
                 root = new GameObject("Verification world");
                 var host = root.AddComponent<FlecsWorld>();
-                host.Initialize(0, Resources.Load<TextAsset>("Tests/Fixtures/VerificationWorld"), "EcatyWorld");
+                host.Initialize(0, Resources.Load<TextAsset>("Tests/Fixtures/VerificationWorld"), "World");
                 Require(host.ViewCount == 3, "Expected scene + cube + sphere");
                 report.checks.Add("managed Script loaded; prefab excluded; three views created; no greeting text");
                 host.Session.ReadViews(out var first);
@@ -136,7 +136,7 @@ namespace Ecaty.Editor
             var result = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = new[] { scenePath },
-                locationPathName = Path.Combine(root, "Build/Ecaty.exe"),
+                locationPathName = Path.Combine(root, "Build", PlayerSettings.productName + ".exe"),
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.Development
             });

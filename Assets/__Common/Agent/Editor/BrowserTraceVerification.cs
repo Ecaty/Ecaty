@@ -7,14 +7,14 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecaty.Agents.Diagnostics;
-using Ecaty.Agents.UI;
+using Runtime.Agents.Diagnostics;
+using Runtime.Agents.UI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class BrowserTraceVerification
     {
@@ -37,9 +37,9 @@ namespace Ecaty.Editor
         }
         private static Dictionary<string, string> Assets() => new Dictionary<string, string>
         {
-            ["/"] = Resources.Load<TextAsset>("EcatyAgentTrace/index.html").text,
-            ["/viewer.js"] = Resources.Load<TextAsset>("EcatyAgentTrace/viewer.js").text,
-            ["/viewer.css"] = Resources.Load<TextAsset>("EcatyAgentTrace/viewer.css").text
+            ["/"] = Resources.Load<TextAsset>("AgentTrace/index.html").text,
+            ["/viewer.js"] = Resources.Load<TextAsset>("AgentTrace/viewer.js").text,
+            ["/viewer.css"] = Resources.Load<TextAsset>("AgentTrace/viewer.css").text
         };
         private static AgentTraceEntry[] Demo() => new[] {
             new AgentTraceEntry { Sequence = 1, Session = "fixture", Request = "demo", Stage = "request", Name = "Fixture", Time = "2026-11-03T00:00:00Z", Arguments = "Make the cube blue. <img src=x onerror=alert(1)>" },

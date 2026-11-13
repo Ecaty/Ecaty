@@ -1,11 +1,11 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using UnityEngine;
-namespace Ecaty
+namespace Game
 {
     /// <summary>Reusable presentation spring. Flecs supplies its goal; it owns no application state.</summary>
     public sealed class GalleryFeedbackSpring
     {
-#if ECATY_CAP_FEEL
+#if CAP_FEEL
         readonly MoreMountains.Feedbacks.MMSpringFloat spring = new();
 #else
         float value,velocity;
@@ -18,7 +18,7 @@ namespace Ecaty
         public void Reset(float initial)
         {
             Value = initial;
-#if ECATY_CAP_FEEL
+#if CAP_FEEL
             spring.CurrentValue = initial;
             spring.Velocity = 0;
             spring.TargetValue = initial;
@@ -28,7 +28,7 @@ namespace Ecaty
         }
         public float Step(float goal, float seconds, float deltaTime, float damping = .9f)
         {
-#if ECATY_CAP_FEEL
+#if CAP_FEEL
             spring.Damping = damping;
             spring.Frequency = 1 / (Mathf.PI * Mathf.Max(.03f, seconds));
             spring.TargetValue = goal;

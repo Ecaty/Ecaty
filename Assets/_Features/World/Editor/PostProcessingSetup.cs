@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public sealed class PostProcessingSetup : IPreprocessBuildWithReport
     {

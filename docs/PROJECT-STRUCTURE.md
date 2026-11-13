@@ -17,9 +17,9 @@ Assets/
   _Scenes/
   _Tests/              # cross-feature Editor/Integration checks and runtime fixtures
 Packages/
-  com.ecaty.flecs-unity/    # native session/view bridge, separate runtime/editor asmdefs
-  com.ecaty.ai-agent/       # reusable agent/UI/providers, separate runtime/editor asmdefs
-  com.runtime.capabilities/# reusable lifecycle/schema/Unity adapters, runtime asmdef
+  com.runtime.flecs/          # native session/view bridge, separate runtime/editor asmdefs
+  com.runtime.ai-agent/       # reusable agent/UI/providers, separate runtime/editor asmdefs
+  com.runtime.capabilities/   # reusable lifecycle/schema/Unity adapters, runtime asmdef
 Native/Core, Native/App    # unchanged native ownership and stable C ABI
 Tests/, Tools/, docs/      # runners/manifests, developer utilities and handoff
 ```
@@ -33,3 +33,5 @@ The bridge, agent and capability packages are real independent assemblies; agent
 GUID-preserving move inventory: Tests/Fixtures/modular-layout-migration.json. Runtime/reference audit: Runtime > Tests > Resource references, or Tests/Run-Resources.cmd. Generated artifacts remain ignored under Tests/Results. Technical package/type/source/save/auth identities are retained for compatibility. Vendors, ProjectSettings' required location, native Core/App, accounts and user saves are unchanged.
 
 Only the crystal gallery presenter remains. GalleryPreviewEntry and the GalleryCatalog resource are current contracts; flat-table/furniture code, its shader and its old checks were retired. Inactive saved records remain; archive UI/carousel/config are deferred. The input actions GUID/global assignment survives its move under _Settings/Project/Input. Migration audit distinguishes preserved active assets from deliberate retirements.
+
+Naming: identifiers carry no product name. App code uses namespaces `Game`, `Game.Editor`, `Game.Tests`, `Game.Adapters`; shared packages use `Runtime.Flecs`, `Runtime.Agents`, `Runtime.Capabilities`; plugin gates are `CAP_*`. Submodule config names in `.gitmodules` and repo URLs keep their original names.

@@ -1,19 +1,19 @@
-using Ecaty.Flecs;
-using Ecaty.Flecs.Capabilities;
-using Ecaty.Flecs.PluginAdapters;
-using Ecaty.Agents;
-using Ecaty.Agents.UI;
-using Ecaty.Agents.Diagnostics;
-using Ecaty.Agents.Providers.ChatGPT;
-using Ecaty.Agents.Providers.OpenRouter;
-using Ecaty.Agents.Providers.Gemini;
-using Ecaty.Agents.Providers.Local;
-using Ecaty.Agents.Speech;
+using Runtime.Flecs;
+using Runtime.Capabilities;
+using Game.Adapters;
+using Runtime.Agents;
+using Runtime.Agents.UI;
+using Runtime.Agents.Diagnostics;
+using Runtime.Agents.Providers.ChatGPT;
+using Runtime.Agents.Providers.OpenRouter;
+using Runtime.Agents.Providers.Gemini;
+using Runtime.Agents.Providers.Local;
+using Runtime.Agents.Speech;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
-    public static class EcatyBootstrap
+    public static class GameBootstrap
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Start()
@@ -28,16 +28,16 @@ namespace Ecaty
                 System.Array.IndexOf(args, "-localAiSmokeResult") >= 0;
             bool gallery = !smoke && !worldFixture;
 #if UNITY_EDITOR
-            gallery &= !UnityEditor.SessionState.GetBool("Ecaty.WorkshopChainVerification", false)
-                && !UnityEditor.SessionState.GetBool("Ecaty.VerifyCapabilities", false)
-                && !UnityEditor.SessionState.GetBool("Ecaty.CapabilityWorkshop", false);
+            gallery &= !UnityEditor.SessionState.GetBool("Game.WorkshopChainVerification", false)
+                && !UnityEditor.SessionState.GetBool("Game.VerifyCapabilities", false)
+                && !UnityEditor.SessionState.GetBool("Game.CapabilityWorkshop", false);
 #endif
-#if !ECATY_CAP_FLEXALON
+#if !CAP_FLEXALON
             gallery = false;
 #endif
             string source = smoke ? "Tests/Fixtures/VerificationWorld" : worldFixture ? "Runtime/Examples/World" : gallery ? "Gallery/Examples/GalleryCatalog" : "Workshop/Runtime/WorkshopLobby";
             var world = FlecsBootstrap.Create(Resources.Load<TextAsset>(source), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"));
-            EcatyTheme.LoadRuntime(world.Session);
+            GameTheme.LoadRuntime(world.Session);
             var cameraObject = new GameObject("World Camera");
             Object.DontDestroyOnLoad(cameraObject);
             var camera = cameraObject.AddComponent<Camera>();
@@ -65,11 +65,11 @@ namespace Ecaty
                 var local = new LocalAiServices(localRoot);
                 var provider = new AgentProviderHub(new[] {
                     new AgentProviderRegistration("local","On device",()=>new LlamaCppProvider(local.LlamaEndpoint,local.StartLlamaAsync,local.StopLlama),"Private, offline AI. Uses this device's memory.",supportsPhotos:true,isLocal:true),
-                    new AgentProviderRegistration("openrouter", "OpenRouter", () => new OpenRouterProvider("Ecaty", "cohere/north-mini-code:free"), "Free coding model · Account limits apply."),
-                    new AgentProviderRegistration("chatgpt", "ChatGPT", () => new ChatGptProvider("Ecaty"), "Uses your eligible ChatGPT plan.", canResetSignIn: true, supportsPhotos: true),
-                    new AgentProviderRegistration("gemini", "Gemini", () => new GeminiProvider("Ecaty"),
+                    new AgentProviderRegistration("openrouter", "OpenRouter", () => new OpenRouterProvider(Application.productName, "cohere/north-mini-code:free"), "Free coding model · Account limits apply."),
+                    new AgentProviderRegistration("chatgpt", "ChatGPT", () => new ChatGptProvider(Application.productName), "Uses your eligible ChatGPT plan.", canResetSignIn: true, supportsPhotos: true),
+                    new AgentProviderRegistration("gemini", "Gemini", () => new GeminiProvider(Application.productName),
                         "Use a free-tier key. Your Google project controls billing and data use.", "https://aistudio.google.com/api-keys", supportsPhotos: true)
-                }, PlayerPrefs.GetString("Ecaty.AgentProvider", "local"), id => { PlayerPrefs.SetString("Ecaty.AgentProvider", id); PlayerPrefs.Save(); });
+                }, PlayerPrefs.GetString("Agent.Provider", "local"), id => { PlayerPrefs.SetString("Agent.Provider", id); PlayerPrefs.Save(); });
                 var clay = world.gameObject.AddComponent<ClayCreation>();
                 var engine = world.gameObject.AddComponent<DioramaRuntime>();
                 engine.Initialize(world, clay);
@@ -79,7 +79,7 @@ namespace Ecaty
                 experience.Initialize(world, clay, engine);
                 var capabilities = world.gameObject.AddComponent<CapabilityRuntime>();
                 capabilities.ViewCamera = camera;
-                capabilities.AudioBankProvider = () => System.IO.File.ReadAllBytes(System.IO.Path.Combine(Application.streamingAssetsPath, "Ecaty/Audio/GeneralUser-GS.sf2"));
+                capabilities.AudioBankProvider = () => System.IO.File.ReadAllBytes(System.IO.Path.Combine(Application.streamingAssetsPath, "Audio/GeneralUser-GS.sf2"));
                 capabilities.Assets = RuntimeComposition.Current.Capabilities;
                 capabilities.Initialize(world);
                 capabilities.RegisterDiscovered();
@@ -105,14 +105,14 @@ namespace Ecaty
                     experience.Workshop.Initialize(experience, orbit);
                 }
                 var chat = AgentChatPanel.Create(RuntimeComposition.Current.AgentUi, provider, provider,
-                    Resources.Load<TextAsset>("Agent/Prompts/AgentInstructions").text, EcatyAgentTools.Create(world, new AgentMainThread(), clay, engine),
+                    Resources.Load<TextAsset>("Agent/Prompts/AgentInstructions").text, WorldAgentTools.Create(world, new AgentMainThread(), clay, engine),
                     "Connect AI", "", ownedServices: local);
                 if (!smoke)
                 {
                     experience.Dock = world.gameObject.AddComponent<WorkshopDock>();
                     experience.Dock.Initialize(chat, experience, gallery);
                 }
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
                 if (gallery)
                 {
                     experience.enabled = engine.enabled = clay.enabled = false;

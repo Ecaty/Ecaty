@@ -1,13 +1,13 @@
-using Ecaty.Agents.UI;
+using Runtime.Agents.UI;
 using UnityEngine;
 #if UNITY_EDITOR && ODIN_INSPECTOR
 using Sirenix.OdinInspector;
 #endif
-namespace Ecaty
+namespace Game
 {
     /// <summary>Shared product presentation template; world-authored colours remain world data.</summary>
     [CreateAssetMenu(menuName = "Runtime/Theme", fileName = "Theme")]
-    public sealed class EcatyTheme : ScriptableObject
+    public sealed class GameTheme : ScriptableObject
     {
 #if UNITY_EDITOR && ODIN_INSPECTOR
         [TabGroup("Theme", "Gallery", SdfIconType.Palette, TabLayouting = TabLayouting.Shrink)]
@@ -46,13 +46,13 @@ namespace Ecaty
         [TabGroup("Theme", "Interface", SdfIconType.Sliders, TabLayouting = TabLayouting.Shrink)]
 #endif
         public AgentUiPalette UI = new();
-        static EcatyTheme fallback, runtime;
+        static GameTheme fallback, runtime;
 #if UNITY_EDITOR
         static long signature;
 #endif
 
         /// <summary>The theme loaded from ThemeConfig.flecs through Flecs when available, otherwise the code defaults.</summary>
-        public static EcatyTheme Default
+        public static GameTheme Default
         {
             get
             {
@@ -64,15 +64,15 @@ namespace Ecaty
             }
         }
 
-        static EcatyTheme Create()
+        static GameTheme Create()
         {
-            var theme = CreateInstance<EcatyTheme>();
+            var theme = CreateInstance<GameTheme>();
             theme.hideFlags = HideFlags.HideAndDontSave;
             return theme;
         }
 
         /// <summary>Loads ThemeConfig.flecs (generated live from Theme.asset in the Editor) into the runtime theme.</summary>
-        public static void LoadRuntime(Flecs.FlecsSession session)
+        public static void LoadRuntime(Runtime.Flecs.FlecsSession session)
         {
             string source = null;
 #if UNITY_EDITOR
@@ -93,7 +93,7 @@ namespace Ecaty
 
 #if UNITY_EDITOR
         /// <summary>Reloads the runtime theme when Theme.asset changed. Returns true when it reloaded.</summary>
-        public static bool RefreshFromEditor(Flecs.FlecsSession session)
+        public static bool RefreshFromEditor(Runtime.Flecs.FlecsSession session)
         {
             var asset = ThemeScript.EditorAsset;
             if (!asset || (runtime && FieldSignature.Of(asset) == signature))

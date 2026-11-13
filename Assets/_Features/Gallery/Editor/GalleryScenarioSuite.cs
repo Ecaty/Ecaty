@@ -1,16 +1,16 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Ecaty;
-using Ecaty.Flecs;
+using Game;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class GalleryScenarioSuite
     {
@@ -118,7 +118,7 @@ namespace Ecaty.Editor
                 Check(Vector3.Distance(camera, g.ViewCamera.transform.position) < .001f, "Changing catalog visibility does not move the camera");
                 g.SetVisible(a.Entry.Id, true);
                 await Task.Delay(300);
-                Check(Type.GetType("Ecaty.WorldGalleryPrototype, Assembly-CSharp") == null && Type.GetType("Ecaty.GalleryWorkbenchPresentation, Assembly-CSharp") == null, "Superseded furniture presenter types are absent from the application");
+                Check(Type.GetType("Game.WorldGalleryPrototype, Assembly-CSharp") == null && Type.GetType("Game.GalleryWorkbenchPresentation, Assembly-CSharp") == null, "Superseded furniture presenter types are absent from the application");
                 var dock = UnityEngine.Object.FindAnyObjectByType<WorkshopDock>();
                 dock.ShowSettings();
                 g.StepPointer(Vector2.zero, false, cancel: true);

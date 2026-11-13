@@ -1,5 +1,5 @@
-using Ecaty.Flecs.Capabilities;
-#if ECATY_CAP_BROCCOLI
+using Runtime.Capabilities;
+#if CAP_BROCCOLI
 using System;
 using System.Linq;
 using Newtonsoft.Json.Linq;
@@ -7,16 +7,17 @@ using UnityEngine;
 using Broccoli.Factory;
 using Broccoli.Pipe;
 #endif
-namespace Ecaty.Flecs.PluginAdapters
+using Runtime.Flecs;
+namespace Game.Adapters
 {
     // Always compiled: the schema and saved configurations stay valid without the plugin.
-    [Capability("CapVegetation", "vegetation", 15, Gate = "ECATY_CAP_BROCCOLI", Probe = "Assets/Waldemarst/Broccoli/Factory/TreeFactory.cs")]
+    [Capability("CapVegetation", "vegetation", 15, Gate = "CAP_BROCCOLI", Probe = "Assets/Waldemarst/Broccoli/Factory/TreeFactory.cs")]
     public sealed class VegetationConfig
     {
         [AssetKey] public string pipeline = "";
         public int seed = 1;
     }
-#if ECATY_CAP_BROCCOLI
+#if CAP_BROCCOLI
     public sealed class VegetationCapability : CapabilityInstance<VegetationConfig>
     {
         TreeFactory factory;

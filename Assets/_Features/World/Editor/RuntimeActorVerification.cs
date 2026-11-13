@@ -2,18 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
-using Ecaty.Agents.UI;
+using Runtime.Agents.UI;
 using FIMSpace.FProceduralAnimation;
 using Object = UnityEngine.Object;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     // Plugin Updates restore rest poses. Observe only after all LateUpdate pose writers.
     [DefaultExecutionOrder(30000)]
@@ -102,7 +102,7 @@ namespace Ecaty.Editor
         private static void HookPlayMode() => EditorApplication.playModeStateChanged += OnPlayMode;
         private static void OnPlayMode(PlayModeStateChange change)
         {
-            if (change == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Ecaty.ActorVerification", false))
+            if (change == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Game.ActorVerification", false))
                 RunInPlay();
         }
         [MenuItem("Runtime/Runtime engine/Verify workflow")]
@@ -115,7 +115,7 @@ namespace Ecaty.Editor
                 RunInPlay();
                 return;
             }
-            SessionState.SetBool("Ecaty.ActorVerification", true);
+            SessionState.SetBool("Game.ActorVerification", true);
             EditorApplication.isPlaying = true;
         }
         private static async void RunInPlay()
@@ -135,8 +135,8 @@ namespace Ecaty.Editor
             GameObject root = null, wall = null;
             Gamepad pad = null;
             Keyboard keyboard = null;
-            bool startPlay = SessionState.GetBool("Ecaty.ActorVerification", false);
-            SessionState.EraseBool("Ecaty.ActorVerification");
+            bool startPlay = SessionState.GetBool("Game.ActorVerification", false);
+            SessionState.EraseBool("Game.ActorVerification");
             try
             {
                 Application.runInBackground = true;
@@ -183,7 +183,7 @@ namespace Ecaty.Editor
                 Require(!clay.PresentationRoot, "An old photo creation was restored.");
                 checks.Add("empty diorama Script produces ground and a real collider, with no automatic photo restore");
 
-                var tools = EcatyAgentTools.Create(world, new AgentMainThread(), clay, engine);
+                var tools = WorldAgentTools.Create(world, new AgentMainThread(), clay, engine);
                 var apply = System.Linq.Enumerable.First(tools, t => t.Name == "apply_photo_object");
                 var configure = System.Linq.Enumerable.First(tools, t => t.Name == "configure_actor");
                 await apply.ExecuteAsync(new JObject { ["recipe"] = Resources.Load<TextAsset>("Runtime/Examples/RuntimeCreature").text }.ToString(), default);

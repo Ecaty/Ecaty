@@ -53,7 +53,7 @@ Amplify is useful for visually editable shader functions/templates and custom no
 
 ## Tune and profile the current gallery
 
-Use **Runtime > Gallery > Layout and ring controls** (GalleryLayout) for guide style, width, opacity, surface/clearance softness, travelling speed, glow sharpness/intensity, optional compatible material templates, early-occlusion fade coverage, ring random seed, exit distance multiplier, push separation, elastic amount/vignette and fade timing. Material templates are cloned at startup; restart Play after changing the template. Ordinary scalar settings are read live; the exit boundary distance is established on world entry. **Runtime > Gallery > Theme colours** opens the shared EcatyTheme palette.
+Use **Runtime > Gallery > Layout and ring controls** (GalleryLayout) for guide style, width, opacity, surface/clearance softness, travelling speed, glow sharpness/intensity, optional compatible material templates, early-occlusion fade coverage, ring random seed, exit distance multiplier, push separation, elastic amount/vignette and fade timing. Material templates are cloned at startup; restart Play after changing the template. Ordinary scalar settings are read live; the exit boundary distance is established on world entry. **Runtime > Gallery > Theme colours** opens the shared GameTheme palette.
 
 The exit uses two gestures at its boundary, with a short minimum separation (default 0.08 seconds), without repeatedly resetting a long quiet-scroll requirement. Feel springs drive the feedback; the vignette rendering is a lightweight project shader. Archive controls are disabled and preview sizes unchanged.
 

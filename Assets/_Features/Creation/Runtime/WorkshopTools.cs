@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Ecaty
+namespace Game
 {
     [DefaultExecutionOrder(-450)]
     public sealed class WorkshopTools : MonoBehaviour
@@ -394,7 +394,7 @@ namespace Ecaty
             tray.transform.SetPositionAndRotation(camera.ViewportToWorldPoint(viewPoint), camera.transform.rotation);
             tray.transform.localScale = Vector3.one * scale;
             const float radius = 1.02f;
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
             var layout = tray.AddComponent<Flexalon.FlexalonCircleLayout>();
             layout.Plane = Flexalon.Plane.XY;
             layout.Radius = radius;
@@ -405,12 +405,12 @@ namespace Ecaty
                 var preview = MakePreview(items[i], tray.transform);
                 float angle = i * Mathf.PI * 2 / items.Length;
                 preview.transform.localPosition = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * radius;
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
                 preview.AddComponent<Flexalon.FlexalonObject>();
 #endif
                 previews.Add(preview, items[i]);
             }
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
             layout.ForceUpdate();
 #endif
         }

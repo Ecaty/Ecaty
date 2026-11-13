@@ -10,7 +10,7 @@ import time
 import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
-DLL = Path(os.environ.get('ECATY_NATIVE_LIBRARY', ROOT/'Assets/Plugins/Flecs/x86_64/flecs_unity.dll'))
+DLL = Path(os.environ.get('FLECS_UNITY_LIBRARY', ROOT/'Assets/Plugins/Flecs/x86_64/flecs_unity.dll'))
 lib = c.CDLL(str(DLL))
 P = c.c_void_p
 def bind(name, result, *args):
@@ -127,7 +127,7 @@ try:
     checks.append('Conditional reactions and stopping a module use the same interpreter')
 
     load(w,BREATHING)
-    with tempfile.TemporaryDirectory(prefix='EcatyBehavior-') as folder:
+    with tempfile.TemporaryDirectory(prefix='Behavior-') as folder:
         saved=Path(folder)/'behavior.flecs'
         saved.write_text(take(source(w,b'AgentBehavior')),encoding='utf-8')
         destroy(w); w=world()

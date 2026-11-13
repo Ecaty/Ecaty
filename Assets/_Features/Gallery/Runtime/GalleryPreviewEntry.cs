@@ -1,7 +1,7 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using Newtonsoft.Json.Linq;
 using UnityEngine;
-namespace Ecaty
+namespace Game
 {
     // Disposable presentation binding for one authoritative native gallery record.
     public sealed class GalleryPreviewEntry

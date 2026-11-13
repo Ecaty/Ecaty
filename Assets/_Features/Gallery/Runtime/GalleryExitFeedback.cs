@@ -1,8 +1,8 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
-namespace Ecaty
+namespace Game
 {
     /// <summary>Owned presentation only. Native navigation owns the gesture and feedback target.</summary>
     public sealed class GalleryExitFeedback : IDisposable
@@ -45,9 +45,9 @@ namespace Ecaty
             overlay.localScale = new Vector3(height * camera.aspect, height, 1);
             material.SetFloat("_GlassProgress", glassProgress);
             material.SetFloat("_GlassStrength", profile.GlassPassStrength);
-            material.SetColor("_GlassTint", EcatyTheme.Default.Glass.linear);
+            material.SetColor("_GlassTint", GameTheme.Default.Glass.linear);
             material.SetFloat("_Strength", Value * profile.ExitVignette);
-            material.SetColor("_Tint", EcatyTheme.Default.Background.linear);
+            material.SetColor("_Tint", GameTheme.Default.Background.linear);
         }
         public void Dispose()
         {

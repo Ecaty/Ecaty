@@ -23,6 +23,6 @@ if ($Build) {
     & $cmake --build $buildDirectory --config $Configuration --parallel
     if ($LASTEXITCODE -ne 0) { throw 'Native build failed. Close any Unity Editor/player using the plugin before rebuilding.' }
 }
-$solution=Get-ChildItem -LiteralPath $buildDirectory -File | Where-Object Name -Match '^Ecaty\.slnx?$' | Select-Object -First 1
+$solution=Get-ChildItem -LiteralPath $buildDirectory -File | Where-Object Name -Match '^FlecsUnity\.slnx?$' | Select-Object -First 1
 if (!$solution) { throw "Generated solution not found in $buildDirectory" }
 Write-Output "Native solution: $($solution.FullName)"

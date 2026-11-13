@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     /// <summary>
     /// Runs the Tests/Run.ps1 suites without blocking the Editor, shows the latest summary

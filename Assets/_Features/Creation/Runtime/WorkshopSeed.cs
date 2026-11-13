@@ -1,7 +1,7 @@
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     internal sealed class WorkshopSeed : MonoBehaviour
     {

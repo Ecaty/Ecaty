@@ -4,14 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     [DefaultExecutionOrder(30000)]
     public sealed class SpatialMeshSnapshot : MonoBehaviour
@@ -65,7 +65,7 @@ namespace Ecaty.Editor
         [InitializeOnLoadMethod]
         private static void Initialize() => EditorApplication.playModeStateChanged += state =>
         {
-            if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Ecaty.SpatialCheck", false))
+            if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Game.SpatialCheck", false))
                 Run();
         };
         [MenuItem("Runtime/Runtime engine/Verify spatial workflow")]
@@ -78,7 +78,7 @@ namespace Ecaty.Editor
                 Run();
                 return;
             }
-            SessionState.SetBool("Ecaty.SpatialCheck", true);
+            SessionState.SetBool("Game.SpatialCheck", true);
             EditorApplication.isPlaying = true;
         }
         private static async void Run()
@@ -86,8 +86,8 @@ namespace Ecaty.Editor
             if (Running)
                 return;
             Running = true;
-            bool owned = SessionState.GetBool("Ecaty.SpatialCheck", false);
-            SessionState.EraseBool("Ecaty.SpatialCheck");
+            bool owned = SessionState.GetBool("Game.SpatialCheck", false);
+            SessionState.EraseBool("Game.SpatialCheck");
             var checks = new JArray();
             var errors = new List<string>();
             var report = new JObject { ["testedUtc"] = DateTime.UtcNow.ToString("O"), ["passed"] = false, ["checks"] = checks };
@@ -114,7 +114,7 @@ namespace Ecaty.Editor
                         if (collider && collider.enabled)
                             Physics.IgnoreCollision(engine.Motor, collider);
                 }
-                var tools = EcatyAgentTools.Create(world, new AgentMainThread(), clay, engine);
+                var tools = WorldAgentTools.Create(world, new AgentMainThread(), clay, engine);
                 async Task Behavior(string source) { world.Session.SetManagedScript("VerificationBehavior", source); world.SyncViews(); await Task.Yield(); }
                 Task<string> Call(string name, string field = null, string text = null) => tools.First(t => t.Name == name).ExecuteAsync(
                     field == null ? "{}" : new JObject { [field] = text }.ToString(), default);

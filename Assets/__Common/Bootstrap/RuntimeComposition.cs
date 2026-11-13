@@ -1,9 +1,9 @@
 using System;
-using Ecaty.Agents.UI;
-using Ecaty.Flecs.Capabilities;
+using Runtime.Agents.UI;
+using Runtime.Capabilities;
 using UnityEngine;
 using UnityEngine.Rendering;
-namespace Ecaty
+namespace Game
 {
     // Application wiring only: actual values/assets remain owned by their modules.
     [CreateAssetMenu(menuName = "Runtime/Composition", fileName = "RuntimeComposition")]

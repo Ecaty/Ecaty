@@ -35,16 +35,16 @@
         "com.unity.visualeffectgraph": "17.0.4"
       }
     },
-    "com.ecaty.ai-agent": {
-      "version": "file:com.ecaty.ai-agent",
+    "com.runtime.ai-agent": {
+      "version": "file:com.runtime.ai-agent",
       "depth": 0,
       "source": "embedded",
       "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.2.2"
       }
     },
-    "com.ecaty.flecs-unity": {
-      "version": "file:com.ecaty.flecs-unity",
+    "com.runtime.flecs": {
+      "version": "file:com.runtime.flecs",
       "depth": 0,
       "source": "embedded",
       "dependencies": {
@@ -83,7 +83,7 @@
         "com.unity.timeline": "6.6.0",
         "com.unity.visualeffectgraph": "17.6.0",
         "com.unity.nuget.newtonsoft-json": "3.2.2",
-        "com.ecaty.flecs-unity": "0.2.1"
+        "com.runtime.flecs": "0.2.1"
       }
     },
     "com.unity.ai.navigation": {

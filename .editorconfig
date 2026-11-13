@@ -1,4 +1,4 @@
-# Ecaty code style: one statement per line, braces on new lines, aim for <= 140 chars.
+# Code style: one statement per line, braces on new lines, aim for <= 140 chars.
 # Apply: dotnet format whitespace <Unity csproj> --include <owned folder>/  (see docs/DEVELOPMENT.md)
 root = true
 [*.cs]

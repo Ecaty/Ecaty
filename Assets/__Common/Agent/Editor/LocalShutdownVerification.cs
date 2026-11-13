@@ -4,16 +4,16 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Ecaty.Agents.UI;
+using Runtime.Agents.UI;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class LocalShutdownVerification
     {
-        private const string Key = "Ecaty.LocalShutdownCheck";
+        private const string Key = "Game.LocalShutdownCheck";
         private static string Mode => SessionState.GetString(Key + ".mode", "vision");
 
         [InitializeOnLoadMethod]

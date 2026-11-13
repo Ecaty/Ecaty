@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(Ecaty LANGUAGES C CXX)
+project(FlecsUnity LANGUAGES C CXX)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(UNITY_PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Assets/Plugins/Flecs/x86_64" CACHE PATH "Unity native plugin output")
 add_subdirectory(Core)

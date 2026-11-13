@@ -1,11 +1,11 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace Ecaty
+namespace Game
 {
     // Procedural, disposable stand-ins. Real preview recipes replace this whole class later.
     public sealed class GalleryMockPreview : IDisposable

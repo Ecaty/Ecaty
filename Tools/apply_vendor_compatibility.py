@@ -17,7 +17,7 @@ legacy = root / 'Assets/PostProcessing/Editor'
 if legacy.is_dir():
     path = legacy / 'LegacyPostProcessing.Editor.asmdef'
     if not path.exists():
-        path.write_text(json.dumps({'name':'LegacyPostProcessing.Editor','includePlatforms':['Editor'], 'autoReferenced':False, 'defineConstraints':['ECATY_LEGACY_POSTPROCESSING_EDITOR']}, indent=2))
+        path.write_text(json.dumps({'name':'LegacyPostProcessing.Editor','includePlatforms':['Editor'], 'autoReferenced':False, 'defineConstraints':['LEGACY_POSTPROCESSING_EDITOR']}, indent=2))
         changed.append(str(path.relative_to(root)))
 report = {'changed': changed, 'vendorSourceRedistributed': False,
           'notes': ['Broccoli integer caches use transient EntityId hashes, not persistent IDs.',

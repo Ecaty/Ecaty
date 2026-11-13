@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Ecaty.Flecs;
-using Ecaty.Flecs.Capabilities;
+using Runtime.Flecs;
+using Runtime.Capabilities;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
-namespace Ecaty
+namespace Game
 {
     // Only attached for an explicit development-player command-line request.
     public sealed class CapabilitySmoke : MonoBehaviour

@@ -1,7 +1,7 @@
-using Ecaty.Agents.UI;
+using Runtime.Agents.UI;
 using UnityEditor;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class ClayPhotoMenu
     {

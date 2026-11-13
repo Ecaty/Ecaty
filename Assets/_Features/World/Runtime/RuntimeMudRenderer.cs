@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     // Boing's post-update pump runs at 10000. Mesh computation must see its final brush poses.
     [DefaultExecutionOrder(20000)]

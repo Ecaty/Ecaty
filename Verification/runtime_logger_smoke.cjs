@@ -3,7 +3,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
-const source = fs.readFileSync(path.join(root,'Packages/com.ecaty.ai-agent/Runtime/Diagnostics/Resources/EcatyAgentTrace/viewer.js.txt'),'utf8');
+const source = fs.readFileSync(path.join(root,'Packages/com.runtime.ai-agent/Runtime/Diagnostics/Resources/AgentTrace/viewer.js.txt'),'utf8');
 new vm.Script(source);
 const body = source.slice(source.indexOf('  function parseJson('),source.indexOf('  function block('));
 const {toolInput,readableJson} = new Function(body + '\nreturn {toolInput,readableJson};')();

@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class RuntimeActorMenu
     {
@@ -24,7 +24,7 @@ namespace Ecaty.Editor
             Start();
             var engine = Object.FindAnyObjectByType<DioramaRuntime>();
             engine.Configure("{\"driver\":\"script\",\"motion\":\"spatial\",\"gravityScale\":0}");
-            var session = engine.GetComponent<Ecaty.Flecs.FlecsWorld>().Session;
+            var session = engine.GetComponent<Runtime.Flecs.FlecsWorld>().Session;
             session.SetManagedScript("DemoSpatialSettings", "struct HoverParameters(height: f32, sway: f32)\nMotionTuning { HoverParameters: {1.8,0.25} }");
             session.SetManagedScript("DemoSpatialBehavior", Resources.Load<TextAsset>("Runtime/Behaviors/RuntimeSpatialBehavior").text);
         }
@@ -34,7 +34,7 @@ namespace Ecaty.Editor
             var engine = Object.FindAnyObjectByType<DioramaRuntime>();
             if (!engine || !engine.Motor)
                 return;
-            engine.GetComponent<Ecaty.Flecs.FlecsWorld>().Session.SetManagedScript("DemoSpatialBehavior", "// Stopped");
+            engine.GetComponent<Runtime.Flecs.FlecsWorld>().Session.SetManagedScript("DemoSpatialBehavior", "// Stopped");
             engine.Configure("{\"driver\":\"idle\",\"motion\":\"ground\",\"gravityScale\":1}");
         }
         [MenuItem("Runtime/Runtime engine/Take player control")]

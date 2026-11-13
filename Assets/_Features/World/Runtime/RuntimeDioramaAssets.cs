@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     public sealed class RuntimeDioramaAssets : ScriptableObject
     {

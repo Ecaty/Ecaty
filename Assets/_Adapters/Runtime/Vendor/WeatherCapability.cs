@@ -1,20 +1,21 @@
-using Ecaty.Flecs.Capabilities;
-#if ECATY_CAP_UNISTORM
+using Runtime.Capabilities;
+#if CAP_UNISTORM
 using System;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UniStorm;
 #endif
-namespace Ecaty.Flecs.PluginAdapters
+using Runtime.Flecs;
+namespace Game.Adapters
 {
     // Always compiled: the schema and saved configurations stay valid without the plugin.
-    [Capability("CapWeather", "weather", 45, Gate = "ECATY_CAP_UNISTORM", Probe = "Assets/UniStorm Weather System/Scripts/System/UniStormSystem.cs")]
+    [Capability("CapWeather", "weather", 45, Gate = "CAP_UNISTORM", Probe = "Assets/UniStorm Weather System/Scripts/System/UniStormSystem.cs")]
     public sealed class WeatherConfig
     {
         public int hour = 12, minute, cloud;
         [AssetKey] public string weather = "";
     }
-#if ECATY_CAP_UNISTORM
+#if CAP_UNISTORM
     public sealed class WeatherCapability : CapabilityInstance<WeatherConfig>
     {
         UniStormSystem system; UniStormManager manager; WeatherConfig config;

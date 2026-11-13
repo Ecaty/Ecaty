@@ -1,7 +1,7 @@
 #if ODIN_VALIDATOR
 using Sirenix.OdinInspector.Editor.Validation;
-[assembly: RegisterValidator(typeof(Ecaty.Editor.GalleryConfigValidator))]
-namespace Ecaty.Editor
+[assembly: RegisterValidator(typeof(Game.Editor.GalleryConfigValidator))]
+namespace Game.Editor
 {
     public sealed class GalleryConfigValidator : RootObjectValidator<GalleryLayoutProfile>
     {

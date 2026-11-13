@@ -1,12 +1,12 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Ecaty.Agents.UI;
-using Ecaty.Flecs;
+using Runtime.Agents.UI;
+using Runtime.Flecs;
 using Flexalon;
 using Newtonsoft.Json.Linq;
 using Unity.Cinemachine;
@@ -15,7 +15,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.UIElements;
 
-namespace Ecaty
+namespace Game
 {
     [DefaultExecutionOrder(-390)]
     public sealed partial class CrystalWorldGallery : MonoBehaviour
@@ -106,8 +106,8 @@ namespace Ecaty
         byte[] jsonBuffer = new byte[1024];
         int readFrame = -1, nativeReads;
         public int NativeReadsThisFrame => nativeReads;
-        static readonly Unity.Profiling.ProfilerMarker NativeReadMarker = new("Ecaty.Gallery.NativeRead");
-        static readonly Unity.Profiling.ProfilerMarker AppearanceMarker = new("Ecaty.Gallery.Appearance");
+        static readonly Unity.Profiling.ProfilerMarker NativeReadMarker = new("Game.Gallery.NativeRead");
+        static readonly Unity.Profiling.ProfilerMarker AppearanceMarker = new("Game.Gallery.Appearance");
         static readonly string[] LayerIds = { "GalleryTreeLayer0", "GalleryTreeLayer1", "GalleryTreeLayer2", "GalleryTreeLayer3",
             "GalleryTreeLayer4", "GalleryTreeLayer5", "GalleryTreeLayer6" };
         static string LayerId(int layer) => layer >= 0 && layer < LayerIds.Length ? LayerIds[layer] : "GalleryTreeLayer" + layer;
@@ -278,7 +278,7 @@ namespace Ecaty
             invitationCore.localPosition = -invitation.InverseTransformPoint(seedBounds.center) * seedScale;
             foreach (var r in seedRenderers)
             {
-                var m = new Material(Shader.Find("Ecaty/Gallery Seed"));
+                var m = new Material(Shader.Find("Gallery/Seed"));
                 materials.Add(m);
                 r.sharedMaterial = m;
             }
@@ -398,7 +398,7 @@ namespace Ecaty
         {
             string source;
 #if UNITY_EDITOR
-            EcatyTheme.RefreshFromEditor(world.Session);
+            GameTheme.RefreshFromEditor(world.Session);
             var asset = GalleryConfigScript.EditorAsset;
             long signature = FieldSignature.Of(asset); // allocation-free; the JSON signature allocated every 0.1 s
             if (!force && signature == configSignature)

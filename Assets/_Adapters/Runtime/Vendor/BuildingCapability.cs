@@ -1,20 +1,21 @@
-using Ecaty.Flecs.Capabilities;
-#if ECATY_CAP_COZY
+using Runtime.Capabilities;
+#if CAP_COZY
 using System;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using ProjectDawn.CozyBuilder;
 #endif
-namespace Ecaty.Flecs.PluginAdapters
+using Runtime.Flecs;
+namespace Game.Adapters
 {
     // Always compiled: the schema and saved configurations stay valid without the plugin.
-    [Capability("CapBuilding", "buildings", 10, Gate = "ECATY_CAP_COZY", Probe = "Packages/com.projectdawn.cozy-builder/package.json")]
+    [Capability("CapBuilding", "buildings", 10, Gate = "CAP_COZY", Probe = "Packages/com.projectdawn.cozy-builder/package.json")]
     public sealed class BuildingConfig
     {
         [AssetKey] public string prefab = "";
         public string points = "";
     }
-#if ECATY_CAP_COZY
+#if CAP_COZY
     public sealed class BuildingCapability : CapabilityInstance<BuildingConfig>
     {
         GameObject building; string prefabKey; CozyRenderer renderer; System.Collections.Generic.List<Material> materials = new();

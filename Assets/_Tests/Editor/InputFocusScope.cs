@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     /// <summary>
     /// Makes synthetic Input System devices work while the Editor is not the foreground app.

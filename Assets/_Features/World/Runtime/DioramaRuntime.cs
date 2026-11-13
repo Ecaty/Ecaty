@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
-using Ecaty.Agents.UI;
-using Ecaty.Flecs;
+using Runtime.Agents.UI;
+using Runtime.Flecs;
 using FIMSpace;
 using FIMSpace.FProceduralAnimation;
 using Newtonsoft.Json;
@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Ecaty
+namespace Game
 {
     // Input and motor run before procedural pose updates. Flecs retains commands and observations.
     [DefaultExecutionOrder(-100)]

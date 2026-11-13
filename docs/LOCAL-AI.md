@@ -12,7 +12,7 @@ Installed here in ignored `LocalData/AI`. On a fresh checkout, run `python Tools
 
 User text/photo -> llama.cpp loopback server -> validated tool requests -> existing application tools -> native Flecs + Unity adapters -> tool results -> local assistant. Whisper.cpp receives the recorded WAV on loopback and returns text. Unity Microphone captures audio only after the user taps record. The app does not deliberately write recordings to disk. OS memory/paging and optional developer traces are separate privacy considerations.
 
-The reusable `com.ecaty.ai-agent` package owns provider/speech/process lifetimes and UI. It has no Flecs dependency. EcatyBootstrap supplies the model directory, services, instructions and world tools. Servers start lazily, bind 127.0.0.1, use fixed ports 18080/18081, and owned processes stop with the session. The panel releases the services before cancelling HTTP requests during Play-mode exit or domain reload. A healthy already-running compatible server can be reused and is not killed. This prototype loopback interface is not a multi-user authentication/security boundary.
+The reusable `com.runtime.ai-agent` package owns provider/speech/process lifetimes and UI. It has no Flecs dependency. GameBootstrap supplies the model directory, services, instructions and world tools. Servers start lazily, bind 127.0.0.1, use fixed ports 18080/18081, and owned processes stop with the session. The panel releases the services before cancelling HTTP requests during Play-mode exit or domain reload. A healthy already-running compatible server can be reused and is not killed. This prototype loopback interface is not a multi-user authentication/security boundary.
 
 ## Model choice and honest limits
 
@@ -44,11 +44,11 @@ Mobile is **not implemented**: it needs llama.cpp/whisper.cpp embedded native li
 
 | Area | Source |
 |---|---|
-| llama.cpp tool/image protocol | Packages/com.ecaty.ai-agent/Runtime/Providers/Local/LlamaCppProvider.cs |
+| llama.cpp tool/image protocol | Packages/com.runtime.ai-agent/Runtime/Providers/Local/LlamaCppProvider.cs |
 | Windows local process ownership | same folder, LocalAiServices.cs and LocalAiLifetime.cs |
-| Whisper HTTP and PCM conversion | Packages/com.ecaty.ai-agent/Runtime/Speech/ |
+| Whisper HTTP and PCM conversion | Packages/com.runtime.ai-agent/Runtime/Speech/ |
 | Tap-to-record and draft review | Runtime/UI/AgentChatController.cs and AgentChatView.cs |
-| App-specific configuration/tools | Assets/__Common/Bootstrap/EcatyBootstrap.cs, EcatyAgentTools.cs |
+| App-specific configuration/tools | Assets/__Common/Bootstrap/GameBootstrap.cs, WorldAgentTools.cs |
 
 Upstream: [llama.cpp](https://github.com/ggml-org/llama.cpp), [function calling](https://github.com/ggml-org/llama.cpp/blob/master/docs/function-calling.md), [whisper.cpp](https://github.com/ggml-org/whisper.cpp), [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B).
 

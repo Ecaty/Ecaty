@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using Flexalon;
 #endif
 
-namespace Ecaty
+namespace Game
 {
     public enum WorkshopIcon
     {
@@ -26,7 +26,7 @@ namespace Ecaty
             center = anchor;
             ring = new GameObject("Seed choices").transform;
             ring.SetParent(transform, false);
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
             var layout = ring.gameObject.AddComponent<FlexalonCircleLayout>();
             layout.Plane = global::Flexalon.Plane.XY;
             layout.Radius = .55f;
@@ -53,12 +53,12 @@ namespace Ecaty
                 var view = Instantiate(prefab, ring, false).transform;
                 view.name = "Seed choice " + icon;
                 view.localScale = Vector3.one * .22f;
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
                 view.gameObject.AddComponent<FlexalonObject>();
 #endif
                 entries.Add((icon, view, view.GetComponentInChildren<Renderer>()));
             }
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
             global::Flexalon.Flexalon.GetOrCreate().UpdateDirtyNodes();
 #endif
             Layout();
@@ -109,7 +109,7 @@ namespace Ecaty
         {
             ring.SetPositionAndRotation(center.position, camera.transform.rotation);
             ring.localScale = Vector3.one * (camera.orthographicSize * Mathf.Min(1, camera.aspect));
-#if !ECATY_CAP_FLEXALON
+#if !CAP_FLEXALON
             for (int i = 0; i < entries.Count; i++)
             {
                 float angle = Mathf.PI * (.5f - 2f * i / entries.Count);

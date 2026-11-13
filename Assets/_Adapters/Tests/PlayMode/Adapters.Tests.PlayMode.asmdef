@@ -1,8 +1,8 @@
 {
   "name": "Adapters.Tests.PlayMode",
-  "rootNamespace": "Ecaty.Tests",
+  "rootNamespace": "Game.Tests",
   "references": [
-    "Ecaty.Flecs",
+    "Runtime.Flecs",
     "Runtime.Capabilities",
     "UnityEngine.TestRunner"
   ],

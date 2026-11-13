@@ -1,14 +1,11 @@
 {
-  "name": "Ecaty.Tests.EditMode",
-  "rootNamespace": "Ecaty.Tests",
+  "name": "Gallery.Tests.PlayMode",
+  "rootNamespace": "Game.Tests",
   "references": [
-    "Ecaty.Flecs",
-    "UnityEngine.TestRunner",
-    "UnityEditor.TestRunner"
+    "Runtime.Flecs",
+    "UnityEngine.TestRunner"
   ],
-  "includePlatforms": [
-    "Editor"
-  ],
+  "includePlatforms": [],
   "defineConstraints": [
     "UNITY_INCLUDE_TESTS"
   ],

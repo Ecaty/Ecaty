@@ -3,7 +3,7 @@ using Unity.Cinemachine.TargetTracking;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Ecaty
+namespace Game
 {
     [DefaultExecutionOrder(-500)]
     public sealed class WorkshopOrbit : MonoBehaviour

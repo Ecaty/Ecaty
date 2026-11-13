@@ -34,7 +34,7 @@ All trace API routes require pairing. The server rejects cross-origin reads, non
 
 ## Verification
 
-- `Ecaty.Editor.BrowserTraceVerification.Start()` -> `Verification/browser-trace-checks.json`: real paired HTTP, pagination, denied unauthenticated/cross-origin/mutation requests, safe recent-file reads and collector redaction. Uses synthetic events and preserves prior traces.
-- `Ecaty.Editor.BrowserTraceVerification.CheckChatUI()` in a verification Play session -> `Verification/chat-ui-polish-checks.json`: actual caret/selection, six-pixel scrollbar, bottom collapse/reopen, tail-follow and compact layout. It inserts then clears synthetic UI messages; do not run it over a user's live conversation.
+- `Game.Editor.BrowserTraceVerification.Start()` -> `Verification/browser-trace-checks.json`: real paired HTTP, pagination, denied unauthenticated/cross-origin/mutation requests, safe recent-file reads and collector redaction. Uses synthetic events and preserves prior traces.
+- `Game.Editor.BrowserTraceVerification.CheckChatUI()` in a verification Play session -> `Verification/chat-ui-polish-checks.json`: actual caret/selection, six-pixel scrollbar, bottom collapse/reopen, tail-follow and compact layout. It inserts then clears synthetic UI messages; do not run it over a user's live conversation.
 - `Verification/browser-viewer-checks.json`: actual browser checks with synthetic data, including live pairing, offline import, syntax tokens, safe text, raw copying and standalone HTML export.
 - `PlayerSmoke` checks that browser capture/server are present in a development player and absent in a normal release player. No inference call is made by these tests.

@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditor.Build.Player;
 using UnityEditor.Compilation;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class PlayerCodeVerification
     {
@@ -15,14 +15,14 @@ namespace Ecaty.Editor
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stop Play before compiling player code.");
-            string[] owners = { "Assets/__Common/", "Assets/_Features/", "Assets/_Settings/", "Assets/_Adapters/", "Assets/_Tests/", "Packages/com.ecaty.flecs-unity/", "Packages/com.ecaty.ai-agent/", "Packages/com.runtime.capabilities/" };
+            string[] owners = { "Assets/__Common/", "Assets/_Features/", "Assets/_Settings/", "Assets/_Adapters/", "Assets/_Tests/", "Packages/com.runtime.flecs/", "Packages/com.runtime.ai-agent/", "Packages/com.runtime.capabilities/" };
             var player = CompilationPipeline.GetAssemblies(AssembliesType.Player);
             var leaked = player.SelectMany(a => a.sourceFiles).Select(p => p.Replace('\\', '/')).Where(p => owners.Any(o => p.StartsWith(o, StringComparison.Ordinal)) && p.Contains("/Editor/")).ToArray();
             if (leaked.Length > 0)
                 throw new InvalidOperationException("Editor sources entered player assemblies: " + string.Join(", ", leaked));
             string directory = Path.GetFullPath(outputDirectory);
             Directory.CreateDirectory(directory);
-            string[] required = { "Assembly-CSharp.dll", "Runtime.Capabilities.dll", "Ecaty.Flecs.dll", "Ecaty.Agents.dll" };
+            string[] required = { "Assembly-CSharp.dll", "Runtime.Capabilities.dll", "Runtime.Flecs.dll", "Runtime.Agents.dll" };
             var targets = new JArray();
             bool passed = true;
             foreach (var (target, group, name) in new[] { (BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Windows64"), (BuildTarget.Android, BuildTargetGroup.Android, "Android") })

@@ -1,13 +1,13 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using ReleaseDesk.Editor;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     /// <summary>
     /// Store screenshots through Flecs: each shot's setup is Flecs Script run on the live world (camera via
@@ -18,7 +18,7 @@ namespace Ecaty.Editor
     [InitializeOnLoad]
     public sealed class FlecsShotStage : IShotStage
     {
-        private const string BackupKey = "Ecaty.FlecsShotStage.Backup";
+        private const string BackupKey = "Runtime.FlecsShotStage.Backup";
         private static readonly string[] Saves =
         {
             Path.Combine("GalleryPrototype", "tree-arrangement.json"),

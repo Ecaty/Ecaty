@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     /// <summary>
     /// Development APK (IL2CPP, arm64) into Build/Android. Switching the active platform

@@ -8,7 +8,7 @@ using Sirenix.OdinInspector.Editor.Validation;
 using Sirenix.OdinValidator.Editor;
 
 #endif
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class AssetValidation
     {

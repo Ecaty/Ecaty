@@ -2,15 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Ecaty.Agents.UI;
-using Ecaty.Flecs;
+using Runtime.Agents.UI;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
-namespace Ecaty
+namespace Game
 {
     [DefaultExecutionOrder(-460)]
     public sealed class WorkshopDock : MonoBehaviour
@@ -206,7 +206,7 @@ namespace Ecaty
             panel.Add(button);
             panel.style.display = DisplayStyle.Flex;
             backdrop.style.display = DisplayStyle.Flex;
-            ApplyTheme(palette ?? EcatyTheme.Default.UI);
+            ApplyTheme(palette ?? GameTheme.Default.UI);
         }
 
         private void ShowSeed()
@@ -359,7 +359,7 @@ namespace Ecaty
                 seed.BindSession();
             if (seed && seed.ConsumeActivation() && page == Page.Closed && !chat.Expanded)
                 ShowSeed();
-#if ECATY_CAP_ALINE && (UNITY_EDITOR || DEVELOPMENT_BUILD)
+#if CAP_ALINE && (UNITY_EDITOR || DEVELOPMENT_BUILD)
             if (!chat.IsEditingText && Keyboard.current?.f8Key.wasPressedThisFrame == true)
                 diagnostics = !diagnostics;
 #endif
@@ -385,7 +385,7 @@ namespace Ecaty
                 RefreshSeed();
         }
 
-#if ECATY_CAP_ALINE && (UNITY_EDITOR || DEVELOPMENT_BUILD)
+#if CAP_ALINE && (UNITY_EDITOR || DEVELOPMENT_BUILD)
         private void LateUpdate()
         {
             if (!diagnostics || !experience.Navigation)

@@ -5,15 +5,15 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Agents.Providers.Local;
-using Ecaty.Agents.Speech;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Agents.Providers.Local;
+using Runtime.Agents.Speech;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class LocalAiVerification
     {
@@ -67,7 +67,7 @@ namespace Ecaty.Editor
                 engine.Initialize(world, clay);
                 var experience = root.AddComponent<RuntimeExperience>();
                 experience.Initialize(world, clay, engine);
-                var tools = EcatyAgentTools.Create(world, new AgentMainThread(), clay, engine).Select(t => (IAgentTool)new CountTool(t, counts)).ToArray();
+                var tools = WorldAgentTools.Create(world, new AgentMainThread(), clay, engine).Select(t => (IAgentTool)new CountTool(t, counts)).ToArray();
                 sw.Restart();
                 var response = await provider.ReplyAsync(new AgentRequest(Resources.Load<TextAsset>("Agent/Prompts/AgentInstructions").text, new[] { new AgentMessage(AgentRole.User, "Inspect the current world. Make the cube blue and twice its current size. Leave the sphere unchanged. Verify your change. Keep your final reply short.") }, tools), null, timeout.Token);
                 report["engineSeconds"] = sw.Elapsed.TotalSeconds;

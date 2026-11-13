@@ -48,7 +48,7 @@ out=(c.c_double*(n*2))();starts=(c.c_int*(rings.value+1))();assert outline(point
 assert outline(points,3,float('nan'),None,0,None,0,c.byref(rings))==-1
 checks.append('Native Clipper produces bounded multi-ring footprints and rejects nonfinite input')
 audio_create=api('fu_audio_create',c.c_void_p,[c.c_void_p,c.c_int,c.c_int]);audio_destroy=api('fu_audio_destroy',None,[c.c_void_p]);note=api('fu_audio_note',c.c_int,[c.c_void_p,c.c_int,c.c_int,c.c_float,c.c_int,c.c_uint64]);render=api('fu_audio_render',None,[c.c_void_p,c.POINTER(c.c_float),c.c_int])
-bank=(root/'Assets/StreamingAssets/Ecaty/Audio/GeneralUser-GS.sf2').read_bytes();data=c.create_string_buffer(bank);a=audio_create(data,len(bank),44100);assert a
+bank=(root/'Assets/StreamingAssets/Audio/GeneralUser-GS.sf2').read_bytes();data=c.create_string_buffer(bank);a=audio_create(data,len(bank),44100);assert a
 try:
  assert note(a,0,60,.8,0,0)==0;assert note(a,1,60,0,0,44100)==0;assert note(a,0,72,.8,0,0)==0
  buf=(c.c_float*4410)();render(a,buf,len(buf));assert max(abs(x) for x in buf)>.0001 and all(math.isfinite(x) and abs(x)<=1 for x in buf)

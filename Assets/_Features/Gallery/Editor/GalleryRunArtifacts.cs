@@ -1,4 +1,4 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     /// <summary>Local developer artifacts from the actual camera. No model call or user chat capture.</summary>
     public sealed class GalleryRunArtifacts

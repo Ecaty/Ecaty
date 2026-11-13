@@ -1,9 +1,9 @@
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using System;
 using System.IO;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     /// <summary>Opt-in standalone-player verification; inactive in normal use.</summary>
     public sealed class PlayerSmoke : MonoBehaviour
@@ -22,7 +22,7 @@ namespace Ecaty
                 if (frames == 2)
                 {
                     host = GetComponent<FlecsWorld>();
-                    if (!UnityEngine.Object.FindAnyObjectByType<Ecaty.Agents.UI.AgentChatPanel>())
+                    if (!UnityEngine.Object.FindAnyObjectByType<Runtime.Agents.UI.AgentChatPanel>())
                         throw new Exception("Chat panel did not mount");
                     var renderer = UnityEngine.Object.FindAnyObjectByType<UnityEngine.UIElements.PanelRenderer>();
                     if (!renderer)
@@ -45,9 +45,9 @@ namespace Ecaty
                     var icons = Resources.Load<Font>("MaterialSymbolsRounded");
                     if (!icons || !icons.HasCharacter('\ue163'))
                         throw new Exception("Bundled icon font missing in player");
-                    var browser = Ecaty.Agents.Diagnostics.AgentTraceBrowser.Current;
+                    var browser = Runtime.Agents.Diagnostics.AgentTraceBrowser.Current;
                     bool traceExpected = Debug.isDebugBuild;
-                    if ((browser && browser.Server != null) != traceExpected || Ecaty.Agents.Diagnostics.AgentTrace.Enabled != traceExpected)
+                    if ((browser && browser.Server != null) != traceExpected || Runtime.Agents.Diagnostics.AgentTrace.Enabled != traceExpected)
                         throw new Exception("Development-only browser trace gating failed");
                     if (host.Session == null || host.ViewCount != 3)
                         throw new Exception("Initial world not running");

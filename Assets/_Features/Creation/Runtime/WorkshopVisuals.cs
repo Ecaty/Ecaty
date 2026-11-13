@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     internal static class WorkshopVisuals
     {
@@ -8,7 +8,7 @@ namespace Ecaty
         {
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
             var material = new Material(shader);
-            var theme = EcatyTheme.Default;
+            var theme = GameTheme.Default;
             var tinted = Color.Lerp(color, theme.ToolAccent, theme.ToolTintStrength);
             tinted.a = color.a;
             material.color = tinted;

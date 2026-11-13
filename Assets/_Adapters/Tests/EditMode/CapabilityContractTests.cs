@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using Ecaty.Flecs;
-using Ecaty.Flecs.Capabilities;
+using Runtime.Flecs;
+using Runtime.Capabilities;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-namespace Ecaty.Tests
+namespace Game.Tests
 {
     // Generic checks over every [Capability] configuration, including optional plugin configurations.
     public sealed class CapabilityContractTests

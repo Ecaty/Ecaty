@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     // Explicitly requested verification mode only; never runs in normal sessions.
     public sealed class RuntimeExperienceSmoke : MonoBehaviour
@@ -35,7 +35,7 @@ namespace Ecaty
                 ["passed"] = false,
                 ["testedUtc"] = DateTime.UtcNow.ToString("O"),
                 ["unity"] = Application.unityVersion,
-                ["flecs"] = Ecaty.Flecs.FlecsSession.Version,
+                ["flecs"] = Runtime.Flecs.FlecsSession.Version,
                 ["graphics"] = SystemInfo.graphicsDeviceType.ToString(),
                 ["checks"] = checks
             };
@@ -43,7 +43,7 @@ namespace Ecaty
             {
                 await Frames(3);
                 var experience = GetComponent<RuntimeExperience>();
-                var world = GetComponent<Ecaty.Flecs.FlecsWorld>();
+                var world = GetComponent<Runtime.Flecs.FlecsWorld>();
                 Require(experience && ClayCreation.Available && SystemInfo.supportsComputeShaders, "Runtime experience or graphics capabilities missing.");
                 var config = JObject.Parse(Resources.Load<TextAsset>("Runtime/Examples/RuntimeCreatureControl").text);
                 config["driver"] = "idle";
@@ -94,7 +94,7 @@ namespace Ecaty
             int index = Array.IndexOf(args, "-runtimeEngineSmokeResult");
             if (index >= 0 && index + 1 < args.Length)
                 File.WriteAllText(args[index + 1], report.ToString());
-            Debug.Log("ECATY_RUNTIME_ENGINE_SMOKE=" + ((bool)report["passed"] ? "PASS" : "FAIL"));
+            Debug.Log("RUNTIME_ENGINE_SMOKE=" + ((bool)report["passed"] ? "PASS" : "FAIL"));
             Application.Quit((bool)report["passed"] ? 0 : 1);
         }
     }

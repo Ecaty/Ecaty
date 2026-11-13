@@ -1,4 +1,4 @@
-Shader "Ecaty/Gallery Seed"
+Shader "Gallery/Seed"
 {
     Properties {_Tint("Tint",Color)=(1,1,1,1) _Opacity("Opacity",Range(0,1))=1}
     SubShader{

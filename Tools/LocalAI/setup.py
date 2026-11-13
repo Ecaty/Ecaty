@@ -2,7 +2,7 @@
 import concurrent.futures,hashlib,json,pathlib,urllib.request,zipfile
 ROOT=pathlib.Path(__file__).resolve().parents[2]
 DEST=ROOT/'LocalData/AI'
-HEADERS={'User-Agent':'Ecaty-local-ai-setup'}
+HEADERS={'User-Agent':'local-ai-setup'}
 def get_json(url):return json.load(urllib.request.urlopen(urllib.request.Request(url,headers=HEADERS)))
 def digest_file(path):
  h=hashlib.sha256()
@@ -56,7 +56,7 @@ def main():
   url=('https://huggingface.co/'+repo_name+'/resolve/'+revision_name+'/LICENSE') if repo_name.startswith('Qwen/') else ('https://raw.githubusercontent.com/'+repo_name+'/'+revision_name+'/LICENSE')
   download(url,DEST/target)
  llama=next((DEST/'llama').rglob('llama-server.exe'));whisper=next((DEST/'whisper').rglob('whisper-server.exe'))
- config={'llamaExecutable':str(llama.relative_to(DEST)),'whisperExecutable':str(whisper.relative_to(DEST)),'model':'models/Qwen3.5-4B-Q4_K_M.gguf','projector':'models/mmproj-F16.gguf','speechModel':'models/ggml-base.bin','modelId':'ecaty-local','llamaPort':18080,'whisperPort':18081,'contextSize':32768,'gpuLayers':99,'threads':6}
+ config={'llamaExecutable':str(llama.relative_to(DEST)),'whisperExecutable':str(whisper.relative_to(DEST)),'model':'models/Qwen3.5-4B-Q4_K_M.gguf','projector':'models/mmproj-F16.gguf','speechModel':'models/ggml-base.bin','modelId':'local-model','llamaPort':18080,'whisperPort':18081,'contextSize':32768,'gpuLayers':99,'threads':6}
  if not (DEST/'config.json').exists():(DEST/'config.json').write_text(json.dumps(config,indent=2),encoding='utf-8')
  (DEST/'UPSTREAM.json').write_text(json.dumps({'runtimes':results,'model':{'repository':repo,'revision':revision,'license':'Apache-2.0'},'whisperModel':{'repository':'ggerganov/whisper.cpp','revision':whisper_revision}},indent=2),encoding='utf-8')
  fixture=ROOT/'Logs/LocalAiFixture/jfk.wav'

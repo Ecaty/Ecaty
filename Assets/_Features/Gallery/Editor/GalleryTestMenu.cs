@@ -1,12 +1,12 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using UnityEditor;
 using UnityEngine;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     [InitializeOnLoad]
     public static class GalleryTestMenu
     {
-        const string Pending = "Ecaty.GalleryTests.Pending";
+        const string Pending = "Game.GalleryTests.Pending";
         static bool running;
         static GalleryTestMenu()
         {

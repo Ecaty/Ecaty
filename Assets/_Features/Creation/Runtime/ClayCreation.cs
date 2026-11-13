@@ -5,12 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     [DefaultExecutionOrder(-200)]
     public sealed class ClayCreation : MonoBehaviour
@@ -407,7 +407,7 @@ namespace Ecaty
             if (!surface)
             {
                 var settings = RuntimeComposition.Current.World;
-                var material = settings ? settings.MudMaterial : Resources.Load<Material>("EcatyMudLiveMaterial");
+                var material = settings ? settings.MudMaterial : Resources.Load<Material>("MudLiveMaterial");
 #if UNITY_EDITOR
                 if (!material)
                     material = Type.GetType("MudBun.ResourcesUtilEditor, MudBun")?.GetProperty("DefaultMeshMaterial")?.GetValue(null) as Material;

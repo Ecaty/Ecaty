@@ -113,7 +113,7 @@ InitTestScene*.unity*
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
-# Ecaty generated/local state
+# Generated/local state
 /Native/build*/
 /.auth/
 /LocalData/
@@ -153,7 +153,7 @@ InitTestScene*.unity*
 /Assets/PostProcessing/
 /Assets/PostProcessing.meta
 
-# Asset Store imports are installed locally; Ecaty adapters and settings stay versioned.
+# Asset Store imports are installed locally; app adapters and settings stay versioned.
 /Assets/Artificer/
 /Assets/Artificer.meta
 /Assets/Complete Sound suite/

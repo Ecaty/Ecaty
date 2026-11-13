@@ -106,8 +106,8 @@ try {
     } while($true)
     $wasPlaying=$initial.playMode -eq 'playing'
     if($initial.playMode -eq 'paused'){throw 'Resume or stop paused Play mode before running tests.'}
-    $tickState=Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.AutoTickState();')
-    $saveInfo=Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.GallerySavePath();')
+    $tickState=Invoke-Editor @('script','eval','return Game.Editor.RunnerSupport.AutoTickState();')
+    $saveInfo=Invoke-Editor @('script','eval','return Game.Editor.RunnerSupport.GallerySavePath();')
     $gallerySavePath=[string]$saveInfo.result;$hadGallerySave=Test-Path -LiteralPath $gallerySavePath
     [byte[]]$gallerySaveBytes=$null
     if($hadGallerySave){$gallerySaveBytes=[IO.File]::ReadAllBytes($gallerySavePath)}
@@ -118,7 +118,7 @@ try {
     }
     try {
     if($wasPlaying){
-        Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.CaptureGalleryArrangement();') | Out-Null
+        Invoke-Editor @('script','eval','return Game.Editor.RunnerSupport.CaptureGalleryArrangement();') | Out-Null
         $baselineStored=$true
     }
     Invoke-Editor @('editor','set_auto_tick') | Out-Null;$tickChanged=$true
@@ -139,7 +139,7 @@ try {
             $currentContext=$contexts | Where-Object name -eq $current | Select-Object -First 1
             $currentContext.status='Running';Write-RunReport $runDirectory $contexts
             if($current -eq 'Validator' -or $current -eq 'Resources'){
-                $code=if($current -eq 'Validator'){'return Ecaty.Editor.AssetValidation.Run();'}else{'return Ecaty.Editor.ResourceVerification.Run();'}
+                $code=if($current -eq 'Validator'){'return Game.Editor.AssetValidation.Run();'}else{'return Game.Editor.ResourceVerification.Run();'}
                 $result=Invoke-Editor @('script','eval',$code);$currentContext.data=$result.result
                 $file=if($current -eq 'Validator'){'validation.json'}else{'resources.json'}
                 $result.result | ConvertTo-Json -Depth 25 | Set-Content -LiteralPath (Join-Path $runDirectory $file) -Encoding UTF8
@@ -149,7 +149,7 @@ try {
                 $state=Invoke-Editor @('editor','status')
                 if($state.playMode -ne 'stopped'){Invoke-Editor @('editor.playmode','stop') | Out-Null;Wait-Editor}
                 $directory=Join-Path $runDirectory 'PlayerScripts';$literal=ConvertTo-Json -InputObject $directory -Compress
-                $result=Invoke-Editor @('script','eval',"return Ecaty.Editor.PlayerCodeVerification.Run($literal);",'--','--timeout','240')
+                $result=Invoke-Editor @('script','eval',"return Game.Editor.PlayerCodeVerification.Run($literal);",'--','--timeout','240')
                 $currentContext.data=$result.result
                 $result.result | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath (Join-Path $runDirectory 'player-scripts.json') -Encoding UTF8
                 if(-not $result.result.passed){throw 'Player script compilation failed.'}
@@ -175,7 +175,7 @@ try {
                 # Start from a known state, not the player's own gallery save (restored after the run).
                 if($state.playMode -ne 'playing'){Clear-GallerySave;Invoke-Editor @('editor','set_auto_tick') | Out-Null;Invoke-Editor @('editor.playmode','start') | Out-Null;Wait-Editor}
                 $directory=Join-Path $runDirectory 'Gallery';$literal=ConvertTo-Json -InputObject $directory -Compress
-                $result=Invoke-Editor @('script','eval',"return await Ecaty.Editor.GalleryScenarioSuite.Run($literal);")
+                $result=Invoke-Editor @('script','eval',"return await Game.Editor.GalleryScenarioSuite.Run($literal);")
                 $currentContext.data=$result.result
                 if(-not $result.result.passed){throw "Gallery failed: $($result.result.failure)"}
                 $currentContext.status='Passed'
@@ -185,7 +185,7 @@ try {
                 if($state.playMode -ne 'stopped'){Invoke-Editor @('editor.playmode','stop') | Out-Null;Wait-Editor}
                 $mode=if($current -eq 'PlayMode'){'playmode'}else{'editor'}
                 if($current -eq 'PlayMode'){Clear-GallerySave}
-                $filter=if($current -eq 'Native'){'NativeGalleryTests'}else{'Ecaty.Tests'}
+                $filter=if($current -eq 'Native'){'NativeGalleryTests'}else{'Game.Tests'}
                 $run=Invoke-Editor @('test','run','--','--mode',$mode,'--filter',$filter,'--async-tests','true')
                 $statusFile=Join-Path $projectPath $run.StatusPath;$deadline=[DateTime]::UtcNow.AddMinutes(3)
                 do {
@@ -210,7 +210,7 @@ try {
                 Wait-Editor;$state=Invoke-Editor @('editor','status')
                 if($wasPlaying -and $state.playMode -ne 'playing'){Invoke-Editor @('editor','set_auto_tick') | Out-Null;Invoke-Editor @('editor.playmode','start') | Out-Null;Wait-Editor}
                 elseif(-not $wasPlaying -and $state.playMode -ne 'stopped'){Invoke-Editor @('editor.playmode','stop') | Out-Null;Wait-Editor}
-                if($baselineStored){Invoke-Editor @('script','eval','return Ecaty.Editor.RunnerSupport.RestoreGalleryArrangement();') | Out-Null}
+                if($baselineStored){Invoke-Editor @('script','eval','return Game.Editor.RunnerSupport.RestoreGalleryArrangement();') | Out-Null}
                 Invoke-Editor @('editor','set_auto_tick','--','--enabled',([string]$tickState.result.enabled).ToLowerInvariant(),'--interval-ms',([string]$tickState.result.interval)) | Out-Null
             }
         } finally {

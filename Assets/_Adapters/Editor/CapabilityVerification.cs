@@ -1,10 +1,10 @@
-#if ECATY_CAP_FEEL && ECATY_CAP_COZY && ECATY_CAP_BROCCOLI && ECATY_CAP_FLEXALON && ECATY_CAP_SPLINES
+#if CAP_FEEL && CAP_COZY && CAP_BROCCOLI && CAP_FLEXALON && CAP_SPLINES
 using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Ecaty.Flecs;
-using Ecaty.Flecs.Capabilities;
+using Runtime.Flecs;
+using Runtime.Capabilities;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -12,7 +12,7 @@ using UnityEngine.AI;
 using UnityEngine.Animations.Rigging;
 using UnityEngine.VFX;
 using Object = UnityEngine.Object;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class CapabilityVerification
     {
@@ -58,7 +58,7 @@ namespace Ecaty.Editor
         [InitializeOnLoadMethod]
         static void Hook()
         {
-            EditorApplication.playModeStateChanged += state => { if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Ecaty.VerifyCapabilities", false)) Run(); };
+            EditorApplication.playModeStateChanged += state => { if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Game.VerifyCapabilities", false)) Run(); };
         }
         [MenuItem("Runtime/Runtime engine/Verify capabilities")]
         public static void Start()
@@ -67,7 +67,7 @@ namespace Ecaty.Editor
                 Run();
             else
             {
-                SessionState.SetBool("Ecaty.VerifyCapabilities", true);
+                SessionState.SetBool("Game.VerifyCapabilities", true);
                 EditorApplication.isPlaying = true;
             }
         }
@@ -76,7 +76,7 @@ namespace Ecaty.Editor
         {
             if (!EditorApplication.isPlaying)
             {
-                SessionState.SetBool("Ecaty.CapabilityWorkshop", true);
+                SessionState.SetBool("Game.CapabilityWorkshop", true);
                 EditorApplication.isPlaying = true;
             }
             else
@@ -85,7 +85,7 @@ namespace Ecaty.Editor
         [InitializeOnLoadMethod]
         static void WorkshopHook()
         {
-            EditorApplication.playModeStateChanged += s => { if (s == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Ecaty.CapabilityWorkshop", false)) { SessionState.EraseBool("Ecaty.CapabilityWorkshop"); EditorApplication.delayCall += () => Install(); } };
+            EditorApplication.playModeStateChanged += s => { if (s == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Game.CapabilityWorkshop", false)) { SessionState.EraseBool("Game.CapabilityWorkshop"); EditorApplication.delayCall += () => Install(); } };
         }
         static FlecsWorld Install()
         {
@@ -103,7 +103,7 @@ namespace Ecaty.Editor
             if (running)
                 return;
             running = true;
-            SessionState.EraseBool("Ecaty.VerifyCapabilities");
+            SessionState.EraseBool("Game.VerifyCapabilities");
             var checks = new JArray();
             var errors = new System.Collections.Generic.List<string>();
             Application.LogCallback capture = (message, stack, type) => { if (type == LogType.Exception || type == LogType.Error || type == LogType.Assert) errors.Add(message); };
@@ -195,7 +195,7 @@ namespace Ecaty.Editor
                     scope.Reconcile();
                     Require(probe != null, "Session probe did not bind");
                     var previous = probe;
-                    isolated.Initialize(0, Resources.Load<TextAsset>("Runtime/Examples/World"), "EcatyWorld");
+                    isolated.Initialize(0, Resources.Load<TextAsset>("Runtime/Examples/World"), "World");
                     scope.Reconcile();
                     Require(previous.DisposedWithOriginalSession, "Adapter cleanup used a replacement session instead of its original disposed session");
                     checks.Add("Reusable adapter cleanup retains its original session across direct world replacement; stale entity IDs never target the new world");

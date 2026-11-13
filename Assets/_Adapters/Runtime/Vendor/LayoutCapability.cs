@@ -1,19 +1,20 @@
-using Ecaty.Flecs.Capabilities;
-#if ECATY_CAP_FLEXALON
+using Runtime.Capabilities;
+#if CAP_FLEXALON
 using System;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Flexalon;
 #endif
-namespace Ecaty.Flecs.PluginAdapters
+using Runtime.Flecs;
+namespace Game.Adapters
 {
     // Always compiled: the schema and saved configurations stay valid without the plugin.
-    [Capability("CapLayout", "spatial layouts", 45, Gate = "ECATY_CAP_FLEXALON", Probe = "Assets/Flexalon/Runtime/Layouts/FlexalonCircleLayout.cs")]
+    [Capability("CapLayout", "spatial layouts", 45, Gate = "CAP_FLEXALON", Probe = "Assets/Flexalon/Runtime/Layouts/FlexalonCircleLayout.cs")]
     public sealed class LayoutConfig
     {
         public float radius = 1, spacing = 45;
     }
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
     public sealed class LayoutCapability : CapabilityInstance<LayoutConfig>
     {
         FlexalonCircleLayout layout; bool owned; readonly System.Collections.Generic.Dictionary<ulong, FlexalonObject> children = new(); readonly System.Collections.Generic.List<FlexalonObject> created = new();

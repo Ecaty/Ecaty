@@ -1,4 +1,4 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using Object = UnityEngine.Object;
 
-namespace Ecaty
+namespace Game
 {
     // One disposable preview plus one retained mock world. Real content streaming is a later adapter.
     public sealed class GalleryPreviewStage : IDisposable

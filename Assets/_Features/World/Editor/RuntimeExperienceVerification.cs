@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
@@ -14,7 +14,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using Object = UnityEngine.Object;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class RuntimeExperienceVerification
     {
@@ -41,7 +41,7 @@ namespace Ecaty.Editor
         [InitializeOnLoadMethod]
         private static void Hook() => EditorApplication.playModeStateChanged += state =>
         {
-            if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Ecaty.ExperienceVerification", false))
+            if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("Game.ExperienceVerification", false))
                 Run();
         };
         [MenuItem("Runtime/Runtime engine/Verify runtime experience")]
@@ -53,7 +53,7 @@ namespace Ecaty.Editor
                 Run();
             else
             {
-                SessionState.SetBool("Ecaty.ExperienceVerification", true);
+                SessionState.SetBool("Game.ExperienceVerification", true);
                 EditorApplication.isPlaying = true;
             }
         }
@@ -62,8 +62,8 @@ namespace Ecaty.Editor
             if (Running)
                 return;
             Running = true;
-            bool owned = SessionState.GetBool("Ecaty.ExperienceVerification", false);
-            SessionState.EraseBool("Ecaty.ExperienceVerification");
+            bool owned = SessionState.GetBool("Game.ExperienceVerification", false);
+            SessionState.EraseBool("Game.ExperienceVerification");
             var checks = new JArray();
             var errors = new List<string>();
             var report = new JObject { ["passed"] = false, ["testedUtc"] = DateTime.UtcNow.ToString("O"), ["checks"] = checks };
@@ -86,7 +86,7 @@ namespace Ecaty.Editor
                 actor.ReadDevices = false;
                 var experience = root.AddComponent<RuntimeExperience>();
                 experience.Initialize(world, clay, actor);
-                var tools = EcatyAgentTools.Create(world, new AgentMainThread(), clay, actor);
+                var tools = WorldAgentTools.Create(world, new AgentMainThread(), clay, actor);
                 async Task<string> Call(string name, string field = null, string value = null)
                 {
                     var args = new JObject();

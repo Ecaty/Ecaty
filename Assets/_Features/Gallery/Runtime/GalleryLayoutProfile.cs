@@ -3,7 +3,7 @@ using UnityEngine;
 using Sirenix.OdinInspector;
 #endif
 
-namespace Ecaty
+namespace Game
 {
     /// <summary>Designer defaults for the proposed gallery presentation, not live world or save state.</summary>
     [CreateAssetMenu(menuName = "Runtime/Gallery Layout Profile", fileName = "GalleryLayoutProfile")]

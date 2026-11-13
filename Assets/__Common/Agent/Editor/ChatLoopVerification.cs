@@ -8,20 +8,20 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Agents.Diagnostics;
-using Ecaty.Agents.Editor;
-using Ecaty.Agents.Providers.ChatGPT;
-using Ecaty.Agents.Security;
-using Ecaty.Agents.UI;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Agents.Diagnostics;
+using Runtime.Agents.Editor;
+using Runtime.Agents.Providers.ChatGPT;
+using Runtime.Agents.Security;
+using Runtime.Agents.UI;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     // Synthetic transport is confined to Editor verification. World/tools are real.
     public static class ChatLoopVerification
@@ -82,7 +82,7 @@ namespace Ecaty.Editor
                             Require(rejected, "Mismatched audience/nonce accepted");
                         }
                         checks.Add("mismatched identity audience and nonce rejected");
-                        var tools = EcatyAgentTools.Create(world, main);
+                        var tools = WorldAgentTools.Create(world, main);
                         var dispatched = await Task.Run(() => tools[0].ExecuteAsync("{\"expression\":\"Position\"}", timeout.Token));
                         Require(dispatched.Contains("Cube"), "Background tool dispatch failed");
                         checks.Add("background agent work marshalled to the Unity/world-owning thread");
@@ -207,7 +207,7 @@ namespace Ecaty.Editor
                 report["checks"] = new JArray(checks);
                 File.WriteAllText(ReportPath, report.ToString(Formatting.Indented));
                 Running = false;
-                Debug.Log("ECATY_CHAT_LOOP=" + ((bool)report["passed"] ? "PASS" : "FAIL"));
+                Debug.Log("CHAT_LOOP_SMOKE=" + ((bool)report["passed"] ? "PASS" : "FAIL"));
             }
         }
         private sealed class MemoryStore : ISecretStore

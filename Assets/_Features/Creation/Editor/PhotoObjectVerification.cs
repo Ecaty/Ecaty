@@ -8,20 +8,20 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Agents.Providers.Gemini;
-using Ecaty.Agents.Security;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Agents.Providers.Gemini;
+using Runtime.Agents.Security;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class PhotoObjectVerification
     {
         public static void Run()
         {
-            string save = Path.Combine(Path.GetTempPath(), "EcatyPhoto-" + Guid.NewGuid().ToString("N") + ".json");
+            string save = Path.Combine(Path.GetTempPath(), "Photo-" + Guid.NewGuid().ToString("N") + ".json");
             var report = new JObject { ["passed"] = false };
             GameObject root = null;
             try

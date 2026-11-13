@@ -26,7 +26,7 @@ try:
 except (ConnectionRefusedError,TimeoutError,OSError): pass
 else: raise RuntimeError("Port 27750 is already occupied; stop that instance before this test")
 
-proc=subprocess.Popen([str(ROOT/"Build/Ecaty.exe"),"-batchmode","-nographics","-logFile",str(log)])
+proc=subprocess.Popen([str(next(p for p in (ROOT/"Build").glob("*.exe") if not p.name.startswith("UnityCrashHandler"))),"-batchmode","-nographics","-logFile",str(log)])
 try:
     deadline=time.monotonic()+30
     while True:

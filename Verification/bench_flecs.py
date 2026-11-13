@@ -1,4 +1,4 @@
-"""Micro-benchmark of Ecaty bridge calls via ctypes (copy of the DLL, isolated world, REST off)."""
+"""Micro-benchmark of bridge calls via ctypes (copy of the DLL, isolated world, REST off)."""
 import ctypes as c, sys, time, json
 lib = c.CDLL(sys.argv[1])
 P = c.c_void_p; U = c.c_uint64

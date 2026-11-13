@@ -7,20 +7,20 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Agents.Diagnostics;
-using Ecaty.Agents.Providers.Gemini;
-using Ecaty.Agents.Providers.OpenRouter;
-using Ecaty.Agents.Security;
-using Ecaty.Agents.UI;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Agents.Diagnostics;
+using Runtime.Agents.Providers.Gemini;
+using Runtime.Agents.Providers.OpenRouter;
+using Runtime.Agents.Security;
+using Runtime.Agents.UI;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     // Only service replies/credentials are fixtures. Flecs, dispatch, Script and presented objects are real.
     public static class MultiProviderVerification
@@ -50,7 +50,7 @@ namespace Ecaty.Editor
                 root = new GameObject("Provider verification");
                 var world = root.AddComponent<FlecsWorld>();
                 world.Initialize(0, Resources.Load<TextAsset>("Tests/Fixtures/VerificationWorld"));
-                var tools = EcatyAgentTools.Create(world, new AgentMainThread());
+                var tools = WorldAgentTools.Create(world, new AgentMainThread());
                 var request = new AgentRequest(Resources.Load<TextAsset>("Agent/Prompts/AgentInstructions").text,
                     new[] { new AgentMessage(AgentRole.User, "Make the cube blue and twice as big.") }, tools);
                 using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
@@ -163,7 +163,7 @@ namespace Ecaty.Editor
                 report["checkedAt"] = DateTimeOffset.UtcNow.ToString("O");
                 File.WriteAllText("Verification/provider-checks.json", report.ToString(Formatting.Indented));
                 Running = false;
-                Debug.Log("ECATY_PROVIDERS=" + ((bool)report["passed"] ? "PASS" : "FAIL"));
+                Debug.Log("PROVIDERS_SMOKE=" + ((bool)report["passed"] ? "PASS" : "FAIL"));
             }
         }
         private static void CheckCube(FlecsWorld world)
@@ -181,7 +181,7 @@ namespace Ecaty.Editor
         {
             var a = new EchoProvider("a");
             var b = new EchoProvider("b");
-            var layout = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.ecaty.ai-agent/Runtime/UI/AgentChat.uxml");
+            var layout = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.runtime.ai-agent/Runtime/UI/AgentChat.uxml");
             using (var hub = new AgentProviderHub(new[] {
                 new AgentProviderRegistration("a", "Browser provider", () => a),
                 new AgentProviderRegistration("b", "Key provider", () => b, "Google project controls billing.", "https://aistudio.google.com/api-keys")

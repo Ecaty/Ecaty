@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecaty.Agents;
-using Ecaty.Flecs;
+using Runtime.Agents;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Ecaty
+namespace Game
 {
     internal static class RuntimeExperienceTools
     {

@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     /// <summary>
     /// Editor-only, allocation-free change detection for authoring assets polled during Play.

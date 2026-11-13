@@ -1,7 +1,7 @@
 #if ODIN_INSPECTOR
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     [CustomEditor(typeof(GalleryLayoutProfile)), CanEditMultipleObjects]
     public sealed class GalleryLayoutInspector : OdinEditor

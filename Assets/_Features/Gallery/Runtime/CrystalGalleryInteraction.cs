@@ -1,4 +1,4 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,7 +9,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.UIElements;
 
-namespace Ecaty
+namespace Game
 {
     public sealed partial class CrystalWorldGallery
     {

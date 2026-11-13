@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd7038b7a4fbbc94c8b714074edb853c, type: 3}
   m_Name: Theme
-  m_EditorClassIdentifier: Assembly-CSharp::Ecaty.EcatyTheme
+  m_EditorClassIdentifier: Assembly-CSharp::Game.GameTheme
   Background: {r: 0.094, g: 0.145, b: 0.165, a: 1}
   Glass: {r: 0.72, g: 0.83, b: 0.84, a: 1}
   Ring: {r: 0.57, g: 0.67, b: 0.63, a: 1}

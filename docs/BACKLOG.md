@@ -24,7 +24,7 @@ Retained ideas, not immediate implementation:
 
 - 2026-11-11: Product docs (PRODUCT-DIRECTION, RUNTIME-PLUGINS, UNITY-CAPABILITY-ROADMAP): trim to current content; archive the rest in docs/history/, do not delete.
 - 2026-11-11: Retire the old AgentBehavior compatibility path and the -workshopLegacy start option. Done (tools, menu, verifier removed; RUNTIME-BEHAVIORS archived in docs/history/).
-- 2026-11-11: Rename existing identifiers (Ecaty.* namespaces, com.ecaty.* packages, ECATY_CAP_* defines, menu paths) later, once the product name is settled; add no new ones.
+- 2026-11-13: Neutral identifiers (done): app namespaces `Game`/`Game.Editor`/`Game.Tests`/`Game.Adapters` (GameBootstrap, GameTheme, WorldAgentTools); packages `com.runtime.flecs` (`Runtime.Flecs`), `com.runtime.ai-agent` (`Runtime.Agents`), `Runtime.Capabilities`; defines `CAP_*`; env `FLECS_UNITY_LIBRARY`; native `flecs_unity_core`, C++ `game`. No product name in identifiers; repos, org and productName unchanged.
 - 2026-11-11: Next cheap mockup after creation tools: decide later.
 - 2026-11-11: Overnight agent work allowed (keep-awake approved).
 - 2026-11-11: Test phone: ARCore (Depth API) is required; use a non-Google mid-range Android for multi-device coverage. Chosen (delegated to assistant): Motorola edge 60 fusion 8/256 (~€279, Galaxus.de, ships to DE); later optional second device with a different chip, e.g. Motorola edge 70 fusion (Snapdragon). Confirm the exact model on developers.google.com/ar/devices before buying. iOS/ARKit: skipped for now (Android/ARCore only).

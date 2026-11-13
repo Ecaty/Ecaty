@@ -3,9 +3,9 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 #if ODIN_VALIDATOR
 using Sirenix.OdinInspector.Editor.Validation;
-[assembly: RegisterValidator(typeof(Ecaty.Editor.ThemeConfigValidator))]
+[assembly: RegisterValidator(typeof(Game.Editor.ThemeConfigValidator))]
 #endif
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class ThemeConfigMenu
     {
@@ -27,7 +27,7 @@ namespace Ecaty.Editor
         }
     }
 #if ODIN_VALIDATOR
-    public sealed class ThemeConfigValidator : RootObjectValidator<EcatyTheme>
+    public sealed class ThemeConfigValidator : RootObjectValidator<GameTheme>
     {
         protected override void Validate(ValidationResult result)
         {

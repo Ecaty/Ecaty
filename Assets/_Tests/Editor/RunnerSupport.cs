@@ -2,7 +2,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     /// <summary>
     /// Named Editor entry points called by Tests/Run.ps1 through the Unity CLI.

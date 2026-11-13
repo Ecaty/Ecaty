@@ -1,9 +1,9 @@
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace Ecaty
+namespace Game
 {
     // A short hold arms a movable prop. A drag before that belongs to the camera.
     internal sealed class WorkshopPropInput

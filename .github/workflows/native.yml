@@ -37,7 +37,7 @@ jobs:
           path: .git/lfs
           key: lfs-soundbank-${{ hashFiles('.gitattributes') }}
       - name: Fetch only the LFS sound bank the audio smoke needs
-        run: git lfs pull --include "Assets/StreamingAssets/Ecaty/Audio/GeneralUser-GS.sf2"
+        run: git lfs pull --include "Assets/StreamingAssets/Audio/GeneralUser-GS.sf2"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

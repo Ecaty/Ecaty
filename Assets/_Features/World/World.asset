@@ -11,5 +11,5 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81fc5565f03f08447a02b957c071b1da, type: 3}
   m_Name: World
-  m_EditorClassIdentifier: Assembly-CSharp::Ecaty.RuntimeDioramaAssets
+  m_EditorClassIdentifier: Assembly-CSharp::Game.RuntimeDioramaAssets
   MudMaterial: {fileID: 2100000, guid: 62d1281f6e6ca6c4abeb566741c360ae, type: 2}

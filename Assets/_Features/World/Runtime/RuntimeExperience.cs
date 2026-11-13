@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Ecaty.Flecs;
-using Ecaty.Agents.UI;
+using Runtime.Flecs;
+using Runtime.Agents.UI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Ecaty
+namespace Game
 {
     // Owns bindings/lifetimes and saved definitions; simulation state remains in Flecs.
     [DefaultExecutionOrder(-400)]
@@ -287,7 +287,7 @@ namespace Ecaty
         {
             if (!chat)
                 chat = FindAnyObjectByType<AgentChatPanel>();
-            return Ecaty.Flecs.Capabilities.CapabilityInput.OverHandle(Camera) ||
+            return Runtime.Capabilities.CapabilityInput.OverHandle(Camera) ||
                 chat && chat.CoversScreenPoint(point);
         }
 
@@ -446,7 +446,7 @@ namespace Ecaty
                 if (source != null)
                     sources.Add(new JObject { ["path"] = path, ["code"] = source });
             }
-            var capabilityRuntime = GetComponent<Ecaty.Flecs.Capabilities.CapabilityRuntime>();
+            var capabilityRuntime = GetComponent<Runtime.Capabilities.CapabilityRuntime>();
             var capabilityTypes = capabilityRuntime != null ? new HashSet<string>(capabilityRuntime.Adapters.Select(a => a.Component)) : new HashSet<string>();
             capabilityTypes.Add("CapBinding");
             capabilityTypes.Add("NativeTree");
@@ -495,7 +495,7 @@ namespace Ecaty
                 ["version"] = 1,
                 ["capabilities"] = capabilityRuntime?.CaptureState(),
                 // Bindings, dependency relations and trees, including entities created without a saved source.
-                ["capabilityGraph"] = capabilityRuntime != null ? Ecaty.Flecs.Capabilities.CapabilityGraph.Capture(world.Session, null, null) : null,
+                ["capabilityGraph"] = capabilityRuntime != null ? Runtime.Capabilities.CapabilityGraph.Capture(world.Session, null, null) : null,
                 ["sources"] = sources,
                 ["actors"] = actors,
                 ["states"] = states,
@@ -575,13 +575,13 @@ namespace Ecaty
             if (sources.Select(s => (string)s["path"]).Distinct().Count() != sources.Count)
                 throw new ArgumentException("Duplicate source module.");
             var graph = data["capabilityGraph"] as JObject;
-            string invalidGraph = Ecaty.Flecs.Capabilities.CapabilityGraph.Validate(graph, null);
+            string invalidGraph = Runtime.Capabilities.CapabilityGraph.Validate(graph, null);
             if (invalidGraph != null)
                 throw new ArgumentException(invalidGraph);
             // Resolve dependencies and state types in an isolated world before replacing the session.
             var orderedSources = ValidateSources(sources, states);
             loading = true;
-            GetComponent<Ecaty.Flecs.Capabilities.CapabilityRuntime>()?.ResetBindings();
+            GetComponent<Runtime.Capabilities.CapabilityRuntime>()?.ResetBindings();
             try
             {
                 foreach (var pair in models.ToArray())
@@ -601,14 +601,14 @@ namespace Ecaty
                 foreach (var entry in orderedSources)
                     world.Session.SetManagedScript((string)entry["path"], (string)entry["code"]);
                 InstallFoundation();
-                var capabilities = GetComponent<Ecaty.Flecs.Capabilities.CapabilityRuntime>();
+                var capabilities = GetComponent<Runtime.Capabilities.CapabilityRuntime>();
                 capabilities?.QueueRestore(data["capabilities"] as JObject);
                 if (graph != null)
                 {
                     int module = 0;
                     while (world.Session.ManagedScriptSource("CapabilityGraphRestore" + module) != null)
                         module++;
-                    foreach (string issue in Ecaty.Flecs.Capabilities.CapabilityGraph.Restore(world.Session, capabilities, graph, null, "CapabilityGraphRestore" + module))
+                    foreach (string issue in Runtime.Capabilities.CapabilityGraph.Restore(world.Session, capabilities, graph, null, "CapabilityGraphRestore" + module))
                         Debug.LogWarning(issue);
                 }
                 // Apply authored geometry before binding controllers; restore behavioral state last.

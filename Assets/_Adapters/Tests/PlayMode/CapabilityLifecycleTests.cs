@@ -1,13 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Ecaty.Flecs;
-using Ecaty.Flecs.Capabilities;
+using Runtime.Flecs;
+using Runtime.Capabilities;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-namespace Ecaty.Tests
+namespace Game.Tests
 {
     // Every compiled adapter, with its default configuration, must leave no runtime objects behind once its binding
     // is disabled. Configurations that need registered assets or targets may fail; failure must clean up as well.

@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3efaf3fbc0297bc45bd5947ecd433aa9, type: 3}
   m_Name: RuntimeComposition
-  m_EditorClassIdentifier: Assembly-CSharp::Ecaty.RuntimeComposition
+  m_EditorClassIdentifier: Assembly-CSharp::Game.RuntimeComposition
   GalleryConfig: {fileID: -8253061345870894857, guid: e8c86c56fd5220a48bfb1d13dde3854b, type: 3}
   ThemeConfig: {fileID: -8253061345870894857, guid: 00e50a5627038209a88930a0ee6bb053, type: 3}
   AgentUi: {fileID: 11400000, guid: db7d5b0265a7cb14990c4519f07e175e, type: 2}

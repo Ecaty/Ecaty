@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $taskProject = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$taskAssets = Join-Path $taskProject 'Packages/com.ecaty.ai-agent/Runtime/Diagnostics/Resources/EcatyAgentTrace'
+$taskAssets = Join-Path $taskProject 'Packages/com.runtime.ai-agent/Runtime/Diagnostics/Resources/AgentTrace'
 $taskHtml = [IO.File]::ReadAllText((Join-Path $taskAssets 'index.html.txt'))
 $taskCss = [IO.File]::ReadAllText((Join-Path $taskAssets 'viewer.css.txt'))
 $taskJs = [IO.File]::ReadAllText((Join-Path $taskAssets 'viewer.js.txt'))

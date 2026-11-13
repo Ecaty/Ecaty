@@ -1,19 +1,20 @@
-using Ecaty.Flecs.Capabilities;
-#if ECATY_CAP_CREST
+using Runtime.Capabilities;
+#if CAP_CREST
 using System;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 #endif
-namespace Ecaty.Flecs.PluginAdapters
+using Runtime.Flecs;
+namespace Game.Adapters
 {
     // Always compiled: the schema and saved configurations stay valid without the plugin.
-    [Capability("CapOcean", "ocean rendering", 45, Gate = "ECATY_CAP_CREST", Probe = "Assets/Crest/Crest/Scripts/OceanRenderer.cs")]
+    [Capability("CapOcean", "ocean rendering", 45, Gate = "CAP_CREST", Probe = "Assets/Crest/Crest/Scripts/OceanRenderer.cs")]
     public sealed class OceanConfig
     {
         [AssetKey] public string prefab = "";
         public float level;
     }
-#if ECATY_CAP_CREST
+#if CAP_CREST
     public sealed class OceanCapability : CapabilityInstance<OceanConfig>
     {
         Crest.OceanRenderer ocean;

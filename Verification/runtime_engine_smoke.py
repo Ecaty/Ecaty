@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from datetime import datetime, timezone
 ROOT=Path(__file__).resolve().parents[1]
-lib=c.CDLL(os.environ.get('ECATY_NATIVE_LIBRARY',str(ROOT/'Assets/Plugins/Flecs/x86_64/flecs_unity.dll')))
+lib=c.CDLL(os.environ.get('FLECS_UNITY_LIBRARY',str(ROOT/'Assets/Plugins/Flecs/x86_64/flecs_unity.dll')))
 P=c.c_void_p; U=c.c_uint64
 
 def bind(name,result,*args):

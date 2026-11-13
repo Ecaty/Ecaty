@@ -1,8 +1,8 @@
-using Ecaty.Flecs;
+using Runtime.Flecs;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
-namespace Ecaty.Tests
+namespace Game.Tests
 {
     [Category("Native")]
     public sealed class NativeGalleryTests

@@ -11,6 +11,6 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 659e7e5fd124c3a4d8735e7a8fbd6eb5, type: 3}
   m_Name: Agent
-  m_EditorClassIdentifier: Ecaty.Agents::Ecaty.Agents.UI.AgentUiAssets
+  m_EditorClassIdentifier: Runtime.Agents::Runtime.Agents.UI.AgentUiAssets
   Layout: {fileID: 9197481963319205126, guid: 773ec7be262874a468a988b28f73e21d, type: 3}
   Panel: {fileID: 11400000, guid: b461a9424d0fe3d4688f7adb7d67a584, type: 2}

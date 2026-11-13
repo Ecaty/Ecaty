@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a708af6294c833d4eadf23b6a2532f88, type: 3}
   m_Name: Adapters
-  m_EditorClassIdentifier: Runtime.Capabilities::Ecaty.Flecs.Capabilities.CapabilityAssets
+  m_EditorClassIdentifier: Runtime.Capabilities::Runtime.Capabilities.CapabilityAssets
   Entries:
   - Key: default
     Asset: {fileID: 2100000, guid: 522176da3c8e32f429eac54b0aece5ad, type: 2}

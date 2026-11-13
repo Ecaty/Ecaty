@@ -1,8 +1,8 @@
-#if ECATY_CAP_FLEXALON
+#if CAP_FLEXALON
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
-namespace Ecaty
+namespace Game
 {
     public sealed partial class CrystalWorldGallery
     {

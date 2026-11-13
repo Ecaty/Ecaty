@@ -3,7 +3,7 @@ using System.IO;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
-namespace Ecaty.Editor
+namespace Game.Editor
 {
     public static class ResourceVerification
     {
