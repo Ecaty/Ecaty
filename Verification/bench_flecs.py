@@ -64,8 +64,8 @@ tr=T(f"fu_read_query_data('Vec') N={N} memcpy", lambda: rows(w,b"Vec",None,out_e
 tw=T(f"fu_write_components(Vec) N={N}", lambda: write(w,vec,ents,vals,12,N), 2000)
 # Views (fixed snapshot)
 ok(managed(w,b"Views","\n".join(f"V{i} {{ Position: {{{i},0,0}}\n Rotation: {{0,0,0}}\n Scale: {{1,1,1}}\n Color: {{1,1,1,1}}\n Primitive: {{0}} }}" for i in range(N)).encode()))
-vbuf=(c.c_byte*(80*(N+50)))()
-T(f"fu_read_views N~{N} (80B fu_view, try_get x4 per entity)", lambda: views(w,vbuf,N+50), 2000)
+vbuf=(c.c_byte*(96*(N+50)))()
+T(f"fu_read_views N~{N} (96B fu_view, try_get x4 per entity)", lambda: views(w,vbuf,N+50), 2000)
 ok(managed(w,b"Views",b""))
 # Tick costs
 T("fu_tick baseline (no reactive script)", lambda: tick(w,0.016), 3000)

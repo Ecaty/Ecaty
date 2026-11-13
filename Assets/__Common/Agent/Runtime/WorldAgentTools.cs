@@ -57,7 +57,7 @@ namespace Game
 
         private static string Query(FlecsWorld world, string expression)
         {
-            string result = world.Session.Query(expression);
+            string result = world.Session.QueryOnce(expression); // a model-written expression must not take a feature query slot
             return result.Length <= 60000 ? result : new JObject
             {
                 ["error"] = "Too many matches. Optional-only queries include engine internals. Add a required component, e.g. Position, ?Primitive, ?Color, ?Scale; or inspect_entity with an exact entity path. Do not repeat this query unchanged."

@@ -170,7 +170,15 @@ namespace Game.Editor
                 Require(!alpha.Creation.FindPart("extra"), "Removing a runtime entity did not remove its brush.");
                 checks.Add("Native Script creates and removes a brush without a recipe-tool round trip");
                 string saved = experience.Capture();
-                string savePath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Native/build-flecs-audit/experience-test.json"));
+                // Golden save: seeded once from this fixture scenario (no user data), then committed. Later builds must keep loading it.
+                string goldenPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Tests/Fixtures/Saves/experience-v1.json"));
+                if (!File.Exists(goldenPath))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(goldenPath));
+                    File.WriteAllText(goldenPath, saved);
+                    report["goldenSeeded"] = goldenPath;
+                }
+                string savePath =Path.GetFullPath(Path.Combine(Application.dataPath, "../Native/build-flecs-audit/experience-test.json"));
                 int revision = world.Session.SourceRevision;
                 experience.Save(savePath);
                 Require(File.Exists(savePath), "Local save was not written.");
@@ -202,6 +210,12 @@ namespace Game.Editor
                 await Frames(3);
                 Require(beta.Creation.PresentationRoot && beta.Actor.Motor, "Removing one model damaged its peer.");
                 checks.Add("Removing one model tears down its motor/presentation without removing the other model");
+                var golden = JObject.Parse(File.ReadAllText(goldenPath));
+                experience.Load(golden.ToString(Formatting.None));
+                await Frames(10);
+                Require(((JArray)golden["sources"]).All(s => world.Session.ManagedScriptSource((string)s["path"]) != null), "Golden save: a source module was not restored.");
+                Require(((JArray)golden["actors"]).All(a => experience.Models.TryGetValue((string)a["entity"], out var model) && model.Creation.PresentationRoot), "Golden save: a model was not restored.");
+                checks.Add("The committed version 1 experience save (Tests/Fixtures/Saves/experience-v1.json) still loads with every source and model");
                 Require(errors.Count == 0, "Runtime exceptions: " + string.Join("; ", errors.Take(3)));
                 report["passed"] = true;
             }

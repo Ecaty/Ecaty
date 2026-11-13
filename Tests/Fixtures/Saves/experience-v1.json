@@ -1,0 +1,1513 @@
+{
+  "version": 1,
+  "capabilities": null,
+  "capabilityGraph": null,
+  "sources": [
+    {
+      "path": "World",
+      "code": "// Reusable empty diorama. GroundSurface requests a static collision surface.\r\nGroundSurface {}\r\ndiorama {\r\n    Position: {0,0,0}\r\n    Ground {\r\n        GroundSurface\r\n        Position: {0,-0.2,0}\r\n        Scale: {16,0.4,16}\r\n        Primitive: {kind: 0}\r\n        Color: {0.23,0.32,0.30,1}\r\n    }\r\n}\r\n\r\nWorldSeed {\r\n    Position: {0,0.62,0}\r\n    Primitive: {kind: -1}\r\n}\r\n"
+    },
+    {
+      "path": "ActorSchema",
+      "code": "// Runtime protocol shared by inputs, behavior rules and Unity motor adapters.\r\nstruct ActorControl(mode: i32, speed: f32, acceleration: f32)\r\nstruct MoveIntent(x: f32, z: f32)\r\nstruct ActorMotion(x: f32, y: f32, z: f32, yaw: f32, vx: f32, vy: f32, vz: f32, grounded: bool)\r\nstruct ActorRig(json: string)\r\nstruct PlayerMotion(x: f32, z: f32)\r\nstruct MoveGoal(x: f32, z: f32, stopDistance: f32)\r\nInput { PlayerMotion: {0,0} }\r\nGoal { MoveGoal: {3,2,0.25} }\r\n\r\nScriptInput { MoveIntent: {0,0} }\r\n\r\n// Generic three-dimensional steering, with no aircraft-specific behavior.\r\nstruct SpatialIntent(x: f32, y: f32, z: f32)\r\nstruct MotorPolicy(spatial: bool, gravityScale: f32)\r\nstruct LiftIntent(y: f32)\r\nInput { LiftIntent: {0} }\r\nScriptInput { SpatialIntent: {0,0,0} }\r\n"
+    },
+    {
+      "path": "ClayBrushSchema",
+      "code": "struct ClayRest(px: f32, py: f32, pz: f32, rx: f32, ry: f32, rz: f32, sx: f32, sy: f32, sz: f32)\r\nstruct ClayStyle(kind: i32, r: f32, g: f32, b: f32, metallic: f32, smoothness: f32, glow: f32, dye: bool, blend: f32)\r\nstruct ClayPart(id: string, order: i32)\r\nMudModel {}\r\n"
+    },
+    {
+      "path": "PoseSchema",
+      "code": "// Live command and measured scene result. Separate from authored ClayRest.\r\nstruct PoseOffset(x: f32, y: f32, z: f32, rx: f32, ry: f32, rz: f32)\r\nstruct PoseObserved(x: f32, y: f32, z: f32, rx: f32, ry: f32, rz: f32, sx: f32, sy: f32, sz: f32, lx: f32, ly: f32, lz: f32, offsetApplied: bool, frame: u64)\r\n\r\n// Link a behavior-owned pose command entity to an existing view entity.\r\nPoseTarget {}\r\n"
+    },
+    {
+      "path": "EngineSchema",
+      "code": "struct EngineCapability(category: string, command: string, result: string, notes: string)\r\nstruct EngineBehavior(source: string)\r\nstruct PersistState(components: string)\r\nstruct EngineHealth(sources: i32, models: i32, behaviors: i32, adapterErrors: i32, binaryReads: u64, binaryWrites: u64, cachedQueries: u64)\r\nstruct AdapterFault(message: string)\r\nEngineTelemetry { EngineHealth: {0,0,0,0,0,0,0} }\r\nPersistent {}\r\nBoundCapability {}\r\nCapabilities {\r\n    Model { BoundCapability; EngineCapability: {\"model\", \"MudModel root; children with ClayPart id/order, ClayRest and ClayStyle\", \"live MudBun hierarchy; query reflected types\", \"Up to 64 nodes per model; explicit parent-local rest transforms. Use PoseOffset for animation.\"} }\r\n    Motor { BoundCapability; EngineCapability: {\"motion\", \"Per actor ActorControl, MotorPolicy; independent input/goal/command entities returned by inspect_experience\", \"ActorMotion actual position, velocity and grounding\", \"Unity is sole collision solver. Controlled ground/spatial motion; no vehicle dynamics, aerodynamics or pathfinding.\"} }\r\n    Pose { BoundCapability; EngineCapability: {\"animation\", \"Behavior-owned PoseOffset command entities linked through (PoseTarget, target)\", \"PoseObserved actual world/local transforms and applied frame\", \"Additive after Legs/Leaning/Boing, before MudBun. No collider motion. Remove commands to remove effects.\"} }\r\n    Input { BoundCapability; EngineCapability: {\"input\", \"Native on.press/release/click/activate/enter/leave/key_down/key_up; target is resolved by Unity picking\", \"Async template mut state and ordinary reactive ECS output\", \"UI consumes pointer input first; only selected actor reads movement devices. Each model can have independent NPC rules.\"} }\r\n    Behavior { BoundCapability; EngineCapability: {\"logic\", \"Named managed source modules; runtime templates, inheritance/interfaces, expressions, async/await\", \"Reflected ECS data and relationships\", \"No runtime C++ compilation. New native algorithms/plugins need bindings. Template prop changes restart async blocks.\"} }\r\n    Persistence { BoundCapability; EngineCapability: {\"storage\", \"save_experience/load_experience; source edits via edit_source and undo_source\", \"Versioned local experience document\", \"Saves managed source, model configurations, motor position, input state and selected Persistent/ PersistState components including template mut. Pending awaits restart; no mid-instruction VM snapshot.\"} }\r\n}\r\n"
+    },
+    {
+      "path": "RuntimeLibrary",
+      "code": "using flecs.script\r\n// Reusable, runtime-interpreted building block; AI can define additional templates.\r\ntemplate TogglePose {\r\n    prop listener: entity\r\n    prop target: entity\r\n    prop degrees: f32 = 20\r\n    mut active = false\r\n    command {\r\n        (PoseTarget, target)\r\n        if active { PoseOffset: {0,0,0,0,0,degrees} }\r\n        else { PoseOffset: {0,0,0,0,0,0} }\r\n    }\r\n    async {\r\n        while true {\r\n            await on.activate(listener)\r\n            active = !active\r\n        }\r\n    }\r\n}\r\n"
+    },
+    {
+      "path": "Models.Alpha",
+      "code": "Alpha {\nMudModel\nClayRest: {0, 0.75, -1, 0, 0, 0, 1, 1, 1}\npart_hips {\nClayPart: {\"hips\",0}\nClayRest: {0, 0.65, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_torso {\nClayPart: {\"torso\",0}\nClayRest: {0, 0.15, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_body {\nClayPart: {\"body\",0}\nClayRest: {0, 0, 0, 0, 0, 0, 1.1, 0.7, 0.8}\nClayStyle: {0, 0.2, 0.65, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_head {\nClayPart: {\"head\",1}\nClayRest: {0, 0.35, -0.15, 0, 0, 0, 0.65, 0.55, 0.6}\nClayStyle: {0, 0.35, 0.8, 0.85, 0, 0.45, 0, false, 0.07}\n}\npart_ear_base {\nClayPart: {\"ear_base\",2}\nClayRest: {0, 0.55, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_ear_tip {\nClayPart: {\"ear_tip\",0}\nClayRest: {0, 0.4, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_ear_brush {\nClayPart: {\"ear_brush\",0}\nClayRest: {0, 0, 0, 0, 0, 0, 0.2, 0.55, 0.2}\nClayStyle: {0, 0.85, 0.5, 0.3, 0, 0.45, 0, false, 0.07}\n}\n}\n}\n}\npart_left_hip {\nClayPart: {\"left_hip\",1}\nClayRest: {-0.4, -0.12, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_left_thigh {\nClayPart: {\"left_thigh\",0}\nClayRest: {0, -0.13, 0.06, 20.0000038, 0, 0, 0.22, 0.4, 0.24}\nClayStyle: {0, 0.3, 0.7, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_left_knee {\nClayPart: {\"left_knee\",1}\nClayRest: {0, -0.27, 0.14, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_left_shin {\nClayPart: {\"left_shin\",0}\nClayRest: {0, -0.13, -0.05, 340, 0, 0, 0.18, 0.4, 0.22}\nClayStyle: {0, 0.3, 0.7, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_left_foot {\nClayPart: {\"left_foot\",1}\nClayRest: {0, -0.27, -0.14, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_left_paw {\nClayPart: {\"left_paw\",0}\nClayRest: {0, -0.02, -0.08, 0, 0, 0, 0.3, 0.2, 0.45}\nClayStyle: {0, 0.2, 0.4, 0.5, 0, 0.45, 0, false, 0.07}\n}\n}\n}\n}\npart_right_hip {\nClayPart: {\"right_hip\",2}\nClayRest: {0.4, -0.12, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_right_thigh {\nClayPart: {\"right_thigh\",0}\nClayRest: {0, -0.13, 0.06, 20.0000038, 0, 0, 0.22, 0.4, 0.24}\nClayStyle: {0, 0.3, 0.7, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_right_knee {\nClayPart: {\"right_knee\",1}\nClayRest: {0, -0.27, 0.14, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_right_shin {\nClayPart: {\"right_shin\",0}\nClayRest: {0, -0.13, -0.05, 340, 0, 0, 0.18, 0.4, 0.22}\nClayStyle: {0, 0.3, 0.7, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_right_foot {\nClayPart: {\"right_foot\",1}\nClayRest: {0, -0.27, -0.14, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_right_paw {\nClayPart: {\"right_paw\",0}\nClayRest: {0, -0.02, -0.08, 0, 0, 0, 0.3, 0.2, 0.45}\nClayStyle: {0, 0.2, 0.4, 0.5, 0, 0.45, 0, false, 0.07}\n}\n}\n}\n}\n}\n}\n"
+    },
+    {
+      "path": "Inputs.Alpha",
+      "code": "AlphaInput { PlayerMotion: {0,0}; LiftIntent: {0} }\nAlphaGoal { MoveGoal: {3,2,0.25} }\nAlphaCommand { MoveIntent: {0,0}; SpatialIntent: {0,0,0} }"
+    },
+    {
+      "path": "ActorSetupAlpha",
+      "code": "Alpha {\nActorControl: {0,2,8}\nMotorPolicy: {false,1}\nActorRig: {\"\\{\\\"driver\\\":\\\"idle\\\",\\\"speed\\\":2,\\\"acceleration\\\":8,\\\"hips\\\":\\\"hips\\\",\\\"legs\\\":[[\\\"left_hip\\\",\\\"left_knee\\\",\\\"left_foot\\\"],[\\\"right_hip\\\",\\\"right_knee\\\",\\\"right_foot\\\"]],\\\"lean\\\":\\\"torso\\\",\\\"boing\\\":[\\\"ear_base\\\"],\\\"spawn\\\":[-2,0,0],\\\"facingYaw\\\":180,\\\"motion\\\":\\\"ground\\\",\\\"gravityScale\\\":1}\"}\nActorMotion: {-2,0,0,0,0,0,0,false}\nMoveIntent: {0,0}\nSpatialIntent: {0,0,0}\n}\n"
+    },
+    {
+      "path": "MotorLibrary",
+      "code": "// One template instance per actor. Adapters only execute its motor intent.\r\nusing flecs.script.math\r\ntemplate RuntimeMotorDriver {\r\nprop input: entity\r\nprop goal: entity\r\nprop command: entity\r\nconst mode = this[ActorControl].mode\r\nif mode == 0 {\r\n    MoveIntent: {0,0}; SpatialIntent: {0,0,0}\r\n} else if mode == 1 {\r\n    const stick = input[PlayerMotion]\r\n    const lift = input[LiftIntent].y\r\n    MoveIntent: {stick.x,stick.z}; SpatialIntent: {stick.x,lift,stick.z}\r\n} else if mode == 2 {\r\n    const p = this[ActorMotion]\r\n    const destination = goal[MoveGoal]\r\n    const dx = destination.x - p.x\r\n    const dz = destination.z - p.z\r\n    const distance = sqrt(dx * dx + dz * dz)\r\n    if distance > destination.stopDistance {\r\n        MoveIntent: {dx / distance,dz / distance}; SpatialIntent: {dx / distance,0,dz / distance}\r\n    } else {\r\n        MoveIntent: {0,0}; SpatialIntent: {0,0,0}\r\n    }\r\n} else if mode == 3 {\r\n    const spatial = this[MotorPolicy].spatial\r\n    if spatial {\r\n        const custom = command[SpatialIntent]\r\n        MoveIntent: {custom.x,custom.z}; SpatialIntent: {custom.x,custom.y,custom.z}\r\n    } else {\r\n        const custom = command[MoveIntent]\r\n        MoveIntent: {custom.x,custom.z}; SpatialIntent: {custom.x,0,custom.z}\r\n    }\r\n}\r\n}\r\n"
+    },
+    {
+      "path": "Drivers.Alpha",
+      "code": "Alpha { RuntimeMotorDriver: {AlphaInput,AlphaGoal,AlphaCommand} }"
+    },
+    {
+      "path": "Models.Beta",
+      "code": "Beta {\nMudModel\nClayRest: {0, 0.75, -1, 0, 0, 0, 1, 1, 1}\npart_hips {\nClayPart: {\"hips\",0}\nClayRest: {0, 0.65, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_torso {\nClayPart: {\"torso\",0}\nClayRest: {0, 0.15, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_body {\nClayPart: {\"body\",0}\nClayRest: {0, 0, 0, 0, 0, 0, 1.1, 0.7, 0.8}\nClayStyle: {0, 0.2, 0.65, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_head {\nClayPart: {\"head\",1}\nClayRest: {0, 0.35, -0.15, 0, 0, 0, 0.65, 0.55, 0.6}\nClayStyle: {0, 0.35, 0.8, 0.85, 0, 0.45, 0, false, 0.07}\n}\npart_ear_base {\nClayPart: {\"ear_base\",2}\nClayRest: {0, 0.55, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_ear_tip {\nClayPart: {\"ear_tip\",0}\nClayRest: {0, 0.4, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_ear_brush {\nClayPart: {\"ear_brush\",0}\nClayRest: {0, 0, 0, 0, 0, 0, 0.2, 0.55, 0.2}\nClayStyle: {0, 0.85, 0.5, 0.3, 0, 0.45, 0, false, 0.07}\n}\n}\n}\n}\npart_left_hip {\nClayPart: {\"left_hip\",1}\nClayRest: {-0.4, -0.12, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_left_thigh {\nClayPart: {\"left_thigh\",0}\nClayRest: {0, -0.13, 0.06, 20.0000038, 0, 0, 0.22, 0.4, 0.24}\nClayStyle: {0, 0.3, 0.7, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_left_knee {\nClayPart: {\"left_knee\",1}\nClayRest: {0, -0.27, 0.14, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_left_shin {\nClayPart: {\"left_shin\",0}\nClayRest: {0, -0.13, -0.05, 340, 0, 0, 0.18, 0.4, 0.22}\nClayStyle: {0, 0.3, 0.7, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_left_foot {\nClayPart: {\"left_foot\",1}\nClayRest: {0, -0.27, -0.14, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_left_paw {\nClayPart: {\"left_paw\",0}\nClayRest: {0, -0.02, -0.08, 0, 0, 0, 0.3, 0.2, 0.45}\nClayStyle: {0, 0.2, 0.4, 0.5, 0, 0.45, 0, false, 0.07}\n}\n}\n}\n}\npart_right_hip {\nClayPart: {\"right_hip\",2}\nClayRest: {0.4, -0.12, 0, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_right_thigh {\nClayPart: {\"right_thigh\",0}\nClayRest: {0, -0.13, 0.06, 20.0000038, 0, 0, 0.22, 0.4, 0.24}\nClayStyle: {0, 0.3, 0.7, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_right_knee {\nClayPart: {\"right_knee\",1}\nClayRest: {0, -0.27, 0.14, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_right_shin {\nClayPart: {\"right_shin\",0}\nClayRest: {0, -0.13, -0.05, 340, 0, 0, 0.18, 0.4, 0.22}\nClayStyle: {0, 0.3, 0.7, 0.8, 0, 0.45, 0, false, 0.07}\n}\npart_right_foot {\nClayPart: {\"right_foot\",1}\nClayRest: {0, -0.27, -0.14, 0, 0, 0, 1, 1, 1}\nClayStyle: {2, 0, 0, 0, 0, 0.45, 0, false, 0.07}\npart_right_paw {\nClayPart: {\"right_paw\",0}\nClayRest: {0, -0.02, -0.08, 0, 0, 0, 0.3, 0.2, 0.45}\nClayStyle: {0, 0.2, 0.4, 0.5, 0, 0.45, 0, false, 0.07}\n}\n}\n}\n}\n}\n}\n"
+    },
+    {
+      "path": "Inputs.Beta",
+      "code": "BetaInput { PlayerMotion: {0,0}; LiftIntent: {0} }\nBetaGoal { MoveGoal: {3,2,0.25} }\nBetaCommand { MoveIntent: {0,0}; SpatialIntent: {0,0,0} }"
+    },
+    {
+      "path": "ActorSetupBeta",
+      "code": "Beta {\nActorControl: {0,2,8}\nMotorPolicy: {false,1}\nActorRig: {\"\\{\\\"driver\\\":\\\"idle\\\",\\\"speed\\\":2,\\\"acceleration\\\":8,\\\"hips\\\":\\\"hips\\\",\\\"legs\\\":[[\\\"left_hip\\\",\\\"left_knee\\\",\\\"left_foot\\\"],[\\\"right_hip\\\",\\\"right_knee\\\",\\\"right_foot\\\"]],\\\"lean\\\":\\\"torso\\\",\\\"boing\\\":[\\\"ear_base\\\"],\\\"spawn\\\":[2,0,0],\\\"facingYaw\\\":180,\\\"motion\\\":\\\"ground\\\",\\\"gravityScale\\\":1}\"}\nActorMotion: {2,0,0,0,0,0,0,false}\nMoveIntent: {0,0}\nSpatialIntent: {0,0,0}\n}\n"
+    },
+    {
+      "path": "Drivers.Beta",
+      "code": "Beta { RuntimeMotorDriver: {BetaInput,BetaGoal,BetaCommand} }"
+    },
+    {
+      "path": "RuntimeBehaviors.alpha",
+      "code": "TogglePose toggle_Alpha(listener:Alpha,target:Alpha.part_hips.part_torso.part_body,degrees:30) { Persistent }"
+    },
+    {
+      "path": "RuntimeBehaviors.beta",
+      "code": "TogglePose toggle_Beta(listener:Beta,target:Beta.part_hips.part_torso.part_body,degrees:30) { Persistent }"
+    },
+    {
+      "path": "RuntimeBehaviors.keyboard",
+      "code": "using flecs.script\nstruct KeySignal(value:bool)\ntemplate KeyListener { prop target:entity; mut hit=false; KeySignal:{hit}; async { while true { const event = await on.key_down(target); if event.key == \"ArrowLeft\" { hit=true } } } }\nKeyListener key_test(target:Alpha) { Persistent }"
+    },
+    {
+      "path": "ExtraBrush",
+      "code": "// Removed"
+    }
+  ],
+  "actors": [
+    {
+      "entity": "Alpha",
+      "configuration": {
+        "driver": "idle",
+        "speed": 2,
+        "acceleration": 8,
+        "hips": "hips",
+        "legs": [
+          [
+            "left_hip",
+            "left_knee",
+            "left_foot"
+          ],
+          [
+            "right_hip",
+            "right_knee",
+            "right_foot"
+          ]
+        ],
+        "lean": "torso",
+        "boing": [
+          "ear_base"
+        ],
+        "spawn": [
+          -2,
+          0,
+          0
+        ],
+        "facingYaw": 180,
+        "motion": "ground",
+        "gravityScale": 1
+      },
+      "position": [
+        -2.0,
+        0.0,
+        0.0
+      ],
+      "yaw": 0.0
+    },
+    {
+      "entity": "Beta",
+      "configuration": {
+        "driver": "idle",
+        "speed": 2,
+        "acceleration": 8,
+        "hips": "hips",
+        "legs": [
+          [
+            "left_hip",
+            "left_knee",
+            "left_foot"
+          ],
+          [
+            "right_hip",
+            "right_knee",
+            "right_foot"
+          ]
+        ],
+        "lean": "torso",
+        "boing": [
+          "ear_base"
+        ],
+        "spawn": [
+          2,
+          0,
+          0
+        ],
+        "facingYaw": 180,
+        "motion": "ground",
+        "gravityScale": 1
+      },
+      "position": [
+        2.0,
+        0.0,
+        0.0
+      ],
+      "yaw": 0.0
+    }
+  ],
+  "states": [
+    {
+      "entity": "toggle_Alpha",
+      "components": {
+        "TogglePose.mut": {
+          "active": true
+        }
+      }
+    },
+    {
+      "entity": "toggle_Beta",
+      "components": {
+        "TogglePose.mut": {
+          "active": false
+        }
+      }
+    },
+    {
+      "entity": "key_test",
+      "components": {
+        "KeyListener.mut": {
+          "hit": true
+        }
+      }
+    },
+    {
+      "entity": "Alpha",
+      "components": {
+        "ActorControl": {
+          "mode": 0,
+          "speed": 2,
+          "acceleration": 8
+        },
+        "MoveIntent": {
+          "x": 0,
+          "z": 0
+        },
+        "SpatialIntent": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "MotorPolicy": {
+          "spatial": false,
+          "gravityScale": 1
+        },
+        "ClayRest": {
+          "px": 0,
+          "py": 0.75,
+          "pz": -1,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.6499999762,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "hips",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_torso",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.150000006,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "torso",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_torso.part_body",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1.1000000238,
+          "sy": 0.6999999881,
+          "sz": 0.8000000119
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.200000003,
+          "g": 0.6499999762,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "body",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_torso.part_head",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.349999994,
+          "pz": -0.150000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.6499999762,
+          "sy": 0.5500000119,
+          "sz": 0.6000000238
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.349999994,
+          "g": 0.8000000119,
+          "b": 0.8500000238,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "head",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_torso.part_ear_base",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.5500000119,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "ear_base",
+          "order": 2
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_torso.part_ear_base.part_ear_tip",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.400000006,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "ear_tip",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_torso.part_ear_base.part_ear_tip.part_ear_brush",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.200000003,
+          "sy": 0.5500000119,
+          "sz": 0.200000003
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.8500000238,
+          "g": 0.5,
+          "b": 0.3000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "ear_brush",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_left_hip",
+      "components": {
+        "ClayRest": {
+          "px": -0.400000006,
+          "py": -0.1199999973,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_hip",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_left_hip.part_left_thigh",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.1299999952,
+          "pz": 0.0599999987,
+          "rx": 20.0000038147,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.2199999988,
+          "sy": 0.400000006,
+          "sz": 0.2399999946
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.3000000119,
+          "g": 0.6999999881,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_thigh",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_left_hip.part_left_knee",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.2700000107,
+          "pz": 0.1400000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_knee",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_left_hip.part_left_knee.part_left_shin",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.1299999952,
+          "pz": -0.0500000007,
+          "rx": 340,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.1800000072,
+          "sy": 0.400000006,
+          "sz": 0.2199999988
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.3000000119,
+          "g": 0.6999999881,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_shin",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_left_hip.part_left_knee.part_left_foot",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.2700000107,
+          "pz": -0.1400000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_foot",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_left_hip.part_left_knee.part_left_foot.part_left_paw",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.0199999996,
+          "pz": -0.0799999982,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.3000000119,
+          "sy": 0.200000003,
+          "sz": 0.4499999881
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.200000003,
+          "g": 0.400000006,
+          "b": 0.5,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_paw",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_right_hip",
+      "components": {
+        "ClayRest": {
+          "px": 0.400000006,
+          "py": -0.1199999973,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_hip",
+          "order": 2
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_right_hip.part_right_thigh",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.1299999952,
+          "pz": 0.0599999987,
+          "rx": 20.0000038147,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.2199999988,
+          "sy": 0.400000006,
+          "sz": 0.2399999946
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.3000000119,
+          "g": 0.6999999881,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_thigh",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_right_hip.part_right_knee",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.2700000107,
+          "pz": 0.1400000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_knee",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_right_hip.part_right_knee.part_right_shin",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.1299999952,
+          "pz": -0.0500000007,
+          "rx": 340,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.1800000072,
+          "sy": 0.400000006,
+          "sz": 0.2199999988
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.3000000119,
+          "g": 0.6999999881,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_shin",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_right_hip.part_right_knee.part_right_foot",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.2700000107,
+          "pz": -0.1400000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_foot",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Alpha.part_hips.part_right_hip.part_right_knee.part_right_foot.part_right_paw",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.0199999996,
+          "pz": -0.0799999982,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.3000000119,
+          "sy": 0.200000003,
+          "sz": 0.4499999881
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.200000003,
+          "g": 0.400000006,
+          "b": 0.5,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_paw",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "AlphaInput",
+      "components": {
+        "PlayerMotion": {
+          "x": 0,
+          "z": 0
+        },
+        "LiftIntent": {
+          "y": 0
+        }
+      }
+    },
+    {
+      "entity": "AlphaGoal",
+      "components": {
+        "MoveGoal": {
+          "x": 3,
+          "z": 2,
+          "stopDistance": 0.25
+        }
+      }
+    },
+    {
+      "entity": "AlphaCommand",
+      "components": {
+        "MoveIntent": {
+          "x": 0,
+          "z": 0
+        },
+        "SpatialIntent": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta",
+      "components": {
+        "ActorControl": {
+          "mode": 0,
+          "speed": 2,
+          "acceleration": 8
+        },
+        "MoveIntent": {
+          "x": 0,
+          "z": 0
+        },
+        "SpatialIntent": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "MotorPolicy": {
+          "spatial": false,
+          "gravityScale": 1
+        },
+        "ClayRest": {
+          "px": 0,
+          "py": 0.75,
+          "pz": -1,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.6499999762,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "hips",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_torso",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.150000006,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "torso",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_torso.part_body",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1.1000000238,
+          "sy": 0.6999999881,
+          "sz": 0.8000000119
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.200000003,
+          "g": 0.6499999762,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "body",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_torso.part_head",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.349999994,
+          "pz": -0.150000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.6499999762,
+          "sy": 0.5500000119,
+          "sz": 0.6000000238
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.349999994,
+          "g": 0.8000000119,
+          "b": 0.8500000238,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "head",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_torso.part_ear_base",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.5500000119,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "ear_base",
+          "order": 2
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_torso.part_ear_base.part_ear_tip",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0.400000006,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "ear_tip",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_torso.part_ear_base.part_ear_tip.part_ear_brush",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": 0,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.200000003,
+          "sy": 0.5500000119,
+          "sz": 0.200000003
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.8500000238,
+          "g": 0.5,
+          "b": 0.3000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "ear_brush",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_left_hip",
+      "components": {
+        "ClayRest": {
+          "px": -0.400000006,
+          "py": -0.1199999973,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_hip",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_left_hip.part_left_thigh",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.1299999952,
+          "pz": 0.0599999987,
+          "rx": 20.0000038147,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.2199999988,
+          "sy": 0.400000006,
+          "sz": 0.2399999946
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.3000000119,
+          "g": 0.6999999881,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_thigh",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_left_hip.part_left_knee",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.2700000107,
+          "pz": 0.1400000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_knee",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_left_hip.part_left_knee.part_left_shin",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.1299999952,
+          "pz": -0.0500000007,
+          "rx": 340,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.1800000072,
+          "sy": 0.400000006,
+          "sz": 0.2199999988
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.3000000119,
+          "g": 0.6999999881,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_shin",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_left_hip.part_left_knee.part_left_foot",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.2700000107,
+          "pz": -0.1400000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_foot",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_left_hip.part_left_knee.part_left_foot.part_left_paw",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.0199999996,
+          "pz": -0.0799999982,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.3000000119,
+          "sy": 0.200000003,
+          "sz": 0.4499999881
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.200000003,
+          "g": 0.400000006,
+          "b": 0.5,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "left_paw",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_right_hip",
+      "components": {
+        "ClayRest": {
+          "px": 0.400000006,
+          "py": -0.1199999973,
+          "pz": 0,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_hip",
+          "order": 2
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_right_hip.part_right_thigh",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.1299999952,
+          "pz": 0.0599999987,
+          "rx": 20.0000038147,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.2199999988,
+          "sy": 0.400000006,
+          "sz": 0.2399999946
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.3000000119,
+          "g": 0.6999999881,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_thigh",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_right_hip.part_right_knee",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.2700000107,
+          "pz": 0.1400000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_knee",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_right_hip.part_right_knee.part_right_shin",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.1299999952,
+          "pz": -0.0500000007,
+          "rx": 340,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.1800000072,
+          "sy": 0.400000006,
+          "sz": 0.2199999988
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.3000000119,
+          "g": 0.6999999881,
+          "b": 0.8000000119,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_shin",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_right_hip.part_right_knee.part_right_foot",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.2700000107,
+          "pz": -0.1400000006,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 1,
+          "sy": 1,
+          "sz": 1
+        },
+        "ClayStyle": {
+          "kind": 2,
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_foot",
+          "order": 1
+        }
+      }
+    },
+    {
+      "entity": "Beta.part_hips.part_right_hip.part_right_knee.part_right_foot.part_right_paw",
+      "components": {
+        "ClayRest": {
+          "px": 0,
+          "py": -0.0199999996,
+          "pz": -0.0799999982,
+          "rx": 0,
+          "ry": 0,
+          "rz": 0,
+          "sx": 0.3000000119,
+          "sy": 0.200000003,
+          "sz": 0.4499999881
+        },
+        "ClayStyle": {
+          "kind": 0,
+          "r": 0.200000003,
+          "g": 0.400000006,
+          "b": 0.5,
+          "metallic": 0,
+          "smoothness": 0.4499999881,
+          "glow": 0,
+          "dye": false,
+          "blend": 0.0700000003
+        },
+        "ClayPart": {
+          "id": "right_paw",
+          "order": 0
+        }
+      }
+    },
+    {
+      "entity": "BetaInput",
+      "components": {
+        "PlayerMotion": {
+          "x": 0,
+          "z": 0
+        },
+        "LiftIntent": {
+          "y": 0
+        }
+      }
+    },
+    {
+      "entity": "BetaGoal",
+      "components": {
+        "MoveGoal": {
+          "x": 3,
+          "z": 2,
+          "stopDistance": 0.25
+        }
+      }
+    },
+    {
+      "entity": "BetaCommand",
+      "components": {
+        "MoveIntent": {
+          "x": 0,
+          "z": 0
+        },
+        "SpatialIntent": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      }
+    }
+  ],
+  "clock": {
+    "time": 2.4972884227,
+    "delta": 0.0268402006,
+    "frame": 56
+  },
+  "controlled": "PhotoClay"
+}

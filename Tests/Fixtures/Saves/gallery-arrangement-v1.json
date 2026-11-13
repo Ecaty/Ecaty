@@ -1,0 +1,1161 @@
+{
+  "version": 1,
+  "worlds": [
+    {
+      "id": "GalleryCreation1",
+      "record": {
+        "source": "GalleryCreation1Content { Position: {0,0,0}; (GalleryContentOf, GalleryCreation1)\nGround : GallerySharedShape {\nPosition: {x:0,y:-0.6,z:0}\nRotation: {x:0,y:0,z:0}\nScale: {x:0.42,y:0.42,z:0.42}\nColor: {r:0.3,g:0.43,b:0.39,a:1}\nPrimitive: {kind:4}\nSpin: {x:0,y:0,z:0}\n}\nObject1 : GallerySharedShape {\nPosition: {x:0.7,y:0.2,z:-0.3}\nRotation: {x:0,y:175.613541,z:43.9033852}\nScale: {x:0.8,y:0.8,z:0.8}\nColor: {r:0.86,g:0.73,b:0.48,a:1}\nPrimitive: {kind:0}\nSpin: {x:0,y:32,z:8}\n}\nObject2 : GallerySharedShape {\nPosition: {x:-1.584062,y:0,z:1.00675976}\nRotation: {x:0,y:60.4153,z:0}\nScale: {x:0.8,y:0.8,z:0.8}\nColor: {r:0.6,g:0.78,b:0.76,a:1}\nPrimitive: {kind:0}\nSpin: {x:0,y:25,z:0}\n}\n}\n",
+        "objects": "[{\"name\":\"Ground\",\"Position\":{\"x\":0,\"y\":-0.6000000238,\"z\":0},\"Rotation\":{\"x\":0,\"y\":0,\"z\":0},\"Scale\":{\"x\":0.4199999869,\"y\":0.4199999869,\"z\":0.4199999869},\"Color\":{\"r\":0.3000000119,\"g\":0.4300000072,\"b\":0.3899999857,\"a\":1},\"Primitive\":{\"kind\":4},\"Spin\":{\"x\":0,\"y\":0,\"z\":0}},{\"name\":\"Object1\",\"Position\":{\"x\":0.6999999881,\"y\":0.200000003,\"z\":-0.3000000119},\"Rotation\":{\"x\":0,\"y\":175.6135406494,\"z\":43.9033851624},\"Scale\":{\"x\":0.8000000119,\"y\":0.8000000119,\"z\":0.8000000119},\"Color\":{\"r\":0.8600000143,\"g\":0.7300000191,\"b\":0.4799999893,\"a\":1},\"Primitive\":{\"kind\":0},\"Spin\":{\"x\":0,\"y\":32,\"z\":8}},{\"name\":\"Object2\",\"Position\":{\"x\":-1.5840619802,\"y\":0,\"z\":1.0067597628},\"Rotation\":{\"x\":0,\"y\":60.4152984619,\"z\":0},\"Scale\":{\"x\":0.8000000119,\"y\":0.8000000119,\"z\":0.8000000119},\"Color\":{\"r\":0.6000000238,\"g\":0.7799999714,\"b\":0.7599999905,\"a\":1},\"Primitive\":{\"kind\":0},\"Spin\":{\"x\":0,\"y\":25,\"z\":0}}]",
+        "selected": "Object1",
+        "revision": 4,
+        "graph": ""
+      }
+    },
+    {
+      "id": "GalleryCreation2",
+      "record": {
+        "source": "GalleryCreation2Content { Position: {0,0,0}; (GalleryContentOf, GalleryCreation2)\nGround : GallerySharedShape {\nPosition: {x:0,y:-0.6,z:0}\nRotation: {x:0,y:0,z:0}\nScale: {x:0.42,y:0.42,z:0.42}\nColor: {r:0.3,g:0.43,b:0.39,a:1}\nPrimitive: {kind:4}\nSpin: {x:0,y:0,z:0}\n}\nObject1 : GallerySharedShape {\nPosition: {x:0,y:0,z:0}\nRotation: {x:0,y:0,z:0}\nScale: {x:0.8,y:0.8,z:0.8}\nColor: {r:0.86,g:0.73,b:0.48,a:1}\nPrimitive: {kind:0}\nSpin: {x:0,y:32,z:8}\n}\nObject2 : GallerySharedShape {\nPosition: {x:0.7,y:0.2,z:-0.3}\nRotation: {x:0,y:136.979355,z:34.24484}\nScale: {x:0.8,y:0.8,z:0.8}\nColor: {r:0.86,g:0.73,b:0.48,a:1}\nPrimitive: {kind:0}\nSpin: {x:0,y:32,z:8}\n}\n}\n",
+        "objects": "[{\"name\":\"Ground\",\"Position\":{\"x\":0,\"y\":-0.6000000238,\"z\":0},\"Rotation\":{\"x\":0,\"y\":0,\"z\":0},\"Scale\":{\"x\":0.4199999869,\"y\":0.4199999869,\"z\":0.4199999869},\"Color\":{\"r\":0.3000000119,\"g\":0.4300000072,\"b\":0.3899999857,\"a\":1},\"Primitive\":{\"kind\":4},\"Spin\":{\"x\":0,\"y\":0,\"z\":0}},{\"name\":\"Object1\",\"Position\":{\"x\":0,\"y\":0,\"z\":0},\"Rotation\":{\"x\":0,\"y\":0,\"z\":0},\"Scale\":{\"x\":0.8000000119,\"y\":0.8000000119,\"z\":0.8000000119},\"Color\":{\"r\":0.8600000143,\"g\":0.7300000191,\"b\":0.4799999893,\"a\":1},\"Primitive\":{\"kind\":0},\"Spin\":{\"x\":0,\"y\":32,\"z\":8}},{\"name\":\"Object2\",\"Position\":{\"x\":0.6999999881,\"y\":0.200000003,\"z\":-0.3000000119},\"Rotation\":{\"x\":0,\"y\":136.9793548584,\"z\":34.2448387146},\"Scale\":{\"x\":0.8000000119,\"y\":0.8000000119,\"z\":0.8000000119},\"Color\":{\"r\":0.8600000143,\"g\":0.7300000191,\"b\":0.4799999893,\"a\":1},\"Primitive\":{\"kind\":0},\"Spin\":{\"x\":0,\"y\":32,\"z\":8}}]",
+        "selected": "Object2",
+        "revision": 1,
+        "graph": ""
+      }
+    }
+  ],
+  "view": {
+    "x": 0,
+    "y": 2.0999999046,
+    "z": 0,
+    "yaw": 35.0000038147,
+    "pitch": 90,
+    "zoom": 12,
+    "columns": 6
+  },
+  "returnView": {
+    "x": 0.5300212502,
+    "y": -2.7237410545,
+    "z": -1.2881520987,
+    "yaw": 35.0000038147,
+    "pitch": 90,
+    "zoom": 12,
+    "columns": 6
+  },
+  "focus": {
+    "preview": "",
+    "current": "GalleryCreation1",
+    "target": 0,
+    "visit": 5,
+    "inside": false,
+    "following": false
+  },
+  "activity": {
+    "rate": 0,
+    "draft": false,
+    "sequence": 2,
+    "elapsed": 2.67668223,
+    "started": 0
+  },
+  "navigation": {
+    "approach": false,
+    "returning": true,
+    "exitArmed": false,
+    "exitIdle": false,
+    "exitAt": 0,
+    "boundary": 25.0761566,
+    "target": "GalleryCreation1",
+    "exitPull": 0,
+    "entryDistance": 11.3982525,
+    "portalReturn": true,
+    "portalAt": 15.1738729
+  },
+  "cameraAnchor": {
+    "active": false,
+    "x": 0.5300212502,
+    "y": -2.7237410545,
+    "z": -1.2881520987,
+    "zoom": 13.2975492477,
+    "minimum": 0.8999999762,
+    "centerY": -2.2500002384
+  },
+  "portal": {
+    "world": {
+      "world": "GalleryCreation1"
+    },
+    "gallery": {
+      "x": 0.5300212502,
+      "y": -2.7237410545,
+      "z": -1.2881520987,
+      "yaw": 35.0000038147,
+      "pitch": 90,
+      "zoom": 13.2975492477,
+      "columns": 6
+    },
+    "local": {
+      "x": -1.4206662178,
+      "y": 0.0778744221,
+      "z": -17.2203960419,
+      "yaw": 40.6105003357,
+      "pitch": 90,
+      "zoom": 2.4650831223,
+      "columns": 6
+    }
+  },
+  "layers": [
+    {
+      "turn": -6.184904,
+      "glowPhase": 5.69214058,
+      "glowRate": 1.06691194
+    },
+    {
+      "turn": -0.0842409059,
+      "glowPhase": 3.36046743,
+      "glowRate": -1.11733627
+    },
+    {
+      "turn": -6.20947266,
+      "glowPhase": 1.601261,
+      "glowRate": 0.9088969
+    },
+    {
+      "turn": -0.0708826855,
+      "glowPhase": 3.55293059,
+      "glowRate": -1.12326407
+    },
+    {
+      "turn": 0.06379443,
+      "glowPhase": 5.904767,
+      "glowRate": 0.8056717
+    },
+    {
+      "turn": -0.0579949245,
+      "glowPhase": 5.19324,
+      "glowRate": 1.16490078
+    }
+  ],
+  "entries": [
+    {
+      "id": "GalleryAquarium",
+      "state": {
+        "order": 31,
+        "width": 3,
+        "depth": 1,
+        "kind": 0,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 1.8950320482
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GallerySpace",
+      "state": {
+        "order": 2,
+        "width": 2,
+        "depth": 1,
+        "kind": 1,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryGarden",
+      "state": {
+        "order": 3,
+        "width": 1,
+        "depth": 1,
+        "kind": 2,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryRain",
+      "state": {
+        "order": 4,
+        "width": 2,
+        "depth": 1,
+        "kind": 3,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryMarch",
+      "state": {
+        "order": 5,
+        "width": 2,
+        "depth": 1,
+        "kind": 4,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryMusic",
+      "state": {
+        "order": 6,
+        "width": 1,
+        "depth": 1,
+        "kind": 5,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryOcean",
+      "state": {
+        "order": 7,
+        "width": 2,
+        "depth": 1,
+        "kind": 6,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryOrbit",
+      "state": {
+        "order": 8,
+        "width": 1,
+        "depth": 1,
+        "kind": 7,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample8",
+      "state": {
+        "order": 9,
+        "width": 1,
+        "depth": 1,
+        "kind": 0,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample9",
+      "state": {
+        "order": 10,
+        "width": 1,
+        "depth": 1,
+        "kind": 1,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample10",
+      "state": {
+        "order": 11,
+        "width": 1,
+        "depth": 1,
+        "kind": 2,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample11",
+      "state": {
+        "order": 12,
+        "width": 1,
+        "depth": 1,
+        "kind": 3,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample12",
+      "state": {
+        "order": 13,
+        "width": 1,
+        "depth": 1,
+        "kind": 4,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample13",
+      "state": {
+        "order": 14,
+        "width": 1,
+        "depth": 1,
+        "kind": 5,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample14",
+      "state": {
+        "order": 15,
+        "width": 1,
+        "depth": 1,
+        "kind": 6,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample15",
+      "state": {
+        "order": 16,
+        "width": 1,
+        "depth": 1,
+        "kind": 7,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample16",
+      "state": {
+        "order": 17,
+        "width": 1,
+        "depth": 1,
+        "kind": 0,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample17",
+      "state": {
+        "order": 18,
+        "width": 1,
+        "depth": 1,
+        "kind": 1,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample18",
+      "state": {
+        "order": 19,
+        "width": 1,
+        "depth": 1,
+        "kind": 2,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample19",
+      "state": {
+        "order": 20,
+        "width": 1,
+        "depth": 1,
+        "kind": 3,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample20",
+      "state": {
+        "order": 21,
+        "width": 1,
+        "depth": 1,
+        "kind": 4,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample21",
+      "state": {
+        "order": 22,
+        "width": 1,
+        "depth": 1,
+        "kind": 5,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample22",
+      "state": {
+        "order": 23,
+        "width": 1,
+        "depth": 1,
+        "kind": 6,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample23",
+      "state": {
+        "order": 24,
+        "width": 1,
+        "depth": 1,
+        "kind": 7,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample24",
+      "state": {
+        "order": 25,
+        "width": 1,
+        "depth": 1,
+        "kind": 0,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample25",
+      "state": {
+        "order": 26,
+        "width": 1,
+        "depth": 1,
+        "kind": 1,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample26",
+      "state": {
+        "order": 27,
+        "width": 1,
+        "depth": 1,
+        "kind": 2,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample27",
+      "state": {
+        "order": 28,
+        "width": 1,
+        "depth": 1,
+        "kind": 3,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample28",
+      "state": {
+        "order": 29,
+        "width": 1,
+        "depth": 1,
+        "kind": 4,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryTreeSample29",
+      "state": {
+        "order": 30,
+        "width": 1,
+        "depth": 1,
+        "kind": 5,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0,
+        "yaw": 0,
+        "pitch": 23,
+        "zoom": 4.6999998093,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryCreation1",
+      "state": {
+        "order": 1,
+        "width": 1,
+        "depth": 1,
+        "kind": 8,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": -0.4221804142,
+        "y": -0.6765550375,
+        "z": -0.4924724698,
+        "yaw": 40.6054344177,
+        "pitch": 44,
+        "zoom": 11.3982524872,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 4.090994,
+        "started": 0,
+        "target": 0
+      }
+    },
+    {
+      "id": "GalleryCreation2",
+      "state": {
+        "order": 0,
+        "width": 1,
+        "depth": 1,
+        "kind": 8,
+        "active": true
+      },
+      "track": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "camera": {
+        "x": 1.9083359241,
+        "y": -11.22660923,
+        "z": -6.3388457298,
+        "yaw": 40.6105003357,
+        "pitch": 90,
+        "zoom": 0.200000003,
+        "columns": 6
+      },
+      "sample": {
+        "time": 0
+      },
+      "residence": {
+        "elapsed": 0.0,
+        "started": 0,
+        "target": 0
+      }
+    }
+  ]
+}

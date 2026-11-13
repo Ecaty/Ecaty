@@ -6,6 +6,11 @@ using UnityEngine.InputSystem;
 using Runtime.Flecs;
 namespace Runtime.Capabilities
 {
+    // struct CapBounds(minX: f32, minY: f32, minZ: f32, maxX: f32, maxY: f32, maxZ: f32)
+    struct CapBoundsData
+    {
+        public float minX, minY, minZ, maxX, maxY, maxZ;
+    }
     [Capability("CapTerrain", "ground modifiers", 10)]
     public sealed class TerrainConfig
     {
@@ -103,15 +108,7 @@ namespace Runtime.Capabilities
                 UnityEngine.Object.Destroy(mesh);
             mesh = next;
             var bounds = collider.bounds;
-            Context.Publish("CapBounds", new
-            {
-                minX = bounds.min.x,
-                minY = bounds.min.y,
-                minZ = bounds.min.z,
-                maxX = bounds.max.x,
-                maxY = bounds.max.y,
-                maxZ = bounds.max.z
-            });
+            new Publisher<CapBoundsData>().Write(Context.Session, "CapBounds", Context.Entity, new CapBoundsData { minX = bounds.min.x, minY = bounds.min.y, minZ = bounds.min.z, maxX = bounds.max.x, maxY = bounds.max.y, maxZ = bounds.max.z });
         }
         public override void Dispose()
         {
@@ -146,7 +143,7 @@ namespace Runtime.Capabilities
     }
     public sealed class HandleCapability : CapabilityInstance<HandleConfig>
     {
-        static HandleCapability active; public static bool IsDragging => active != null; GameObject knob; float grid; Plane plane; bool ownsPose; ulong edit; string component; int index; JObject original; Vector3 begin;
+        static HandleCapability active; public static bool IsDragging => active != null; GameObject knob; float grid; Plane plane; bool ownsPose; ulong edit; string component; int index; JObject original; Vector3 begin; readonly Publisher<CapDragData> dragOut = new();
         public HandleCapability(CapabilityContext c) : base(c) { knob = GameObject.CreatePrimitive(PrimitiveType.Sphere); knob.name = "Manipulation handle"; knob.GetComponent<Collider>().isTrigger = true; knob.transform.SetParent(Host.transform, false); knob.AddComponent<CapabilityHandleMarker>().Entity = c.Entity; knob.GetComponent<Renderer>().sharedMaterial = Context.Runtime.World.presentationMaterial; }
         protected override void Apply(HandleConfig j)
         {
@@ -171,7 +168,7 @@ namespace Runtime.Capabilities
                 active = this;
                 plane = new Plane(camera.transform.forward, Target.position);
                 begin = Target.position;
-                ownsPose = Context.Runtime.World.AcquirePose(Context.TargetEntity, this);
+                ownsPose = Context.Runtime.World.AcquirePose(Context.TargetEntity, Context.Entity);
                 if (!string.IsNullOrEmpty(component))
                 {
                     var json = Context.Session.ComponentJson(edit, component);
@@ -185,13 +182,7 @@ namespace Runtime.Capabilities
                 var world = ray.GetPoint(distance);
                 if (grid > 0)
                     world = new Vector3(Mathf.Round(world.x / grid) * grid, Mathf.Round(world.y / grid) * grid, Mathf.Round(world.z / grid) * grid);
-                Context.Session.SetComponentJson(Context.Session.EntityPath(Context.TargetEntity), "CapDrag", JsonConvert.SerializeObject(new
-                {
-                    x = world.x,
-                    y = world.y,
-                    z = world.z,
-                    active = true
-                }));
+                dragOut.Write(Context.Session, "CapDrag", Context.TargetEntity, new CapDragData { x = world.x, y = world.y, z = world.z, active = true });
                 if (ownsPose)
                     Target.position = world;
                 if (original != null)
@@ -234,15 +225,9 @@ namespace Runtime.Capabilities
                 active = null;
                 return;
             }
-            Context.Session.SetComponentJson(Context.Session.EntityPath(Context.TargetEntity), "CapDrag", JsonConvert.SerializeObject(new
-            {
-                x = Target.position.x,
-                y = Target.position.y,
-                z = Target.position.z,
-                active = false
-            }));
+            dragOut.Write(Context.Session, "CapDrag", Context.TargetEntity, new CapDragData { x = Target.position.x, y = Target.position.y, z = Target.position.z, active = false });
             if (ownsPose)
-                Context.Runtime.World.ReleasePose(Context.TargetEntity, this);
+                Context.Runtime.World.ReleasePose(Context.TargetEntity, Context.Entity);
             ownsPose = false;
             active = null;
         }

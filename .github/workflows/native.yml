@@ -1,6 +1,7 @@
 name: Native
 
-# Builds the native Flecs library (Native/Core + Native/App) and runs the Python native smokes.
+# Builds the native Flecs library (Native/Core + Native/App) and runs the Python native smokes,
+# the contract checks (header, C# imports, every .flecs file) and the engine benchmark.
 # No Unity involved; Unity suites still run locally (Tests/Run-All.cmd, Run-Extended.cmd).
 on:
   push:
@@ -8,20 +9,28 @@ on:
     paths:
       - 'Native/**'
       - 'Verification/*.py'
+      - 'Verification/budgets/**'
       - 'Assets/**/*.flecs'
+      - 'Packages/**/*.flecs'
+      - 'Packages/com.runtime.flecs'
+      - 'Packages/com.runtime.capabilities/**/*.cs'
       - '.github/workflows/native.yml'
   pull_request:
     paths:
       - 'Native/**'
       - 'Verification/*.py'
+      - 'Verification/budgets/**'
       - 'Assets/**/*.flecs'
+      - 'Packages/**/*.flecs'
+      - 'Packages/com.runtime.flecs'
+      - 'Packages/com.runtime.capabilities/**/*.cs'
       - '.github/workflows/native.yml'
   workflow_dispatch:
 
 jobs:
   windows:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Keep upstream line endings in vendor submodules
         run: |
@@ -33,6 +42,8 @@ jobs:
           lfs: false
       - name: Native submodules only, incl. their vendor forks (Store/ is private)
         run: git submodule update --init --recursive --depth 1 Native/Core Native/App
+      - name: Bridge package (its DllImport declarations are checked against the native header)
+        run: git submodule update --init --depth 1 Packages/com.runtime.flecs
       - name: Cache the sound bank (LFS)
         uses: actions/cache@v4
         with:
@@ -55,7 +66,8 @@ jobs:
             @{ script = 'Verification/capability_native_smoke.py'; args = @('Assets/Plugins/Flecs/x86_64/flecs_unity.dll'); report = 'Verification/capability-native-checks.json' },
             @{ script = 'Verification/runtime_engine_smoke.py'; args = @(); report = 'Verification/runtime-engine-native-checks.json' },
             @{ script = 'Verification/runtime_behavior_smoke.py'; args = @(); report = 'Verification/runtime-behavior-native-checks.json' },
-            @{ script = 'Verification/workshop_chain_smoke.py'; args = @(); report = '' }
+            @{ script = 'Verification/workshop_chain_smoke.py'; args = @(); report = '' },
+            @{ script = 'Verification/contract_checks.py'; args = @(); report = 'Verification/contract-checks.json' }
           )
           foreach ($smoke in $smokes) {
             Write-Host "::group::$($smoke.script)"
@@ -66,3 +78,102 @@ jobs:
             Write-Host '::endgroup::'
           }
           if ($failed.Count -gt 0) { throw "Failed: $($failed -join ', ')" }
+      # A Debug build turns on Flecs checks that Release skips (for example a table changed while it is locked),
+      # compiles our own sources with warnings and builds the core tests.
+      - name: Debug build - warnings, core tests, smokes
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD 'Native/build-tests/out'
+          $mingw = (Get-Command gcc -ErrorAction SilentlyContinue) -and (Get-Command g++ -ErrorAction SilentlyContinue)
+          $generator = if ($mingw) { @('-G', 'MinGW Makefiles', '-DCMAKE_BUILD_TYPE=Debug') } else { @() }
+          cmake -S Native -B Native/build-tests @generator -DFU_WARNINGS=ON -DFU_BUILD_TESTS=ON "-DUNITY_PLUGIN_DIR=$out"
+          if ($LASTEXITCODE -ne 0) { throw 'Debug configuration failed.' }
+          cmake --build Native/build-tests --config Debug --parallel 4 2>&1 | Tee-Object -FilePath Native/build-tests/build.log | Select-Object -Last 5
+          if ($LASTEXITCODE -ne 0) { Get-Content Native/build-tests/build.log -Tail 60; throw 'Debug build failed.' }
+          # A warning located in vendor code is expected; one located in our own sources fails the job.
+          $ours = Select-String -Path Native/build-tests/build.log -Pattern 'warning' | Where-Object { $_.Line -match 'Native[\\/](Core|App)[\\/](src|tests|include)[\\/]' }
+          if ($ours) { $ours | ForEach-Object { Write-Host $_.Line }; throw "Warnings in our own sources: $(@($ours).Count)" }
+          $tests = Get-ChildItem Native/build-tests -Recurse -Filter flecs_unity_core_tests.exe | Select-Object -First 1
+          & $tests.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Core tests failed.' }
+          $env:FLECS_UNITY_LIBRARY = Join-Path $out 'flecs_unity.dll'
+          $env:FLECS_UNITY_DEBUG_BUILD = '1'
+          $failed = @()
+          foreach ($smoke in @('native_smoke.py', 'runtime_engine_smoke.py', 'runtime_behavior_smoke.py', 'contract_checks.py')) {
+            python "Verification/$smoke" | Select-Object -Last 2
+            if ($LASTEXITCODE -ne 0) { $failed += $smoke }
+          }
+          python Verification/capability_native_smoke.py $env:FLECS_UNITY_LIBRARY | Select-Object -Last 2
+          if ($LASTEXITCODE -ne 0) { $failed += 'capability_native_smoke.py' }
+          if ($failed.Count -gt 0) { throw "Failed on the Debug build: $($failed -join ', ')" }
+      # The guards in Verification/budgets were measured on the development machine. Until they are confirmed on
+      # this runner the benchmark reports without failing the job; it is enforced locally (Tests/Run-Extended.cmd).
+      - name: Engine benchmark (report only)
+        continue-on-error: true
+        run: python Verification/bench_engine.py
+      - name: Keep the benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-bench
+          path: Verification/engine-bench.json
+          if-no-files-found: ignore
+
+  # AddressSanitizer on MSVC (MinGW has no sanitizer runtime). A separate job, so the existing job is untouched.
+  # Needs the sound bank and schemas like the main job. Findings fail the job: ASan aborts on the first error.
+  windows-asan:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Keep upstream line endings in vendor submodules
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          lfs: false
+      - name: Native submodules only, incl. their vendor forks (Store/ is private)
+        run: git submodule update --init --recursive --depth 1 Native/Core Native/App
+      - name: Bridge package (its DllImport declarations are checked against the native header)
+        run: git submodule update --init --depth 1 Packages/com.runtime.flecs
+      - name: Cache the sound bank (LFS)
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: lfs-soundbank-${{ hashFiles('.gitattributes') }}
+      - name: Fetch only the LFS sound bank the audio smoke needs
+        run: git lfs pull --include "Assets/StreamingAssets/Audio/GeneralUser-GS.sf2"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: ASan build (MSVC, Debug) - core tests and smokes
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD 'Native/build-asan/out'
+          cmake -S Native -B Native/build-asan -G 'Visual Studio 17 2022' -A x64 -DFU_SANITIZE=ON -DFU_WARNINGS=ON -DFU_BUILD_TESTS=ON "-DUNITY_PLUGIN_DIR=$out"
+          if ($LASTEXITCODE -ne 0) { throw 'ASan configuration failed.' }
+          cmake --build Native/build-asan --config Debug --parallel 4 2>&1 | Tee-Object -FilePath Native/build-asan/build.log | Select-Object -Last 5
+          if ($LASTEXITCODE -ne 0) { Get-Content Native/build-asan/build.log -Tail 60; throw 'ASan build failed.' }
+          # The ASan runtime DLL ships beside the MSVC compiler.
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products '*' -property installationPath
+          $asan = Get-ChildItem (Join-Path $vs 'VC\Tools\MSVC') -Recurse -Filter 'clang_rt.asan_dynamic-x86_64.dll' | Where-Object FullName -Match 'Hostx64[\/]x64' | Select-Object -First 1
+          if (-not $asan) { throw 'ASan runtime DLL not found.' }
+          $env:PATH = "$($asan.DirectoryName);$env:PATH"
+          # Python 3.8+ does not search PATH for a DLL's dependencies, so the runtime also goes beside the plugin.
+          Copy-Item $asan.FullName $out
+          $tests = Get-ChildItem Native/build-asan -Recurse -Filter flecs_unity_core_tests.exe | Select-Object -First 1
+          & $tests.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Core tests failed under ASan.' }
+          # The ASan plugin loads into the stock python.exe through ctypes (verified locally); a report aborts the process.
+          # workshop_chain_smoke.py ignores FLECS_UNITY_LIBRARY and is covered by the main job.
+          $env:FLECS_UNITY_LIBRARY = Join-Path $out 'flecs_unity.dll'
+          $env:FLECS_UNITY_DEBUG_BUILD = '1'
+          $failed = @()
+          foreach ($smoke in @('native_smoke.py', 'runtime_engine_smoke.py', 'runtime_behavior_smoke.py', 'contract_checks.py')) {
+            python "Verification/$smoke" | Select-Object -Last 2
+            if ($LASTEXITCODE -ne 0) { $failed += $smoke }
+          }
+          python Verification/capability_native_smoke.py $env:FLECS_UNITY_LIBRARY | Select-Object -Last 2
+          if ($LASTEXITCODE -ne 0) { $failed += 'capability_native_smoke.py' }
+          if ($failed.Count -gt 0) { throw "Failed under ASan: $($failed -join ', ')" }

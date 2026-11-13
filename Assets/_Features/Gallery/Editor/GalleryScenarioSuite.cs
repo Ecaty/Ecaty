@@ -279,6 +279,21 @@ namespace Game.Editor
                     }
                 }
                 g.ReturnToGallery();
+                // Golden save: seeded once from this fixture state (no user data), then committed. Later builds must keep loading it.
+                string goldenPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Tests/Fixtures/Saves/gallery-arrangement-v1.json"));
+                if (!File.Exists(goldenPath))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(goldenPath));
+                    File.WriteAllText(goldenPath, g.CaptureArrangement());
+                    report["goldenSeeded"] = goldenPath;
+                }
+                string goldenText = File.ReadAllText(goldenPath);
+                var golden = JObject.Parse(goldenText);
+                g.RestoreArrangement(goldenText);
+                await Task.Delay(150);
+                Check(g.Items.Count == ((JArray)golden["entries"]).Count &&
+                    ((JArray)golden["worlds"]).Where(w => !string.IsNullOrEmpty((string)w["record"]?["source"])).All(w => g.Experiences.Has((string)w["id"])),
+                    "Committed version 1 arrangement (Tests/Fixtures/Saves/gallery-arrangement-v1.json) restores every entry and saved world");
                 g.RestoreArrangement(snapshot);
                 await Task.Delay(150);
                 Check(g.Items.Count == 30 && world.Session.Lookup(created) == 0, "Snapshot reconstruction releases test-owned creation");

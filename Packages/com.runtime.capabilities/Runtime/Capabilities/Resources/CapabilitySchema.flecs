@@ -1,3 +1,5 @@
+// CapBinding, CapState, CapDependsOn and CapDirty are compiled into the native core (Native/Core/src/Capabilities.cpp).
+// They are repeated here for older saves and tools; the native type guard refuses this file if a layout differs.
 struct CapBinding(target: entity, enabled: bool, revision: i32)
 struct CapState(phase: i32, appliedRevision: i32, generation: i32, message: string)
 struct CapType(component: string, category: string, description: string)

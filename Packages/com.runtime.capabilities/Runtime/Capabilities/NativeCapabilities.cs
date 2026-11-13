@@ -65,6 +65,16 @@ namespace Runtime.Capabilities
             }
         }
     }
+    // struct CapAudioNote(note: i32, velocity: f32, delay: f32, duration: f32, sequence: i32)
+    struct CapAudioNoteData
+    {
+        public int note; public float velocity, delay, duration; public int sequence;
+    }
+    // struct CapAudioMeter(peak: f32, samples: u64)
+    struct CapAudioMeterData
+    {
+        public float peak; public ulong samples;
+    }
     [Capability("CapAudio", "audio", 40)]
     public sealed class AudioConfig
     {
@@ -74,7 +84,7 @@ namespace Runtime.Capabilities
     }
     public sealed class AudioCapability : CapabilityInstance<AudioConfig>
     {
-        NativeAudio synth; AudioSource source; AudioClip clip; AudioLowPassFilter filter; int trigger = int.MinValue, noteSequence = int.MinValue, program, rate; float nextReport;
+        NativeAudio synth; AudioSource source; AudioClip clip; AudioLowPassFilter filter; int trigger = int.MinValue, noteSequence = int.MinValue, program, rate; float nextReport; readonly Publisher<CapAudioMeterData> meter = new();
         public AudioCapability(CapabilityContext c) : base(c) { }
         protected override void Apply(AudioConfig j)
         {
@@ -107,20 +117,15 @@ namespace Runtime.Capabilities
         }
         public override void Tick(float delta)
         {
-            var j = Context.Read("CapAudioNote");
-            if (j != null && j.I("sequence") != noteSequence)
+            if (Typed.TryReadOptional(Context.Session, Context.Entity, "CapAudioNote", out CapAudioNoteData j) && j.sequence != noteSequence)
             {
-                noteSequence = j.I("sequence");
-                synth.Note(0, j.I("note", 60), j.F("velocity", 1), program, Math.Clamp(j.F("delay"), 0, 60), Math.Clamp(j.F("duration", .3f), .01f, 60), rate);
+                noteSequence = j.sequence;
+                synth.Note(0, j.note, Fields.Finite(j.velocity, "velocity"), program, Math.Clamp(Fields.Finite(j.delay, "delay"), 0, 60), Math.Clamp(Fields.Finite(j.duration, "duration"), .01f, 60), rate);
             }
             if (Time.unscaledTime > nextReport)
             {
                 nextReport = Time.unscaledTime + .15f;
-                Context.Publish("CapAudioMeter", new
-                {
-                    peak = synth.Peak,
-                    samples = (ulong)synth.Samples
-                });
+                meter.Write(Context.Session, "CapAudioMeter", Context.Entity, new CapAudioMeterData { peak = synth.Peak, samples = (ulong)synth.Samples });
             }
         }
         public override void Dispose()

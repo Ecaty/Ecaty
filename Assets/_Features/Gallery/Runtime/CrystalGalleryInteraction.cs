@@ -442,9 +442,11 @@ namespace Game
                     EnterWorld((string)navigation["target"], true);
             }
         }
+        /// <summary>False when the arrangement is full: one more world would make the saved file unloadable.</summary>
+        public bool CanCreate => items.Count < GalleryExperienceStore.MaxEntries;
         public void BeginCreation(bool preserveReturn = false)
         {
-            if (IsDragging)
+            if (IsDragging || !CanCreate)
                 return;
             if (!preserveReturn)
                 Write("GalleryTreeReturn", "GalleryView", view);
@@ -467,7 +469,7 @@ namespace Game
         }
         public string CreateFirstObject()
         {
-            if (!Creating)
+            if (!Creating || !CanCreate)
                 return null;
             int sequence = (int)activity["sequence"] + 1;
             string id = "GalleryCreation" + sequence;
@@ -721,7 +723,7 @@ namespace Game
         public void RestoreArrangement(string json, bool launching = false)
         {
             var data = JObject.Parse(json);
-            if ((int?)data["version"] != 1 || data["entries"] is not JArray entries || entries.Count > 80)
+            if ((int?)data["version"] != 1 || data["entries"] is not JArray entries || entries.Count > GalleryExperienceStore.MaxEntries)
                 throw new ArgumentException("Invalid layered gallery arrangement");
             foreach (var token in entries)
             {

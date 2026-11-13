@@ -21,11 +21,11 @@ RoadShape {
 }
 ```
 
-`CapState.phase`: 1 applied, 0 waiting/disabled, -1 failed. A revision change forces reapplication. Reconciliation runs at 20 Hz for up to 256 bindings and reads only binding tables whose Flecs data changed (stable query handles with change detection: edits, added/removed bindings, native CapDirty), plus bindings waiting for a target view; an idle world allocates nothing. `Reconcile()` forces a full pass. Physics and animation tick in their own frame stages.
+`CapState.phase`: 1 applied, 0 waiting/disabled, -1 failed. A revision change forces reapplication. Reconciliation runs at 20 Hz for up to 256 bindings (a binding beyond that reports phase -1 and is applied once a slot is free) and reads only binding tables whose Flecs data changed (stable query handles with change detection: edits, added/removed bindings, native CapDirty), plus bindings waiting for a target view; an idle world allocates nothing. Steady-state ticks (body, navigation, rig, audio, handle, layout) allocate nothing too, and a configuration is parsed only when its bytes change. `Reconcile()` forces a full pass. Physics and animation tick in their own frame stages.
 
 **Failure recovery:** a failed configuration reports -1 and, if an earlier configuration succeeded, a fresh instance is rebuilt from that last valid configuration. A failed configuration is retried when it changes or a prerequisite's result changes, not every frame. A tick exception disposes the instance until the next edit or dependency change. Consumers keep their last valid output while a prerequisite regenerates or fails.
 
-**Ownership:** one transform owner per root (authored placement, CharacterController motor, dynamic body or layout). Competing owners are rejected. Material bindings lease appearance separately. Runtime IK must not target a chain owned by another solver.
+**Ownership:** one transform owner per root (authored placement, CharacterController motor, dynamic body or layout). Competing owners are rejected. The owner is the exclusive relationship `(TransformOwner, binding)` or `(AppearanceOwner, binding)` on the view entity in the world, so deleting the binding releases it. Material bindings lease appearance separately. Runtime IK must not target a chain owned by another solver.
 
 ## Adding a capability (two files)
 
@@ -90,7 +90,8 @@ Windows x64 Editor/development player is the current target; Android/iOS/XR need
 
 ## Code map
 
-- `Native/Core/src/RuntimeCapabilities.cpp`: dependency readiness/dirty propagation, trees, footprints, synthesizer, geometry ABI.
+- `Native/Core/src`: `Capabilities.cpp` (CapBinding/CapState, dependency readiness and dirty marks), `BehaviorTrees.cpp` (NativeTree), `Geometry.cpp` (footprints, outline ABI), `Audio.cpp` (synthesizer). Their systems live in the modules `core.cap`, `core.tree` and `core.geometry`; the phase map is in `Modules.hpp`.
+- Native coordination reacts to changes: a binding gets `CapState` and its first `CapDirty` together with `CapBinding`; a consumer is marked again when it gains or loses a prerequisite or when a prerequisite reports a different generation or phase. Marks are applied once per frame and before every `fu_cap_*` call. Footprints are recomputed when a `CapSpline` value is set; a tree is compiled when its definition is set and is not ticked while it only waits for simulation time.
 - `Packages/com.runtime.capabilities/Runtime/Capabilities`: runtime lifecycle (CapabilityRuntime), typed contracts (CapabilityCatalog), persistence (CapabilityGraph), built-in adapters.
 - `Assets/_Adapters/Runtime/Vendor`: gated optional plugin adapters (Assembly-CSharp because licensed plugins live there). `Assets/_Adapters/Editor`: plugin discovery, asset setup, workshop verification. `Assets/_Adapters/Tests`: generic tests.
 - The host supplies audio bank bytes via `CapabilityRuntime.AudioBankProvider`; the asset catalog is referenced by RuntimeComposition (`Assets/_Adapters/Adapters.asset`).

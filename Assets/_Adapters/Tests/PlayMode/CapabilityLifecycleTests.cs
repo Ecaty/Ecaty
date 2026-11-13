@@ -124,5 +124,124 @@ namespace Game.Tests
             }
             yield return null;
         }
+        // struct CapReadback(x: f32, y: f32, z: f32, vx: f32, vy: f32, vz: f32, contacts: i32) in CapabilitySchema.flecs
+        struct ReadbackMirror
+        {
+            public float x, y, z, vx, vy, vz; public int contacts;
+        }
+        // Ticking capabilities (a dynamic body publishing CapReadback and reading CapDrag/CapForce each fixed step, a light)
+        // must neither allocate nor parse JSON once settled. The ticks run through the same code as Update/FixedUpdate.
+        [UnityTest]
+        public IEnumerator SteadyStateTicksAllocateNothing()
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                var runtime = world.gameObject.AddComponent<CapabilityRuntime>();
+                runtime.Initialize(world);
+                runtime.RegisterDiscovered();
+                world.Session.SetManagedScript("SteadyModule", "SteadyTarget { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1}; CapDrag: {x: 0, y: 0, z: 0, active: false} }\n"
+                    + "SteadyBody { CapBinding: {target: SteadyTarget, enabled: true, revision: 1}; CapBody: {mass: 1, radius: 0.5, height: 1, gravity: 1, kinematic: false}; CapForce: {x: 0, y: 0, z: 0, sequence: 1} }\n"
+                    + "SteadyLight { CapBinding: {target: SteadyTarget, enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 4, colorR: 1, colorG: 1, colorB: 1} }");
+                world.SyncViews();
+                runtime.Reconcile();
+                yield return Frames(3);
+                Assert.That(runtime.BindingCount, Is.EqualTo(2));
+                Assert.That((int)JObject.Parse(world.Session.ComponentJson(world.Session.Lookup("SteadyBody"), "CapState"))["phase"], Is.EqualTo(1), "The body binding did not apply");
+                // Settle: first CapReadback write, CapState/CapDirty table moves, JIT of the generic paths. Real frames
+                // pass between steps so the 20 Hz readback and reconcile timers fire.
+                for (int i = 0; i < 20; i++)
+                {
+                    runtime.StepForTests();
+                    yield return null;
+                }
+                long allocated = 0;
+                for (int i = 0; i < 300; i++)
+                {
+                    long before = System.GC.GetAllocatedBytesForCurrentThread();
+                    runtime.StepForTests();
+                    allocated += System.GC.GetAllocatedBytesForCurrentThread() - before;
+                    if (i % 3 == 0)
+                        yield return null;
+                }
+                Assert.That(allocated, Is.EqualTo(0), "Steady-state capability ticks allocated " + allocated + " bytes");
+                Assert.That(world.Session.TryRead(world.Session.Lookup("SteadyBody"), "CapReadback", out ReadbackMirror readback), Is.True, "The body did not publish CapReadback");
+                Assert.That(float.IsFinite(readback.y));
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        // One binding more than the budget must fail by itself (CapState phase -1) without stopping the others,
+        // and must be applied once a slot is free.
+        [UnityTest]
+        public IEnumerator BindingBeyondTheBudgetFailsAloneAndIsRetried()
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                var runtime = world.gameObject.AddComponent<CapabilityRuntime>();
+                runtime.Initialize(world);
+                runtime.RegisterDiscovered();
+                int count = CapabilityRuntime.MaxBindings + 1;
+                var script = new System.Text.StringBuilder("BudgetTarget { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1} }\n");
+                for (int i = 0; i < count; i++)
+                    script.Append("BudgetLight").Append(i).Append(" { CapBinding: {target: BudgetTarget, enabled: true, revision: 1}; CapLight: {kind: 0, intensity: 1, range: 10, colorR: 1, colorG: 1, colorB: 1} }\n");
+                world.Session.SetManagedScript("BudgetModule", script.ToString());
+                world.SyncViews();
+                Assert.DoesNotThrow(() => runtime.Reconcile(), "One binding over the budget stopped capability processing");
+                yield return Frames(3);
+                JObject State(int index) => JObject.Parse(world.Session.ComponentJson(world.Session.Lookup("BudgetLight" + index), "CapState"));
+                Assert.That(runtime.BindingCount, Is.EqualTo(CapabilityRuntime.MaxBindings));
+                var refused = Enumerable.Range(0, count).Where(i => (int)State(i)["phase"] == -1).ToList();
+                Assert.That(refused.Count, Is.EqualTo(1), "Exactly the extra binding must report a failure");
+                Assert.That((string)State(refused[0])["message"], Does.Contain("budget"));
+                Assert.That(Enumerable.Range(0, count).Count(i => (int)State(i)["phase"] == 1), Is.EqualTo(CapabilityRuntime.MaxBindings));
+                world.Session.DeleteEntity("BudgetLight" + Enumerable.Range(0, count).First(i => i != refused[0]));
+                runtime.Reconcile(false);
+                runtime.Reconcile(false);
+                yield return Frames(3);
+                Assert.That(runtime.BindingCount, Is.EqualTo(CapabilityRuntime.MaxBindings));
+                Assert.That((int)State(refused[0])["phase"], Is.EqualTo(1), "The refused binding was not applied after a slot became free");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        // Ownership is an exclusive relationship in the world: one owner per view, and it ends with its owner entity.
+        [UnityTest]
+        public IEnumerator PoseOwnershipIsExclusiveAndEndsWithItsOwner()
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                world.Session.SetManagedScript("OwnershipModule", "OwnedView { Position: {0,0,0}; Scale: {1,1,1}; Primitive: {-1} }\nOwnerA {}\nOwnerB {}");
+                world.SyncViews();
+                ulong view = world.Session.Lookup("OwnedView"), a = world.Session.Lookup("OwnerA"), b = world.Session.Lookup("OwnerB");
+                var t = world.FindView(view).transform;
+                Assert.That(world.AcquirePose(view, a), Is.True);
+                Assert.That(world.AcquirePose(view, b), Is.False, "A second owner must be refused");
+                t.localPosition = new Vector3(5, 0, 0);
+                world.Session.SetComponentJson("OwnedView", "Position", "{\"x\":1,\"y\":2,\"z\":3}");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(5, 0, 0)), "An owned view must not follow the world");
+                world.Session.DeleteEntity("OwnerA");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)), "Ownership must end with its owner and show the world's pose");
+                Assert.That(world.AcquirePose(view, b), Is.True, "A free view can be claimed");
+                t.localPosition = new Vector3(7, 0, 0);
+                world.ReleasePose(view, b);
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)), "Release must snap back to the world's pose at once");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
     }
 }

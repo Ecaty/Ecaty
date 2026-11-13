@@ -18,7 +18,8 @@ P = c.c_void_p
 class View(c.Structure):
     _fields_ = [("entity", c.c_uint64), ("parent", c.c_uint64)] + [
         (name, c.c_float) for name in "px py pz rx ry rz sx sy sz r g b a".split()
-    ] + [("primitive", c.c_int32), ("has_label", c.c_int32)]
+    ] + [("primitive", c.c_int32), ("has_label", c.c_int32)] + [
+        (name, c.c_float) for name in "qx qy qz qw".split()] + [("flags", c.c_uint32)]
 
 def bind(name, ret, *args):
     fn = getattr(lib, name)
@@ -101,7 +102,7 @@ def request(w, port, path, method="GET", body=None):
 report = {"passed": False, "flecs": version().decode(), "checks": checks}
 w = None
 try:
-    assert abi() == 3
+    assert abi() == 4 and c.sizeof(View) == 96
     assert size() == c.sizeof(View)
     w = create(0)
     assert w, error(None)
@@ -239,8 +240,10 @@ SecondText : TextStyle { Position: {8,0,0} }
     assert diag["queryBuilds"] == builds, diag
     assert query_changed(w, handle) == 0
     assert managed(w, b"Unrelated", b"Other { Position: {9,0,0} }") == 0
-    assert query_changed(w, handle) == 1, "a source change must report each query as changed once (full refresh)"
-    assert query_read(w, handle, None, ents, None, vals, 4, 8) == 2 and query_changed(w, handle) == 0
+    assert query_changed(w, handle) == 0, "a source change that does not touch matched data must not report a change"
+    assert managed(w, b"More", b"Cool { Heat: {0} }") == 0
+    assert query_changed(w, handle) == 1, "a source change that adds matched data must report a change"
+    assert query_read(w, handle, None, ents, None, vals, 4, 8) == 3 and query_changed(w, handle) == 0
     run(w, "Hot { Heat: {5} }")
     assert query_changed(w, handle) == 1
     assert managed(w, b"Types", b"struct Heat(value: f32, extra: f32)\nHot { Heat: {7, 1} }") == 0
