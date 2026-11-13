@@ -121,7 +121,7 @@ namespace Game
             }
             return e;
         }
-        // Reads one component as JSON into a reusable buffer and parses only when the bytes changed (docs/FLECS-ARCHITECTURE-AUDIT.md).
+        // Reads one component as JSON into a reusable buffer and parses only when the bytes changed (Native/Core/docs/FLECS-ARCHITECTURE-AUDIT.md).
         // Within a frame the same instance is returned, as before; Write invalidates it so the next read returns native truth.
         JObject Read(string id, string type)
         {

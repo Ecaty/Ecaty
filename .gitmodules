@@ -13,3 +13,6 @@
 [submodule "Store"]
 	path = Store
 	url = https://github.com/Ecaty/ecaty-store.git
+[submodule "Packages/com.runtime.capabilities"]
+	path = Packages/com.runtime.capabilities
+	url = https://github.com/Ecaty/capabilities-unity.git

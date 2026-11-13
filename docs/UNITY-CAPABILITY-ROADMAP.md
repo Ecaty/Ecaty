@@ -46,4 +46,4 @@ Do not replace Flecs with another ECS or state/recipe framework. BehaviorTree.CP
 - [glTFast runtime import](https://docs.unity3d.com/Packages/com.unity.cloud.gltfast@6.14/manual/ImportRuntime.html), [whisper.unity platform support](https://github.com/Macoron/whisper.unity).
 - [AR Foundation](https://docs.unity3d.com/Packages/com.unity.xr.arfoundation@6.4/manual/index.html), [Digger runtime tier](https://github.com/ofux/Digger-Documentation/blob/master/Runtime.md).
 
-Proposed slices, peaceful-runtime-creation follow-ups and adaptive-world research: [history/UNITY-CAPABILITY-ROADMAP-proposals-2026-11.md](history/UNITY-CAPABILITY-ROADMAP-proposals-2026-11.md). Accepted decisions live in [RUNTIME-CAPABILITIES](RUNTIME-CAPABILITIES.md) and [BACKLOG](BACKLOG.md).
+Proposed slices, peaceful-runtime-creation follow-ups and adaptive-world research: [history/UNITY-CAPABILITY-ROADMAP-proposals-2026-11.md](history/UNITY-CAPABILITY-ROADMAP-proposals-2026-11.md). Accepted decisions live in [RUNTIME-CAPABILITIES](../Packages/com.runtime.capabilities/Documentation~/RUNTIME-CAPABILITIES.md) and [BACKLOG](BACKLOG.md).

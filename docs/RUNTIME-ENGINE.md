@@ -1,6 +1,6 @@
 # Runtime engine — short guide
 
-New capability lifecycle, portable native modules and optional plugin adapters: [RUNTIME-CAPABILITIES](RUNTIME-CAPABILITIES.md). This document covers the existing model/actor/Script foundation.
+New capability lifecycle, portable native modules and optional plugin adapters: [RUNTIME-CAPABILITIES](../Packages/com.runtime.capabilities/Documentation~/RUNTIME-CAPABILITIES.md). This document covers the existing model/actor/Script foundation.
 
 **Input -> AI queries live capabilities/world -> runtime Flecs definitions -> Unity adapters execute -> actual results return to Flecs -> AI verifies.** No AI call runs each simulation frame.
 

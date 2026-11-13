@@ -39,7 +39,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 | Rendering/presentation adapters | `Packages/com.runtime.flecs/Runtime/FlecsWorld.cs` |
 | Shared startup | `Packages/com.runtime.flecs/Runtime/FlecsBootstrap.cs` |
 | AI chat/providers/diagnostics | `Packages/com.runtime.ai-agent` (Runtime/Diagnostics, Runtime/UI) |
-| Docs | [PROJECT-STRUCTURE](PROJECT-STRUCTURE.md), [RESOURCES](RESOURCES.md), [AI-INTEGRATION](AI-INTEGRATION.md), [RUNTIME-ENGINE](RUNTIME-ENGINE.md), [RUNTIME-CAPABILITIES](RUNTIME-CAPABILITIES.md), [RUNTIME-PLUGINS](RUNTIME-PLUGINS.md), [BROWSER-TRACE](BROWSER-TRACE.md), [TESTING](TESTING.md) |
+| Docs | [PROJECT-STRUCTURE](PROJECT-STRUCTURE.md), [RESOURCES](RESOURCES.md), [AI-INTEGRATION](../Packages/com.runtime.ai-agent/Documentation~/AI-INTEGRATION.md), [RUNTIME-ENGINE](RUNTIME-ENGINE.md), [RUNTIME-CAPABILITIES](../Packages/com.runtime.capabilities/Documentation~/RUNTIME-CAPABILITIES.md), [RUNTIME-PLUGINS](RUNTIME-PLUGINS.md), [BROWSER-TRACE](../Packages/com.runtime.ai-agent/Documentation~/BROWSER-TRACE.md), [TESTING](TESTING.md) |
 
 ## Visual Studio
 
@@ -77,7 +77,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 ## AI package
 
-- `Packages/com.runtime.ai-agent` (submodule `Ecaty/ai-agent-unity`) holds generic chat UI, contracts, Windows local llama.cpp/Whisper, ChatGPT/OpenRouter/Gemini adapters, account selector, diagnostics. Host supplies Flecs tools via `IAgentTool`; marshal work to the owning thread. Credentials stay in provider adapters. Trace viewer: [BROWSER-TRACE](BROWSER-TRACE.md); host chooses log directory/title.
+- `Packages/com.runtime.ai-agent` (submodule `Ecaty/ai-agent-unity`) holds generic chat UI, contracts, Windows local llama.cpp/Whisper, ChatGPT/OpenRouter/Gemini adapters, account selector, diagnostics. Host supplies Flecs tools via `IAgentTool`; marshal work to the owning thread. Credentials stay in provider adapters. Trace viewer: [BROWSER-TRACE](../Packages/com.runtime.ai-agent/Documentation~/BROWSER-TRACE.md); host chooses log directory/title.
 
 ## Git across submodules
 
@@ -86,18 +86,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 ## Updating third-party forks
 
-- The only outside GitHub code is in `Native/Core/vendor`, each a submodule of our fork in the Ecaty org; the submodule commit is the pin. Never edit these sources in place.
-
-| Path | Fork | Original tracked | Fork branch holding the pin |
-|---|---|---|---|
-| `vendor/flecs` | Ecaty/flecs | SanderMertens/flecs | master |
-| `vendor/behaviortree` | Ecaty/BehaviorTree.CPP | BehaviorTree/BehaviorTree.CPP | master |
-| `vendor/clipper2` | Ecaty/Clipper2 | PolyClipping/Clipper2 (our fork comes from AngusJohnson/Clipper2, which lacks these commits) | ecaty |
-| `vendor/tinysoundfont` | Ecaty/TinySoundFont | schellingb/TinySoundFont | main |
-
-- `.github/workflows/upstream-check.yml` runs weekly (or by hand) and opens or updates one `upstream` issue per library when the original has new commits or a new release. It changes nothing.
-- To update: `gh repo sync Ecaty/<fork>` (for Clipper2, push the wanted PolyClipping commit to the fork's `ecaty` branch instead) → `git -C Native/Core/vendor/<lib> fetch origin <commit>` and `checkout <commit>` → rebuild (`./Native/Build.ps1`; the binary reports `FLECS_VERSION+<flecs short commit>`) → run `Tests/Run-Native.cmd` (and `Run-All.cmd` for Flecs) → commit the pin in Native/Core, then the Native/Core pointer in Ecaty → close the issue. If we ever must patch a library, commit the patch on an `ecaty` branch in its fork and pin that.
-- Windows: Flecs has very long test paths, so run `git config --global core.longpaths true` once before cloning. Use `git submodule update --init --recursive --depth 1` (or `git clone --recurse-submodules --shallow-submodules`): without `--depth 1`, a pin behind the fork's tip pulls full history (Flecs alone is ~230 MB instead of ~30 MB).
+The vendor libraries are submodules of Ecaty forks inside Native/Core. The weekly upstream check, checkout notes and update procedure are in [THIRD-PARTY](../Native/Core/docs/THIRD-PARTY.md) (issues open in Ecaty/flecs-native).
 
 ## Workflow rules
 

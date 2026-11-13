@@ -10,6 +10,6 @@
 
 Working: native tasks/sound/footprints plus geometry, physics, navigation, IK, camera, effects, Feel, layouts and reconstruction. Windows Editor/player checks pass. UniStorm/Crest rendering and mobile still need verification. The spatial creation UI is a separate step.
 
-[Capability details and code map](RUNTIME-CAPABILITIES.md) Â· [Current status](STATUS.md)
+[Capability details and code map](../Packages/com.runtime.capabilities/Documentation~/RUNTIME-CAPABILITIES.md) Â· [Current status](STATUS.md)
 
 Local AI: Play -> chat/account -> **On device** -> **Start**. Tap microphone -> stop -> review draft -> send. No AI account needed. [Setup, model limits and tests](LOCAL-AI.md) Â· [Short backlog](BACKLOG.md) Â· [Workshop/theme direction](PRODUCT-DIRECTION.md).

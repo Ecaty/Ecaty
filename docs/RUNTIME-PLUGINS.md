@@ -1,6 +1,6 @@
 # Runtime plugin map
 
-Earlier review logs (gallery implementation inspection, user-owned candidates, shader authoring, Feel/Amplify use): [history/RUNTIME-PLUGINS-review-log-2026-11.md](history/RUNTIME-PLUGINS-review-log-2026-11.md). Current status: [RUNTIME-CAPABILITIES](RUNTIME-CAPABILITIES.md), [RUNTIME-STACK](RUNTIME-STACK.md).
+Earlier review logs (gallery implementation inspection, user-owned candidates, shader authoring, Feel/Amplify use): [history/RUNTIME-PLUGINS-review-log-2026-11.md](history/RUNTIME-PLUGINS-review-log-2026-11.md). Current status: [RUNTIME-CAPABILITIES](../Packages/com.runtime.capabilities/Documentation~/RUNTIME-CAPABILITIES.md), [RUNTIME-STACK](../Native/Core/docs/RUNTIME-STACK.md).
 
 ## Asset map
 

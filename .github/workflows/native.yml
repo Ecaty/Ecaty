@@ -7,12 +7,14 @@ on:
     branches: [main]
     paths:
       - 'Native/**'
+      - 'Packages/com.runtime.capabilities'
       - 'Verification/*.py'
       - 'Assets/**/*.flecs'
       - '.github/workflows/native.yml'
   pull_request:
     paths:
       - 'Native/**'
+      - 'Packages/com.runtime.capabilities'
       - 'Verification/*.py'
       - 'Assets/**/*.flecs'
       - '.github/workflows/native.yml'
@@ -32,7 +34,7 @@ jobs:
           submodules: false
           lfs: false
       - name: Native submodules only, incl. their vendor forks (Store/ is private)
-        run: git submodule update --init --recursive --depth 1 Native/Core Native/App
+        run: git submodule update --init --recursive --depth 1 Native/Core Native/App Packages/com.runtime.capabilities
       - name: Cache the sound bank (LFS)
         uses: actions/cache@v4
         with:

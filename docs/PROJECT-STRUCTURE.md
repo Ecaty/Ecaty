@@ -19,11 +19,13 @@ Assets/
 Packages/
   com.runtime.flecs/          # native session/view bridge, separate runtime/editor asmdefs
   com.runtime.ai-agent/       # reusable agent/UI/providers, separate runtime/editor asmdefs
-  com.runtime.capabilities/   # reusable lifecycle/schema/Unity adapters, runtime asmdef
+  com.runtime.capabilities/   # reusable lifecycle/schema/Unity adapters, runtime asmdef (submodule Ecaty/capabilities-unity)
 Native/Core, Native/App    # unchanged native ownership and stable C ABI
   Core/vendor/{flecs,behaviortree,clipper2,tinysoundfont}  # submodules of Ecaty forks (pin = commit)
 Tests/, Tools/, docs/      # runners/manifests, developer utilities and handoff
 ```
+
+Engine repos (Native/Core and the `com.runtime.*` packages) are submodules with their own AGENTS.md, CLAUDE.md, BACKLOG.md and docs (`docs/` or `Documentation~/`); see the repo table in docs/README.md.
 
 Each owner's primary config asset sits directly at its base and uses its name: Gallery/Gallery.asset, World/World.asset, Theme/Theme.asset, Agent/Agent.asset and _Adapters/Adapters.asset. Do not add another Config folder. Secondary typed assets stay with their responsibility (World/Environment/Environment.asset; Agent/Presentation/PanelSettings.asset). Settings does not collect other modules' configs. RuntimeComposition is the reference-only startup registry; it retains its Resources load key and injects the owner assets. Config is separate from player/world saves.
 
