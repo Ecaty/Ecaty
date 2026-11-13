@@ -45,6 +45,9 @@ namespace Runtime.Capabilities
             public ulong Parent;
             public EffectiveForceValues Force;
             public bool HasForce, Wake, Write;
+            public Vector3 AppliedGravity, AppliedWind, AppliedLift;
+            public float Fraction;
+            public BodyContacts Contacts;
             public Vector3 Position, Written;
             public Quaternion Rotation = Quaternion.identity, WrittenRotation = Quaternion.identity;
         }
@@ -129,6 +132,19 @@ namespace Runtime.Capabilities
                     + "; ignored exits=" + ignoredExits + "; sent entered=" + sentEntered + " left=" + sentLeft + "; writes=" + writes
                     + "; last skip=" + (lastSkip ?? "none") + "; last crossing=" + (lastCrossing ?? "none") + "}";
             }
+        }
+
+        /// <summary>Also count the collisions of every free body (for tests that look into a trajectory).</summary>
+        public bool TraceContacts;
+
+        /// <summary>The forces applied to a body in its last step, its damping and its contacts: for failure messages.</summary>
+        public string Trace(ulong entity)
+        {
+            if (!items.TryGetValue(entity, out var item) || !item.Body)
+                return "no body";
+            return "gravity " + item.AppliedGravity + " wind " + item.AppliedWind + " lift " + item.AppliedLift + " submerged " + item.Fraction.ToString("0.00")
+                + " damping " + item.Body.linearDamping.ToString("0.00") + " parent " + item.Parent + " contacts "
+                + (item.Contacts ? item.Contacts.Count + " last " + item.Contacts.Last : "not traced");
         }
 
         public Rigidbody BodyOf(ulong entity) => items.TryGetValue(entity, out var item) ? item.Body : null;
@@ -319,6 +335,8 @@ namespace Runtime.Capabilities
                     body.linearDamping = 0f;
                     item.Body = body;
                     body.mass = MassOf(item);
+                    if (TraceContacts)
+                        item.Contacts = view.AddComponent<BodyContacts>();
                     bodies[body] = entity;
                     rescan = true;
                     break;
@@ -475,13 +493,19 @@ namespace Runtime.Capabilities
                 var force = item.Force;
                 Vector3 gravity = force.gravity.ToVector();
                 Vector3 acceleration = gravity + force.wind.ToVector();
+                item.AppliedGravity = gravity;
+                item.AppliedWind = force.wind.ToVector();
+                item.AppliedLift = Vector3.zero;
+                item.Fraction = 0f;
                 if (force.fluid > 0f && force.volume != 0 && items.TryGetValue(force.volume, out var place) && place.Collider)
                 {
                     var box = item.Collider.bounds;
                     float height = box.size.y;
                     float fraction = height > 1e-6f ? Mathf.Clamp01((place.Collider.bounds.max.y - box.min.y) / height) : 0f;
                     float density = force.density > 0f ? force.density : 1f;
-                    acceleration -= gravity * (force.fluid / density) * fraction;
+                    item.AppliedLift = -gravity * (force.fluid / density) * fraction;
+                    item.Fraction = fraction;
+                    acceleration += item.AppliedLift;
                 }
                 // Damping above 1 / dt would reverse the velocity.
                 float drag = dt > 0f ? Mathf.Min(force.drag, 0.9f / dt) : force.drag;

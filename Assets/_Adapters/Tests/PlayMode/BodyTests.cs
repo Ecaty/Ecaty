@@ -67,7 +67,16 @@ namespace Game.Tests
                     if (id != 0)
                         ids[name.Substring(name.LastIndexOf('.') + 1)] = id;
                 }
-                Bodies = new BodyPresenter(World);
+                this.script = script;
+            }
+
+            readonly string script;
+
+            // Builds the presenter. Call it a frame after the scene exists: the views' own primitive colliders are destroyed at
+            // the end of the frame, and until then they would be solid shapes in the physics scene.
+            public void Begin(bool trace = false)
+            {
+                Bodies = new BodyPresenter(World) { TraceContacts = trace };
                 CheckGeometry(script.Contains("dropper"));
             }
 
@@ -80,6 +89,15 @@ namespace Game.Tests
                 var ground = View("ground").GetComponent<Collider>();
                 var pond = View("pond").GetComponent<Collider>();
                 Assert.That(ground && pond, "the shapes were not built. " + Info);
+                foreach (var shape in World.GetComponentsInChildren<Collider>(true))
+                {
+                    bool ghost = shape.GetComponent<PlaceVolume>();
+                    Assert.That(!ghost || shape.isTrigger, "a ghost's collider must be a trigger: " + shape.name);
+                    Assert.That(shape.GetComponent<Rigidbody>() || ghost || shape.gameObject == ground.gameObject, "a collider nobody asked for: " + shape.name + " ("
+                        + shape.GetType().Name + ") under " + shape.transform.parent?.name + ", solid=" + !shape.isTrigger + ". " + Info);
+                }
+                foreach (var rigid in World.GetComponentsInChildren<Rigidbody>(true))
+                    Assert.That(rigid.GetComponentsInChildren<Collider>(true).Length, Is.EqualTo(1), rigid.name + " must have exactly one collider. " + Info);
                 var names = new System.Collections.Generic.List<string> { "fish", "rock", "ship", "ball", "drifter" };
                 if (dropper)
                     names.Add("dropper");
@@ -176,6 +194,8 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario());
+            yield return null;
+            scene.Begin();
             Vector3 drifter = scene.View("drifter").position;
             scene.Advance(0.2f);
             Assert.That(scene.Bodies.TrackedCount, Is.EqualTo(7), "five bodies, the ground and the pond were built. " + scene.Info);
@@ -194,10 +214,23 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario());
-            scene.Advance(5f);
+            yield return null;
+            scene.Begin(trace: true);
+            var trace = new System.Text.StringBuilder();
+            for (int i = 0; i < 250; i++)
+            {
+                scene.Advance(Step);
+                if (i < 100 && i % 5 == 4)
+                {
+                    var flying = scene.Body("ship");
+                    trace.Append("\n t=").Append(((i + 1) * Step).ToString("0.00")).Append(" pos ").Append(flying.position).Append(" vel ").Append(flying.linearVelocity)
+                        .Append(" | ").Append(scene.Bodies.Trace(scene.Id("ship")));
+                }
+            }
+            string flight = "\nship trace:" + trace;
             float rock = scene.Body("rock").position.y, fish = scene.Body("fish").position.y;
             var ship = scene.Body("ship");
-            Assert.That(Mathf.Abs(ship.position.x - 3.5f), Is.LessThan(1f), "the ship rises straight up from x = 3.5, it is at " + ship.position + ". " + scene.Info);
+            Assert.That(Mathf.Abs(ship.position.x - 3.5f), Is.LessThan(1f), "the ship rises straight up from x = 3.5, it is at " + ship.position + ". " + scene.Info + flight);
             Assert.That(rock, Is.LessThan(fish - 0.5f), "the rock ends lower than the fish");
             Assert.That(ship.position.y, Is.GreaterThan(fish + 0.5f), "the ship ends higher than both");
             float top = scene.View("pond").GetComponent<BoxCollider>().bounds.max.y;
@@ -212,6 +245,8 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario(dropper: true));
+            yield return null;
+            scene.Begin();
             scene.AssertChild("dropper", "land");
             scene.Advance(3f);
             scene.AssertChild("dropper", "land.pond");
@@ -235,6 +270,8 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario());
+            yield return null;
+            scene.Begin();
             scene.Advance(2.5f);
             scene.Flush();
             foreach (var path in new[] { "ship", "rock", "ball", "drifter" })
@@ -252,6 +289,8 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario());
+            yield return null;
+            scene.Begin();
             scene.Advance(3f);
             var ball = scene.Body("ball");
             Assert.That(ball.position.y, Is.LessThan(0.7f));
@@ -266,6 +305,8 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario());
+            yield return null;
+            scene.Begin();
             scene.Advance(1f);
             var view = scene.ViewObject("ball");
             Assert.That(view.GetComponent<Rigidbody>(), Is.Not.Null, "no Rigidbody on the view. " + scene.Info);
@@ -292,6 +333,8 @@ namespace Game.Tests
         {
             yield return null;
             using var scene = new Scene(Scenario());
+            yield return null;
+            scene.Begin();
             scene.Advance(1f);
             var fish = scene.ViewObject("fish");
             Assert.That(fish.GetComponent<Rigidbody>(), Is.Not.Null, "no Rigidbody on the fish. " + scene.Info);
