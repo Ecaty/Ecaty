@@ -64,7 +64,7 @@ Editor/Mono numbers; IL2CPP players are faster in absolute terms but the JSON:bi
 
 Legend: **[V]** verified from an external source (URL given), **[C]** verified in project code (file:line), **[M]** measured by me on this machine, **[I]** my inference.
 
-Project baseline [C]: vendored Flecs 4.2.0, commit `6879066` (`Native/Core/vendor/UPSTREAM.json`). `FLECS_CUSTOM_BUILD` is not defined (`vendor/flecs.h:215-254`), so **every default addon is compiled in, including REST/HTTP, in all builds**. Extra defines: `FLECS_SCRIPT_MATH`, `FLECS_SOFT_ASSERT`, `FLECS_KEEP_ASSERT`, `FLECS_CREATE_MEMBER_ENTITIES` (`Native/Core/CMakeLists.txt:12`). Imported at startup: Units, Metrics, Alerts, ScriptMath, Stats, ScriptInput, ScriptShell (`Native/Core/src/flecs_unity.cpp:65-71`).
+Project baseline [C]: vendored Flecs 4.2.0, commit `6879066` (submodule `Native/Core/vendor/flecs`). `FLECS_CUSTOM_BUILD` is not defined (`vendor/flecs/distr/flecs.h:215-254`), so **every default addon is compiled in, including REST/HTTP, in all builds**. Extra defines: `FLECS_SCRIPT_MATH`, `FLECS_SOFT_ASSERT`, `FLECS_KEEP_ASSERT`, `FLECS_CREATE_MEMBER_ENTITIES` (`Native/Core/CMakeLists.txt:12`). Imported at startup: Units, Metrics, Alerts, ScriptMath, Stats, ScriptInput, ScriptShell (`Native/Core/src/flecs_unity.cpp:65-71`).
 
 ## 1. What Flecs 4.x offers vs what Ecaty uses
 
@@ -178,7 +178,7 @@ Expected cost [I]: about 0.3–0.6 ms/frame of CPU plus several KB of managed ga
 Current state [C]:
 - `FlecsWorld.restPort = 27750` (`FlecsWorld.cs:10`), and the `FlecsSession` default is 27750 (`FlecsSession.cs:32`). REST starts in the Editor **and release players**.
 - It binds to 127.0.0.1 (`flecs_unity.cpp:91`), which is good.
-- It uses `ecs_rest_server_init`, which is **read-write**: the read-only flag only exists on the `EcsRest` singleton path (`vendor/flecs.h:13613-13622`) [C/I].
+- It uses `ecs_rest_server_init`, which is **read-write**: the read-only flag only exists on the `EcsRest` singleton path (`vendor/flecs/distr/flecs.h:13613-13622`) [C/I].
 - So any local process can `PUT script/…`, `PUT component/…`, `DELETE entity/…` and use Shell sessions. Script and shell endpoints can even save script files [V: FlecsRemoteApi].
 - If the port is busy (another Ecaty instance or another Flecs app), `fu_create` returns null and **world creation fails** (`flecs_unity.cpp:93-96`).
 

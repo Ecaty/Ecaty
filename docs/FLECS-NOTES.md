@@ -2,7 +2,7 @@
 
 Reference sweep of official Flecs resources, judged against what Ecaty does today. Companion to [FLECS-ARCHITECTURE-AUDIT](FLECS-ARCHITECTURE-AUDIT.md), which holds the measurements and the native/Script split. This file holds the API reference and the recommendations. Date: 2026-11-12.
 
-**Version.** We vendor Flecs **4.2.0**, master commit `6879066` from 2026-11-05 (`Native/Core/vendor/UPSTREAM.json`, `vendor/flecs.h:30-32`). No release newer than 4.2.0 was found. Notes marked **[4.2]** are new or changed in 4.2.0. Claims marked **[tested]** were checked in a scratch world against our own DLL (`4.2.0+6879066`, Python ctypes, outside the repo).
+**Version.** We vendor Flecs **4.2.0**, master commit `6879066` from 2026-11-05 (submodule `Native/Core/vendor/flecs`, `vendor/flecs/distr/flecs.h:30-32`). No release newer than 4.2.0 was found. Notes marked **[4.2]** are new or changed in 4.2.0. Claims marked **[tested]** were checked in a scratch world against our own DLL (`4.2.0+6879066`, Python ctypes, outside the repo).
 
 **Sources.** Unless a topic gives another link, the source is the Flecs manual at `https://www.flecs.dev/flecs/<Page>.html`. The old `md_docs_2*.html` links redirect there. Release notes: <https://github.com/SanderMertens/flecs/releases>. Medium returns 403 to fetchers, so Sander's blog posts were not read directly. Discord was not used.
 
@@ -48,7 +48,7 @@ Every example below is an instance of this split. "Vehicle → Plane" is just on
   - `owns<T>()` is true only for the entity's own copy. `target_for<T>(IsA)` tells you which base supplies the value.
 - **Auto-override.**
   - Every instance gets its own copy of a component even though the prefab normally shares it.
-  - C++: `prefab.set_auto_override(T{...})`. Script: `auto_override | Wheels: {4}` (`vendor/flecs.c:70848`).
+  - C++: `prefab.set_auto_override(T{...})`. Script: `auto_override | Wheels: {4}` (`vendor/flecs/distr/flecs.c:70848`).
   - Auto-override also works on prefab children.
 - **Prefab children.**
   - Instantiating copies the prefab's subtree.
