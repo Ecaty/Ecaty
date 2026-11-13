@@ -63,6 +63,7 @@ spawn = bind("fu_spawn", U64, P, U64, U64, c.c_char_p)
 world_create = bind("fu_world_create", U64, P, c.c_char_p)
 world_save = bind("fu_world_save_json", P, P, U64)
 world_load = bind("fu_world_load_json", U64, P, c.c_char_p, c.c_char_p)
+emit_events = bind("fu_emit_events", c.c_int32, P, P, c.c_int32)
 
 
 class View(c.Structure):
@@ -197,6 +198,63 @@ def tick_motion_idle_1000():
         return best_calls(lambda: tick(w, 0.016), 600)
 
 
+# ---- places and bodies ------------------------------------------------------
+
+class Event(c.Structure):
+    _fields_ = [("event", U64), ("entity", U64), ("other", U64),
+                ("x", c.c_float), ("y", c.c_float), ("z", c.c_float), ("value", c.c_float)]
+
+
+def places_world(w, bodies=1000, ponds=10):
+    """A land with `ponds` ponds (Float and Drag) and `bodies` free bodies spread over them."""
+    lines = ["land { Ghost; Gravity: {0, -9.8, 0}"]
+    for p in range(ponds):
+        lines.append(f" pond{p} {{ Ghost; Float: {{1}}; Drag: {{2.5}}; Position: {{{p * 20},0,0}}")
+        lines += [f"  b{i} {{ Free: {{1}}; Position: {{{i % 7},0,0}} }}" for i in range(p * bodies // ponds, (p + 1) * bodies // ponds)]
+        lines.append(" }")
+    lines.append("}")
+    set_script(w, "Places", "\n".join(lines))
+    tick(w, 0.016)
+    tick(w, 0.016)
+
+
+def tick_places_idle_1000():
+    """1000 free bodies in 10 ponds on a land, nothing changing: places cost nothing when idle."""
+    with world() as w:
+        places_world(w)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def places_force_edit_1000():
+    """One edit of the land's Gravity plus the tick that resolves the 1000 bodies below it."""
+    values = itertools.cycle([b'{"x":0,"y":-1.6,"z":0}', b'{"x":0,"y":-9.8,"z":0}'])
+
+    def edit():
+        if set_json(w, b"land", b"Gravity", next(values)) != 0:
+            raise RuntimeError((error(w) or b"").decode())
+        tick(w, 0.016)
+    with world() as w:
+        places_world(w)
+        return best_calls(edit, 200)
+
+
+def places_crossing():
+    """One PlaceEntered or PlaceLeft event plus the tick that re-parents one body, with 1000 bodies present."""
+    with world() as w:
+        places_world(w)
+        body, pond = lookup(w, b"land.pond1.b100"), lookup(w, b"land.pond1")
+        entered, left = lookup(w, b"PlaceEntered"), lookup(w, b"PlaceLeft")
+        if not (body and pond and entered and left):
+            raise RuntimeError("places entities are missing")
+        facts = itertools.cycle([(Event * 1)(Event(entered, body, pond, 20, 0, 0, 10)), (Event * 1)(Event(left, body, pond, 20, 0, 0, 0))])
+
+        def cross():
+            if emit_events(w, next(facts), 1) != 1:
+                raise RuntimeError("the event was not delivered")
+            tick(w, 0.016)
+        return best_calls(cross, 300)
+
+
 # ---- view snapshot and presentation -------------------------------------
 
 def read_views_metric(n):
@@ -325,14 +383,15 @@ prefab Plane : Vehicle { Speed: {200}; Wings: {30}
 
 
 def typed_read_bodies_up():
-    lines = ["struct Gravity(g: f32)\nstruct Buoyancy(d: f32)\nstruct Drag(k: f32)\nstruct Body(density: f32)",
-             "land { Gravity: {9.8}", " water { Buoyancy: {1}; Drag: {3}"]
+    # Own type names: Gravity, Float and Drag are built in (Places.cpp).
+    lines = ["struct Pull(g: f32)\nstruct Buoyancy(d: f32)\nstruct Slow(k: f32)\nstruct Body(density: f32)",
+             "land { Pull: {9.8}", " water { Buoyancy: {1}; Slow: {3}"]
     lines += [f"  fish{i} {{ Body: {{1}} }}" for i in range(500)]
     lines += [" }"] + [f" rock{i} {{ Body: {{3}} }}" for i in range(500)] + ["}"]
-    lines += ["space { Gravity: {0}", " ship { Body: {2} } }", "drift { Body: {1} }"]
+    lines += ["space { Pull: {0}", " ship { Body: {2} } }", "drift { Body: {1} }"]
     with world() as w:
         set_script(w, "places", "\n".join(lines))
-        handle = query_create(w, b"Body, ?Gravity(up), ?Buoyancy(up), ?Drag(up)")
+        handle = query_create(w, b"Body, ?Pull(up), ?Buoyancy(up), ?Slow(up)")
         entities = (U64 * 2048)()
         values = (c.c_float * 2048)()
         read = lambda: query_read(w, handle, None, entities, None, values, 4, 2048)
@@ -484,6 +543,9 @@ METRICS = [
     ("tick_trees_256", tick_trees_256),
     ("tick_motion_256_parts", tick_motion_256_parts),
     ("tick_motion_idle_1000", tick_motion_idle_1000),
+    ("tick_places_idle_1000", tick_places_idle_1000),
+    ("places_force_edit_1000", places_force_edit_1000),
+    ("places_crossing", places_crossing),
     ("read_views_1000", lambda: read_views_metric(1000)),
     ("view_changes_10000_static", view_changes_10000_static),
     ("read_views_10000", lambda: read_views_metric(10000)),

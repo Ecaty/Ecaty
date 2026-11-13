@@ -45,6 +45,21 @@
     "kind": "ratio",
     "guard": 1.5
   },
+  "tick_places_idle_1000": {
+    "description": "fu_tick with 1000 free bodies in 10 ponds on a land and nothing changing: places cost nothing when idle.",
+    "kind": "ratio",
+    "guard": 1.5
+  },
+  "places_force_edit_1000": {
+    "description": "One fu_set_component_json of the land's Gravity plus the tick that resolves the 1000 bodies below it.",
+    "kind": "ratio",
+    "guard": 17.0
+  },
+  "places_crossing": {
+    "description": "One PlaceEntered or PlaceLeft event plus the tick that re-parents one body, with 1000 free bodies present.",
+    "kind": "ratio",
+    "guard": 1.8
+  },
   "read_views_1000": {
     "description": "fu_read_views over 1000 entities.",
     "kind": "ratio",

@@ -1302,6 +1302,136 @@ def motion_contract():
             "documents hold the loop and the second pose only; every member has a brief")
 
 
+# --- Places and bodies (Native/Core/src/Places.cpp) ------------------------------------------------------------------------
+# Free bodies take each force from the nearest place above them; the module writes EffectiveForce (not saved). Unity
+# reports crossings with PlaceEntered and PlaceLeft events; the body is re-parented and keeps its place in the world.
+
+PLACES_LAND = ("land { Ghost; Gravity: {0, -9.8, 0}; Position: {0, 0, 0}\n"
+               "  ground { Pinned; Position: {0, -1, 0} }\n"
+               "  pond { Ghost; Float: {1}; Drag: {2.5}; Position: {10, 0, 0}\n"
+               "    fish { Free: {1}; Position: {0, -1, 0} }\n"
+               "    rock { Free: {3}; Position: {1, -1, 0} }\n"
+               "    ship { Free: {0.5}; Position: {2, 0, 0} }\n"
+               "  }\n"
+               "  ball { Free: {1}; Position: {-5, 3, 0} }\n"
+               "  gust { Ghost; Wind: {4, 0, 0}; Position: {-20, 0, 0} }\n"
+               "}\n"
+               "drifter { Free: {1}; Position: {0, 50, 0} }\n")
+
+
+@check("places")
+def places_contract():
+    def force(world, path):
+        return component(world, path, "EffectiveForce")
+
+    def sinking(world, path):
+        f = force(world, path)
+        return f["gravity"]["y"] - f["gravity"]["y"] * (f["fluid"] / f["density"])
+
+    def parent_of(world, path):
+        return world.entity(path).get("parent") or ""
+
+    def cross(world, kind, body, place, size, x, y, z):
+        fact = (Event * 1)(Event(world.lookup(kind), world.lookup(body), world.lookup(place), x, y, z, size))
+        assert emit_events(world.ctx, fact, 1) == 1, f"{kind} for {body} was not delivered"
+        world.tick(1)
+
+    with isolated_world() as world:
+        world.require_load("Land", PLACES_LAND)
+        world.tick(2)
+        fish = force(world, "land.pond.fish")
+        assert fish["gravity"]["y"] == -9.8 or abs(fish["gravity"]["y"] + 9.8) < 1e-5, f"fish gravity {fish}"
+        assert fish["fluid"] == 1 and fish["drag"] == 2.5 and fish["volume"] == "land.pond", f"fish force {fish}"
+        assert abs(sinking(world, "land.pond.fish")) < 1e-4, "a fish as dense as water must be neutral"
+        assert sinking(world, "land.pond.rock") < -6, "a rock must sink"
+        assert sinking(world, "land.pond.ship") > 9, "a ship must rise"
+        ball = force(world, "land.ball")
+        assert abs(ball["gravity"]["y"] + 9.8) < 1e-5 and ball["fluid"] == 0 and ball["drag"] == 0 and ball["volume"] in (0, "#0", ""), f"ball {ball}"
+        drifter = force(world, "drifter")
+        assert drifter["gravity"] == {"x": 0, "y": 0, "z": 0} and drifter["wind"] == {"x": 0, "y": 0, "z": 0} and \
+            drifter["fluid"] == 0 and drifter["drag"] == 0 and drifter["volume"] in (0, "#0", ""), f"a body outside every place must have no force: {drifter}"
+        assert force(world, "land.ground") is None and force(world, "land.pond") is None, "a pinned shape or a place got a force"
+        # A force edit reaches the bodies inside after one tick.
+        assert lib.fu_set_component_json(world.ctx, b"land", b"Gravity", b'{"x":0,"y":-1.6,"z":0}') == 0, world.error()
+        world.tick(1)
+        assert abs(force(world, "land.pond.fish")["gravity"]["y"] + 1.6) < 1e-5 and abs(force(world, "land.ball")["gravity"]["y"] + 1.6) < 1e-5, \
+            "a body inside did not follow the edited gravity"
+        # The nearest place wins, for the bodies inside it only.
+        assert lib.fu_set_component_json(world.ctx, b"land.pond", b"Gravity", b'{"x":0,"y":2,"z":0}') == 0, world.error()
+        world.tick(1)
+        assert force(world, "land.pond.fish")["gravity"]["y"] == 2 and abs(force(world, "land.ball")["gravity"]["y"] + 1.6) < 1e-5, \
+            "the nearest place must win for the bodies inside it only"
+        # A removed force disappears: reloading the script without the pond's Float.
+        world.require_load("Land", PLACES_LAND.replace("Float: {1}; ", ""))
+        world.tick(2)
+        after = force(world, "land.pond.fish")
+        assert after["fluid"] == 0 and after["volume"] in (0, "#0", "") and after["drag"] == 2.5, f"a removed force stayed on the body: {after}"
+
+    with isolated_world() as world:
+        world.require_load("Land", PLACES_LAND)
+        world.tick(2)
+        # The ball rolls into the pond: the position is kept in the world (the pond is at x 10).
+        cross(world, "PlaceEntered", "land.ball", "land", 1000, 9, 0, 0)
+        cross(world, "PlaceEntered", "land.ball", "land.pond", 20, 9, 0, 0)
+        assert parent_of(world, "land.pond.ball") == "land.pond", "the ball did not move into the pond"
+        position = component(world, "land.pond.ball", "Position")
+        assert abs(position["x"] + 1) < 1e-4 and abs(position["y"]) < 1e-4, f"the ball lost its place in the world: {position}"
+        assert force(world, "land.pond.ball")["fluid"] == 1, "the ball does not float in the pond"
+        cross(world, "PlaceLeft", "land.pond.ball", "land.pond", 0, 4, 1, 0)
+        assert parent_of(world, "land.ball") == "land" and force(world, "land.ball")["fluid"] == 0, "leaving the pond must return the ball to the land"
+        position = component(world, "land.ball", "Position")
+        assert abs(position["x"] - 4) < 1e-4 and abs(position["y"] - 1) < 1e-4, f"the ball is not where it left: {position}"
+        cross(world, "PlaceLeft", "land.ball", "land", 0, 0, 80, 0)
+        assert parent_of(world, "ball") == "" and force(world, "ball")["gravity"]["y"] == 0, "leaving every place must leave no force"
+        cross(world, "PlaceEntered", "ball", "land.ground", 5, 0, 0, 0)
+        assert parent_of(world, "ball") == "", "a shape that is not a ghost took a body in"
+        # Two ghosts at the same depth: the smaller wins.
+        world.require_load("Cove", "land { cove { Ghost; Drag: {9}; Position: {11, 0, 0} } }")
+        cross(world, "PlaceEntered", "ball", "land", 1000, 10, 0, 0)
+        cross(world, "PlaceEntered", "land.ball", "land.pond", 20, 10, 0, 0)
+        cross(world, "PlaceEntered", "land.pond.ball", "land.cove", 3, 11, 0, 0)
+        assert parent_of(world, "land.cove.ball") == "land.cove" and force(world, "land.cove.ball")["drag"] == 9, \
+            "of two places at the same depth the smaller must hold the body"
+        # A turned and scaled place: the position is in that place's own space.
+        world.require_load("Tilt", "tilt { Ghost; Position: {100, 0, 0}; Rotation: {0, 90, 0}; Scale: {2, 2, 2} }\nprobe { Free: {1}; Position: {0, 0, 0} }")
+        world.tick(2)
+        cross(world, "PlaceEntered", "probe", "tilt", 5, 100, 4, 6)
+        position = component(world, "tilt.probe", "Position")
+        assert abs(position["x"] + 3) < 1e-3 and abs(position["y"] - 2) < 1e-3 and abs(position["z"]) < 1e-3, f"position in a turned, scaled place: {position}"
+    with isolated_world() as world:
+        buffer = c.create_string_buffer(4096)
+        length = lib.fu_type_layout_into(world.ctx, world.lookup("EffectiveForce"), buffer, 4096)
+        assert 0 < length < 4096, f"EffectiveForce layout length {length}"
+        info = json.loads(buffer.raw[:length].decode())
+        offsets = {f["name"]: f["offset"] for f in info["fields"]}
+        assert info["size"] == 48 and offsets.get("volume") == 40, f"EffectiveForce size {info['size']}, offsets {offsets}"
+    with isolated_world() as world:
+        assert lib.fu_run_script(world.ctx, WORLD_SCHEMA.encode()) == 0, world.error()
+        entity = world_create(world.ctx, b"sea")
+        assert world_run(world.ctx, entity, b"pond { Ghost; Float: {1}\n boat { Free: {0.4}; Position: {0,0,0} } }") == 0, world.error()
+        world.tick(2)
+        assert force(world, "worlds.sea.pond.boat")["fluid"] == 1, "the boat was not resolved in its world"
+        document = saved(world, entity)
+        assert '"Free"' in document and '"Ghost"' in document and '"Float"' in document, "bodies, places and forces are not in the document"
+        assert "EffectiveForce" not in document, "the resolved force was saved"
+        assert world_load(world.ctx, b"sea2", document.encode()), world.error()
+        world.tick(2)
+        assert force(world, "worlds.sea2.pond.boat")["fluid"] == 1, "a loaded world did not resolve its forces again"
+    with isolated_world() as world:
+        members = {"Free": ["density"], "Pinned": [], "Ghost": [], "Gravity": ["x", "y", "z"], "Float": ["density"],
+                   "Wind": ["x", "y", "z"], "Drag": ["k"], "PlaceEntered": [], "PlaceLeft": []}
+        missing = []
+        for type_name, names in members.items():
+            for path in [type_name] + [f"{type_name}.{n}" for n in names]:
+                components = world.entity(path).get("components", {})
+                if not components.get("(flecs.doc.Description,flecs.doc.Brief)", {}).get("value"):
+                    missing.append(path)
+        assert not missing, f"no brief on: {missing}"
+    return ("forces from the nearest place (fish neutral, rock sinks, ship rises, ball falls, none outside), an edit or a removed force reaches the bodies, "
+            "PlaceEntered and PlaceLeft move a body and keep its world position (also in a turned, scaled place), a non-ghost takes none, the smaller place wins; "
+            "EffectiveForce is 48 bytes with volume at 40 and is not saved; every authored member has a brief")
+
+
 # --- Report --------------------------------------------------------------------------------------------------------
 
 passed = all(row["ok"] for row in results)

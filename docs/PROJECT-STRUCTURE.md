@@ -25,7 +25,8 @@ Native/Core, Native/App    # unchanged native ownership and stable C ABI
   Core/src/Worlds.cpp      # worlds (`worlds.<id>`), enter/leave, world documents, snapshot/rewind
   Core/src/Look.cpp        # Look and WorldStyle components (data contract; the Unity look adapter applies them)
   Core/src/Motion.cpp      # motion loops: MotionLoop, SecondPose, MotionOffset (added to views by the view stream)
-  Core/tests/              # C++ tests: core_tests.cpp, source_tests.cpp, world_tests.cpp, look_tests.cpp, motion_tests.cpp
+  Core/src/Places.cpp      # places and bodies: Free, Ghost, Gravity, Float, Wind, Drag; writes EffectiveForce; PlaceEntered/PlaceLeft re-parent
+  Core/tests/              # C++ tests: core_tests.cpp, source_tests.cpp, world_tests.cpp, look_tests.cpp, motion_tests.cpp, places_tests.cpp
   Core/vendor/{flecs,behaviortree,clipper2,tinysoundfont}  # submodules of Ecaty forks (pin = commit)
 Tests/, Tools/, docs/      # runners/manifests, developer utilities and handoff
 ```
