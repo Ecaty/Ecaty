@@ -12,22 +12,32 @@ namespace Game.Tests
     // The physics adapter for places and bodies against a real native world. Physics runs by script, one fixed step at a
     // time, so the results do not depend on frame timing.
     //
-    // The land is a box 20 wide centred at (0, 5, 0): x and z from -10 to 10, y from -5 to 15. Its ground is a pinned slab
-    // whose top is y = 0. The pond is a 6 wide box centred at (4, 2, 0): y from -1 to 5. Children sit in their parent's
-    // scaled space, so their positions in the script are world units divided by 20 (land) and by 6 (pond).
+    // World sizes first, then the local numbers. Scales multiply down the hierarchy, so only the pond is scaled and nothing
+    // that physics shapes sits below a scaled parent. The land is a place with gravity only: no scale and no shape of its own.
+    //
+    //   entity   parent  world centre      world size      local Position   local Scale
+    //   land     -       (0, 0, 0)         -               (0, 0, 0)        1
+    //   ground   land    (0, -0.5, 0)      40 x 1 x 40     (0, -0.5, 0)     (40, 1, 40)   pinned, top at y = 0
+    //   pond     land    (5, 3, 0)         6 x 6 x 6       (5, 3, 0)        (6, 6, 6)     ghost: x 2..8, y 0..6, z -3..3
+    //   fish     land    (5, 3, 0)         unit sphere     (5, 3, 0)        1             density 1, inside the pond
+    //   rock     land    (6.5, 3.6, 0)     unit sphere     (6.5, 3.6, 0)    1             density 3, inside the pond
+    //   ship     land    (3.5, 1.5, 0)     unit sphere     (3.5, 1.5, 0)    1             density 0.4, inside the pond
+    //   ball     land    (-5, 4, 0)        unit sphere     (-5, 4, 0)       1             above the ground, outside the pond
+    //   dropper  land    (7, 10, 0)        unit sphere     (7, 10, 0)       1             above the pond (optional)
+    //   drifter  -       (30, 50, 0)       unit sphere     (30, 50, 0)      1             in no place
+    // The bodies in the pond start as children of the land: the first crossings move them into the pond.
     public sealed class BodyTests
     {
         const float Step = 0.02f;
         const string Land =
-            "land { Ghost; Gravity: {0, -9.8, 0}; Position: {0, 5, 0}; Scale: {20, 20, 20}; Primitive: {0}\n"
-            + "  ground { Pinned; Position: {0, -0.3, 0}; Scale: {1, 0.1, 1}; Primitive: {0} }\n"
-            + "  pond { Ghost; Float: {1}; Drag: {2.5}; Position: {0.2, -0.15, 0}; Scale: {0.3, 0.3, 0.3}; Primitive: {0}\n"
-            + "    fish { Free: {1}; Position: {0, 0, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n"
-            + "    rock { Free: {3}; Position: {0.25, 0.1, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n"
-            + "    ship { Free: {0.4}; Position: {-0.25, -0.1, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n"
-            + "  }\n";
-        const string BallTail = "Position: {-0.2, -0.1, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n";
-        const string Dropper = "  dropper { Free: {1}; Position: {0.3, 0.15, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n";
+            "land { Gravity: {0, -9.8, 0}; Position: {0, 0, 0}\n"
+            + "  ground { Pinned; Position: {0, -0.5, 0}; Scale: {40, 1, 40}; Primitive: {0} }\n"
+            + "  pond { Ghost; Float: {1}; Drag: {2.5}; Position: {5, 3, 0}; Scale: {6, 6, 6}; Primitive: {0} }\n"
+            + "  fish { Free: {1}; Position: {5, 3, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n"
+            + "  rock { Free: {3}; Position: {6.5, 3.6, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n"
+            + "  ship { Free: {0.4}; Position: {3.5, 1.5, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n";
+        const string BallTail = "Position: {-5, 4, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n";
+        const string Dropper = "  dropper { Free: {1}; Position: {7, 10, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n";
         const string Drifter = "}\ndrifter { Free: {1}; Position: {30, 50, 0}; Scale: {1, 1, 1}; Primitive: {1} }\n";
 
         static string Scenario(bool ballFree = true, bool dropper = false) =>
@@ -50,6 +60,31 @@ namespace Game.Tests
                 Session.Tick(Step);
                 World.SyncViews();
                 Bodies = new BodyPresenter(World);
+                CheckGeometry(script.Contains("dropper"));
+            }
+
+            // Fails early, with the world bounds, when the numbers of the scene are wrong: no free body may start inside
+            // the ground, and the ones meant for the pond must start inside it.
+            void CheckGeometry(bool dropper)
+            {
+                Bodies.Step(Step);
+                Physics.SyncTransforms();
+                var ground = View("land.ground").GetComponent<Collider>();
+                var pond = View("land.pond").GetComponent<Collider>();
+                Assert.That(ground && pond, "the shapes were not built. " + Info);
+                var names = new System.Collections.Generic.List<string> { "land.fish", "land.rock", "land.ship", "land.ball", "drifter" };
+                if (dropper)
+                    names.Add("land.dropper");
+                foreach (var name in names)
+                {
+                    var body = Body(name);
+                    var shape = body.GetComponent<Collider>();
+                    string bounds = name + " at " + body.position + " bounds " + shape.bounds + "; ground " + ground.bounds + "; pond " + pond.bounds;
+                    Assert.That(Physics.ComputePenetration(shape, body.position, body.rotation, ground, ground.transform.position, ground.transform.rotation, out _, out _),
+                        Is.False, "starts inside the ground: " + bounds);
+                    bool inPond = name == "land.fish" || name == "land.rock" || name == "land.ship";
+                    Assert.That(pond.bounds.Contains(body.position), Is.EqualTo(inPond), (inPond ? "should start inside the pond: " : "should start outside the pond: ") + bounds);
+                }
             }
 
             public string Info => Bodies.Diagnostics + " free bodies in the world: " + Session.QueryOnce("Free");
@@ -130,7 +165,7 @@ namespace Game.Tests
             Vector3 drifter = scene.View("drifter").position;
             scene.Advance(0.2f);
             Assert.That(scene.Bodies.TrackedCount, Is.GreaterThanOrEqualTo(8), "shapes and bodies were built. " + scene.Info);
-            Assert.That(scene.Body("land.ball").position.y, Is.LessThan(3f), "the ball is falling");
+            Assert.That(scene.Body("land.ball").position.y, Is.LessThan(3.9f), "the ball is falling (it starts at y = 4)");
             scene.Advance(2.8f);
             var ball = scene.Body("land.ball");
             Assert.That(ball.position.y, Is.EqualTo(0.5f).Within(0.1f), "the ball rests on the ground (top at 0, radius 0.5)");
@@ -151,7 +186,7 @@ namespace Game.Tests
             Assert.That(rock, Is.LessThan(fish - 0.5f), "the rock ends lower than the fish");
             Assert.That(ship.position.y, Is.GreaterThan(fish + 0.5f), "the ship ends higher than both");
             float top = scene.View("land.pond").GetComponent<BoxCollider>().bounds.max.y;
-            Assert.That(top, Is.EqualTo(5f).Within(0.01f));
+            Assert.That(top, Is.EqualTo(6f).Within(0.01f));
             var bounds = ship.GetComponent<Collider>().bounds;
             Assert.That(bounds.max.y, Is.GreaterThan(top + 0.1f), "part of the ship is above the pond's top");
             Assert.That(bounds.min.y, Is.LessThan(top - 0.1f), "and part of it is below");
@@ -171,7 +206,7 @@ namespace Game.Tests
             Assert.That(force["fluid"].Value<float>(), Is.EqualTo(1f), "it gets the pond's fluid");
             // A body pushed out of the pond sideways is in the land again.
             var fish = scene.Body("land.pond.fish");
-            fish.position = new Vector3(8.5f, 2f, 0f);
+            fish.position = new Vector3(9.5f, 3f, 0f);
             fish.linearVelocity = Vector3.zero;
             scene.Advance(0.5f);
             scene.AssertChild("fish", "land");
