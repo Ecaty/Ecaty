@@ -30,7 +30,7 @@ If a previous attempt was tied to the wrong ChatGPT workspace, cancel the browse
 ## World loop and end-user behavior
 
 1. The user asks a change. The host gives the model private capability instructions and tools.
-2. `query` / `inspect_entity` read native Flecs data/reflection. `apply_script` evaluates real Flecs Script on the world-owning thread.
+2. `query` / `inspect_entity` read native Flecs data/reflection. `apply_script` evaluates real Flecs Script on the world-owning thread. Inside an entered world these tools are scoped: `query`, `inspect_entity`, `observe_world` and `observe_over_time` see only that world, and `apply_script` runs under it (an error returns line and column and writes nothing).
 3. The presentation adapter applies the snapshot, then reads actual local transforms and renderer/text colors into the native Presented component.
 4. `apply_script` / `observe_world` return queries containing that readback. The model checks internally. The user sees the changed objects, with brief useful chat only.
 
@@ -84,6 +84,12 @@ The host supplies explicit Flecs 4.1.6 grammar guidance in both private instruct
 ## Browser logger and response style
 
 The independent browser logger is now implemented. See [BROWSER-TRACE](BROWSER-TRACE.md) for live pairing, opt-in LAN inspection, phone setup and offline HTML/JSONL use. It shares the existing redacted collector and does not expose world-editing endpoints. The private host instructions now request only a short natural attribute value for simple questions (for example Reddish-orange.), with technical details only when requested. This is model guidance, not a guarantee or destructive post-processing of replies.
+
+## Tool list (2026-11-13)
+
+`Assets/__Common/Agent/Runtime/WorldAgentTools.cs`: `query`, `inspect_entity`, `apply_script`, `define_kind` (define or replace a kind in the entered world; returns what was removed, or the error with line and column), `undo_kind` (restore the kind's previous text), `observe_world`, `observe_over_time`; with a clay creation and actor also `inspect_photo_object`, `apply_photo_object`, `inspect_capabilities`, `inspect_actor`, `configure_actor`. `define_kind` and `undo_kind` need an entered world.
+
+`Assets/_Features/World/Runtime/RuntimeExperienceTools.cs` (root experience): `inspect_experience`, `create_model`, `inspect_model`, `configure_model`, `remove_model`, `inspect_definition`, `apply_runtime_behavior`, `remove_runtime_behavior`, `edit_definition`, `undo_definition`, `save_experience`, `load_experience`, `snapshot_experience` (keep the experience in memory) and `rewind_experience` (return to it). Outside an entered world `apply_script` adds one saved source and refuses the 257th.
 
 ## Reactive behavior tools (2026-11-03)
 

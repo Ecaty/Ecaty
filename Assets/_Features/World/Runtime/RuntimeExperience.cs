@@ -55,15 +55,28 @@ namespace Game
             models[ClayCreation.RootName] = new Model { Creation = creation, Actor = actor, Host = owner.gameObject };
             InstallFoundation();
         }
-        private static void InstallFoundationSources(FlecsSession session)
+        // Modules whose text ships with the app. They are installed from Resources when missing, never written to a save,
+        // and installed before any saved source, so a loaded experience always runs the current text.
+        private static readonly (string Module, string Resource)[] appOwned =
         {
-            foreach (var pair in new[] { ("ClayBrushSchema", "Runtime/Schemas/ClaySchema"), ("PoseSchema", "Runtime/Schemas/PoseSchema"), ("EngineSchema", "Runtime/Schemas/EngineSchema"), ("RuntimeLibrary", "Runtime/Catalog/RuntimeLibrary") })
-                if (session.ManagedScriptSource(pair.Item1) == null)
-                    session.SetManagedScript(pair.Item1, Resources.Load<TextAsset>(pair.Item2).text);
+            ("ClayBrushSchema", "Runtime/Schemas/ClaySchema"), ("PoseSchema", "Runtime/Schemas/PoseSchema"),
+            ("EngineSchema", "Runtime/Schemas/EngineSchema"), ("RuntimeLibrary", "Runtime/Catalog/RuntimeLibrary"),
+            ("ActorSchema", "Runtime/Schemas/ActorSchema"), ("MotorLibrary", "Runtime/Behaviors/ActorBehavior")
+        };
+        public static bool IsAppOwned(string module) =>
+            module == Runtime.Capabilities.CapabilityRuntime.SchemaModule || appOwned.Any(a => a.Module == module);
+        // The capability schema is installed only when the experience uses capabilities.
+        private static void InstallAppOwned(FlecsSession session, bool capabilitySchema)
+        {
+            foreach (var (module, resource) in appOwned)
+                if (session.ManagedScriptSource(module) == null)
+                    session.SetManagedScript(module, Resources.Load<TextAsset>(resource).text);
+            if (capabilitySchema)
+                Runtime.Capabilities.CapabilityRuntime.InstallSchema(session);
         }
         private void InstallFoundation()
         {
-            InstallFoundationSources(world.Session);
+            InstallAppOwned(world.Session, false);
             if (monitored != world.Session)
             {
                 monitored = world.Session;
@@ -444,7 +457,7 @@ namespace Game
         public string Capture()
         {
             var sources = new JArray();
-            foreach (string path in world.Session.ManagedPaths.Where(p => p != "RuntimeFaults").ToArray())
+            foreach (string path in world.Session.ManagedPaths.Where(p => p != "RuntimeFaults" && !IsAppOwned(p)).ToArray())
             {
                 string source = world.Session.ManagedScriptSource(path);
                 if (source != null)
@@ -525,11 +538,23 @@ namespace Game
             }
             finally { if (File.Exists(staged)) File.Delete(staged); }
         }
-        private static List<JObject> OrderSources(JArray sources)
+        private static FlecsSession NewProbe(List<JObject> valid, bool capabilitySchema)
+        {
+            var probe = new FlecsSession(0);
+            try
+            {
+                InstallAppOwned(probe, capabilitySchema);
+                foreach (var entry in valid)
+                    probe.SetManagedScript((string)entry["path"], (string)entry["code"]);
+                return probe;
+            }
+            catch { probe.Dispose(); throw; }
+        }
+        private static List<JObject> OrderSources(JArray sources, bool capabilitySchema)
         {
             var remaining = sources.Select(entry => entry as JObject ?? throw new ArgumentException("Invalid source module.")).ToList();
             var ordered = new List<JObject>(remaining.Count);
-            var probe = new FlecsSession(0);
+            var probe = NewProbe(ordered, capabilitySchema);
             try
             {
                 while (remaining.Count != 0)
@@ -548,9 +573,7 @@ namespace Game
                             unresolved = new InvalidOperationException($"Source '{path}' cannot be restored: {error.Message}", error);
                             // A failed evaluation may have left partial entities. Retry only from validated sources.
                             probe.Dispose();
-                            probe = new FlecsSession(0);
-                            foreach (var valid in ordered)
-                                probe.SetManagedScript((string)valid["path"], (string)valid["code"]);
+                            probe = NewProbe(ordered, capabilitySchema);
                             continue;
                         }
                         ordered.Add(entry);
@@ -566,18 +589,16 @@ namespace Game
 
         // Session-level restore steps, run on the probe session and on the live one so the probe exercises the live restore.
         // Live-only parts (adapter state, models and actors) are skipped when live is false.
-        private void RestoreSession(FlecsSession session, JObject data, List<JObject> ordered, JObject graph, JArray states, JArray actors, Runtime.Capabilities.CapabilityRuntime capabilities, bool live)
+        private void RestoreSession(FlecsSession session, JObject data, List<JObject> ordered, JObject graph, JArray states, JArray actors, Runtime.Capabilities.CapabilityRuntime capabilities, bool capabilitySchema, bool live)
         {
+            // The app's own modules first: saved sources use their types.
+            InstallAppOwned(session, capabilitySchema);
             if (data["clock"] is JObject clock && session.Lookup("Clock") != 0)
                 session.SetComponentJson("Clock", "Clock", clock.ToString(Formatting.None));
             foreach (var entry in ordered)
                 session.SetManagedScript((string)entry["path"], (string)entry["code"]);
             if (live)
                 InstallFoundation();
-            else
-                InstallFoundationSources(session);
-            if (capabilities != null)
-                Runtime.Capabilities.CapabilityRuntime.InstallSchema(session);
             if (live)
                 capabilities?.QueueRestore(data["capabilities"] as JObject);
             if (graph != null)
@@ -640,10 +661,12 @@ namespace Game
             if (invalidGraph != null)
                 throw new ArgumentException(invalidGraph);
             // Resolve dependencies and state types in an isolated world before replacing the session.
-            var orderedSources = OrderSources(sources);
             var capabilities = GetComponent<Runtime.Capabilities.CapabilityRuntime>();
+            // Saved capability modules need the capability schema even when no runtime is attached.
+            bool capabilitySchema = capabilities != null || sources.Any(s => ((string)s["path"] ?? "").StartsWith("Capability", StringComparison.Ordinal));
+            var orderedSources = OrderSources(sources, capabilitySchema);
             var probe = new FlecsSession(0);
-            try { RestoreSession(probe, data, orderedSources, graph, states, null, capabilities, false); }
+            try { RestoreSession(probe, data, orderedSources, graph, states, null, capabilities, capabilitySchema, false); }
             finally { probe.Dispose(); }
             // Rollback, not staging: the live world is replaced, and a failure afterwards restores the previous capture.
             string previous = rollback ? Capture() : null;
@@ -663,7 +686,7 @@ namespace Game
                     }
                 }
                 world.Initialize(world.EffectiveRestPort);
-                RestoreSession(world.Session, data, orderedSources, graph, states, actors, capabilities, true);
+                RestoreSession(world.Session, data, orderedSources, graph, states, actors, capabilities, capabilitySchema, true);
                 SelectControl((string)data["controlled"]);
                 Error = null;
             }
@@ -683,7 +706,7 @@ namespace Game
     // Upgrades older experience documents one version at a time.
     public static class ExperienceMigrations
     {
-        public const int Current = 2;
+        public const int Current = 3;
         // Step i upgrades version i+1 to i+2.
         private static readonly Action<JObject>[] steps =
         {
@@ -691,6 +714,13 @@ namespace Game
             {
                 data["engine"] = FlecsSession.Version;
                 data["abi"] = FlecsSession.AbiVersion;
+            },
+            // Version 3: the app's own schema and library modules are no longer saved; the current text is installed on load.
+            data =>
+            {
+                if (data["sources"] is JArray sources)
+                    foreach (var entry in sources.Where(s => RuntimeExperience.IsAppOwned((string)s["path"])).ToList())
+                        entry.Remove();
             }
         };
         public static void Upgrade(JObject data)

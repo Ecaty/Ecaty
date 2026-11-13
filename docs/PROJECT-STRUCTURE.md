@@ -7,7 +7,7 @@ Assets/
     Theme/             # Theme.asset, Runtime, Editor, Styles and shared resources
     Agent/             # Agent.asset, Runtime, Editor, Presentation and prompts
   _Features/
-    Gallery/           # Gallery.asset, Runtime, Editor, Resources, Tests
+    Gallery/           # Gallery.asset, Runtime (GalleryWorldDocument.cs: world document format 2 and the version 1 converter), Editor, Resources, Tests
     World/             # World.asset, Runtime, Editor, Environment, Resources
     Creation/          # Runtime, Editor, Resources; Creation.asset when needed
   _Settings/           # Runtime, Resources/UI; Settings.asset when needed
@@ -21,6 +21,9 @@ Packages/
   com.runtime.ai-agent/       # reusable agent/UI/providers, separate runtime/editor asmdefs
   com.runtime.capabilities/   # reusable lifecycle/schema/Unity adapters, runtime asmdef
 Native/Core, Native/App    # unchanged native ownership and stable C ABI
+  Core/src/Sources.cpp     # source manager: kind texts applied in place, undo, structured errors
+  Core/src/Worlds.cpp      # worlds (`worlds.<id>`), enter/leave, world documents, snapshot/rewind
+  Core/tests/              # C++ tests: core_tests.cpp, source_tests.cpp, world_tests.cpp
   Core/vendor/{flecs,behaviortree,clipper2,tinysoundfont}  # submodules of Ecaty forks (pin = commit)
 Tests/, Tools/, docs/      # runners/manifests, developer utilities and handoff
 ```

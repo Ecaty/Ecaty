@@ -15,7 +15,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 - RMB full orbit (bounded elevation); MMB turn selected tier; wheel approach/zoom; LMB hold a ghost and drop on a world to swap. Escape cancels/returns and closes Settings first.
 - Top invitation enters an empty creation context; first deliberate placement creates a disposable world. Inactive saved worlds stay hidden; archive UI deferred.
 - Tune `Assets/_Features/Gallery/Gallery.asset` (spacing, ring width/style/opacity/material, sphere/rim opacity, rear fade, clearance, idle speed, glass crossing, return/reveal timing, loaded-world strength, approach cutoff, RingRotationSmoothTime) and `Theme/Theme.asset` (LoadedWorld colour; Editor-only, exported to `Theme/ThemeConfig.flecs` like the gallery config). Edits update native GalleryTreeConfig and the runtime theme live in Play. Odin icon tabs are optional.
-- Local layered arrangement: `GalleryPrototype/tree-arrangement.json` under Application.persistentDataPath (older `arrangement.json` is read-only import). Never commit either.
+- Local layered arrangement: `GalleryPrototype/tree-arrangement.json` under Application.persistentDataPath, version 2 (a version 1 file is converted on read and copied to `tree-arrangement.v1.json` before the first version 2 write; older `arrangement.json` is read-only import). Never commit any of them.
 - Seed creation enters the saved primitive world path ([GALLERY-WORLDS](GALLERY-WORLDS.md)).
 
 ## Code map
@@ -34,6 +34,8 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 | Verification world | `Assets/_Tests/Fixtures/Resources/Tests/Fixtures/VerificationWorld.flecs` |
 | Shared native components/reflection | `Native/Core/include/FlecsComponents.hpp`, `Native/Core/src/Components.cpp` |
 | Native world, REST, C ABI | `Native/Core/src/flecs_unity.cpp`, `Native/Core/include/flecs_unity.h` |
+| Source manager (kinds, undo), worlds and world documents | `Native/Core/src/Sources.cpp`, `Native/Core/src/Worlds.cpp`; C#: `Packages/com.runtime.flecs/Runtime/FlecsSession.cs` |
+| Gallery world documents | `Assets/_Features/Gallery/Runtime/GalleryWorldDocument.cs` |
 | App native systems (Spin) | `Native/App/include/Application.hpp`, `Native/App/src/Application.cpp` |
 | Managed native ownership | `Packages/com.runtime.flecs/Runtime/FlecsSession.cs` |
 | Rendering/presentation adapters | `Packages/com.runtime.flecs/Runtime/FlecsWorld.cs` |
@@ -49,8 +51,10 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 ## Native rebuild
 
-Native layout: `Native/Core/src/Modules.hpp` documents the modules (`core.cap`, `core.tree`, `core.geometry`, `app`) and the one phase map every native system follows. Public component names stay at the root scope; a reaction to a changed component starts in an observer that only notes the change, and a system applies it once per frame (Flecs locks tables inside observers). Before committing native work, also build Debug with our warnings and the core tests, and run the smokes against it (a Debug build checks things Release skips): `cmake -S Native -B Native/build-tests -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DFU_WARNINGS=ON -DFU_BUILD_TESTS=ON -DUNITY_PLUGIN_DIR=<any folder>`, `cmake --build Native/build-tests`, run `Native/build-tests/Core/flecs_unity_core_tests.exe`, then the Python smokes with `FLECS_UNITY_LIBRARY=<that folder>/flecs_unity.dll` and `FLECS_UNITY_DEBUG_BUILD=1`. CI does the same.
+Native layout: `Native/Core/src/Modules.hpp` documents the modules (`core.cap`, `core.tree`, `core.geometry`, `app`) and the one phase map every native system follows. Public component names stay at the root scope; a reaction to a changed component starts in an observer that only notes the change, and a system applies it once per frame (Flecs locks tables inside observers). Before committing native work, also build Debug with our warnings and the core tests, and run the smokes against it (a Debug build checks things Release skips): `cmake -S Native -B Native/build-tests -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DFU_WARNINGS=ON -DFU_BUILD_TESTS=ON -DUNITY_PLUGIN_DIR=<any folder>`, `cmake --build Native/build-tests`, run `Native/build-tests/Core/flecs_unity_core_tests.exe` (built from `Native/Core/tests`: `core_tests.cpp`, `source_tests.cpp` for the source manager, `world_tests.cpp` for worlds and world documents), then the Python smokes with `FLECS_UNITY_LIBRARY=<that folder>/flecs_unity.dll` and `FLECS_UNITY_DEBUG_BUILD=1`. CI does the same.
 
+- Contract checks: `python Verification/contract_checks.py` (header, exports, C# imports, ABI constants, every `.flecs` file loads, and the checks `sources`, `kinds`, `worlds` and `world-documents`). It needs the Release library.
+- A prefab that has children must be declared with `@tree ChildOf` (the source manager adds it to a kind text that lacks it and refuses `@tree Parent`). Flecs stores a prefab's children with `Parent` by default; then the children cannot change after the first instance and instance parts have no names.
 - Close the Ecaty Editor/player first (a stopped Play session may keep the DLL loaded).
 - MinGW-w64: `./Native/Build.ps1 -Compiler GCC`; MSVC: `./Native/Build.ps1 -Compiler MSVC`; direct: `cmake -S Native -B Native/build` then `cmake --build Native/build --config Release`.
 - Output: `Assets/Plugins/Flecs/x86_64/flecs_unity.dll` (Core + App in one library). Keep ABI version/layout in sync with C#; no C++ classes/STL strings across it; free owned UTF-8 with `fu_free`. Product-specific systems go in `Native/App` (`flecs_unity::register_application`), never Core.

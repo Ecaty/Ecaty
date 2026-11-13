@@ -51,7 +51,7 @@ public sealed class LightCapability : CapabilityInstance<LightConfig>
 - **Optional plugins:** put the configuration outside the plugin `#if` and add `Gate = "SYMBOL", Probe = "path/that/exists/when/installed"`; put the adapter inside `#if SYMBOL`. `CapabilityPluginDiscovery` sets the symbol from the probe. The schema exists whether or not the plugin is installed, so saves stay loadable.
 - **Tools without Unity:** `CapabilityConfigSchema.flecs` is a committed export of the generated structs (refreshed after each compile, or Runtime > Runtime engine > Export capability schema; an EditMode test fails when stale). Verification/*.py load it after `CapabilitySchema.flecs`.
 - **Plugins that create standalone meshes/materials** (e.g. Broccoli) wrap generation in `CreatedObjects.During(...)` and destroy the result on replace/dispose.
-- **Saves:** member names, types and order are a saved contract. A restored session keeps its saved schema source; configurations it lacks are added as `CapabilitySchemaAdditions.<Component>`. Append new members; do not rename or reorder.
+- **Saves:** member names, types and order are a saved contract. The capability schema module is app-owned: saves do not carry it and `CapabilityRuntime.InstallSchema` installs the current text once per session, before saved sources, so a member appended later reaches old saves. Append new members; do not rename or reorder. Result components (`CapReadback`, `CapAudioMeter`, `CapRigResult` and the other outputs) carry the `NotSaved` tag and are never written.
 - Keep product rules out of adapters. Behavior and recipes belong in runtime source-backed ECS definitions. `Assets/_Adapters/link.xml` preserves reflected adapters in stripped players.
 
 ## Implemented surfaces
@@ -76,8 +76,8 @@ These expose selected runtime operations, not every plugin Inspector field. New 
 
 `CapabilityGraph.Capture(session, runtime, scope, sourcePrefix)` serializes every CapBinding/NativeTree entity under a scope: registered configurations, `CapDependsOn` targets, selected adapter state (e.g. body pose/velocity) and managed sources owned by a prefix. `Restore` validates first, installs owned sources, recreates entities that no source defines (prerequisites first, in one generated module), writes configurations and queues adapter state for the first successful apply. Dropped prerequisites/cycles are reported, not thrown.
 
-- **Experience save** (RuntimeExperience): all sources as before plus `capabilityGraph`; older saves without it load unchanged.
-- **Gallery saved world:** `GallerySavedWorld.graph` holds the graph for `<id>Content` and owned sources `GalleryWorld_<id>.*`. Activation rebuilds it, unloading removes it. Bindings must live under the world's private root to belong to that world.
+- **Experience save** (RuntimeExperience): its sources (without the app-owned modules) plus `capabilityGraph`; older saves without it load unchanged. An unscoped capture (scope null) skips bindings under `worlds.`; those belong to a world document.
+- **Gallery saved world:** bindings under `worlds.<id>` are ordinary instances in the world's format 2 document, so they save and load with it (atomic load); adapter state is kept next to the document (`CaptureState(root)` / `QueueRestore`). Activation rebuilds them, unloading removes them. A version 1 record with `graph` is converted on read.
 - Reload builds fresh plugin instances. Contacts, plugin internals, playing audio and pending tree/Script waits are not checkpointed; tasks restart. Asset keys must resolve to the same installed/bundled assets.
 
 ## Verification

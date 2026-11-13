@@ -1173,6 +1173,60 @@ def world_documents():
             "a cut, wrong-format, unknown-type and bad-value document are refused and change nothing; load replaces; snapshot and rewind restore")
 
 
+# --- Look and WorldStyle (Native/Core/src/Look.cpp; the adapter's mirror structs must match) ----------------------------
+
+@check("look")
+def look_contract():
+    def layout(world, name):
+        buffer = c.create_string_buffer(4096)
+        length = lib.fu_type_layout_into(world.ctx, world.lookup(name), buffer, 4096)
+        assert 0 < length < 4096, f"{name} layout length {length}"
+        return json.loads(buffer.raw[:length].decode())
+
+    look_fields = [("colour.h", 0), ("colour.s", 4), ("colour.l", 8), ("pattern.colour.h", 12), ("pattern.colour.s", 16),
+                   ("pattern.colour.l", 20), ("pattern.shape", 24), ("pattern.random", 28), ("pattern.size", 32),
+                   ("material.polish", 36), ("material.metal", 40), ("material.clear", 44), ("material.glow", 48)]
+    style_fields = [("hand", 0), ("chunk", 4), ("ink", 8), ("warmth", 12), ("vivid", 16), ("air", 20), ("glow", 24)]
+    members = {"Hsl": ["h", "s", "l"], "Look": ["colour", "pattern", "material"],
+               "LookPattern": ["colour", "shape", "random", "size"],
+               "LookMaterial": ["polish", "metal", "clear", "glow"],
+               "WorldStyle": [name for name, _ in style_fields]}
+    with isolated_world() as world:
+        assert world.lookup("core.look"), "the module entity core.look is missing"
+        for name, size, fields in (("Look", 52, look_fields), ("WorldStyle", 28, style_fields)):
+            info = layout(world, name)
+            assert info["size"] == size and info["alignment"] == 4, f"{name} size/alignment {info['size']}/{info['alignment']}"
+            assert [(f["name"], f["offset"]) for f in info["fields"]] == fields, f"{name} fields: {info['fields']}"
+            assert all(f["size"] == 4 and f["kind"] == "f32" for f in info["fields"]), f"{name} must be plain floats"
+        # An empty Look is the documented default.
+        world.require_load("LookProbe", "probe { Look: {} }")
+        value = json.loads(World.take(lib.fu_component_json(world.ctx, world.lookup("probe"), b"Look")))
+        assert value["colour"] == {"h": 0, "s": 0, "l": 0.5}, f"default colour {value['colour']}"
+        pattern = value["pattern"]
+        assert (pattern["colour"]["h"], pattern["colour"]["s"], round(pattern["colour"]["l"], 3)) == (0, 0, 0.2), f"default pattern colour {pattern}"
+        assert (pattern["shape"], pattern["random"], pattern["size"]) == (0, 0, 0), f"default pattern {pattern}"
+        assert value["material"] == {"polish": 0.5, "metal": 0, "clear": 0, "glow": 0}, f"default material {value['material']}"
+        # Every type and member has a brief.
+        missing = []
+        for type_name, names in members.items():
+            for path in [type_name] + [f"{type_name}.{n}" for n in names]:
+                components = world.entity(path).get("components", {})
+                if not components.get("(flecs.doc.Description,flecs.doc.Brief)", {}).get("value"):
+                    missing.append(path)
+        assert not missing, f"no brief on: {missing}"
+        # A WorldStyle on a world is in its saved document and loads back.
+        assert lib.fu_run_script(world.ctx, WORLD_SCHEMA.encode()) == 0, world.error()
+        entity = world_create(world.ctx, b"styled")
+        assert lib.fu_set_component_json(world.ctx, b"worlds.styled", b"WorldStyle", b'{"warmth": 0.5, "vivid": 0.75}') == 0, world.error()
+        document = saved(world, entity)
+        record_of = {r["path"]: r for r in json.loads(document)["entities"]}[""]
+        style = record_of["components"]["WorldStyle"]
+        assert style["warmth"] == 0.5 and style["vivid"] == 0.75 and style["hand"] == 0, f"saved style {style}"
+        assert world_load(world.ctx, b"styled2", document.encode()), world.error()
+        assert component(world, "worlds.styled2", "WorldStyle")["warmth"] == 0.5, "the style is not back after loading"
+    return "Look 52 bytes and WorldStyle 28 with the expected field names and offsets, defaults, a brief on every member, WorldStyle saved and loaded with the world"
+
+
 # --- Report --------------------------------------------------------------------------------------------------------
 
 passed = all(row["ok"] for row in results)

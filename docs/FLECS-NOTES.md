@@ -84,7 +84,7 @@ Every example below is an instance of this split. "Vehicle → Plane" is just on
   - `Weather` → `Rain`/`Snow`
   - `Widget` → `Button`
 - **A user's or the AI's creation is an instance that holds only its edits**, for example `my_plane : Plane { ... }`. Shared parts and materials are prefabs too (section 16).
-- **Mark kind-level components `(OnInstantiate, Inherit)`.** This covers looks, tuning and capability defaults. Changing a kind then updates every instance, and saves hold only overrides plus the `IsA` pair.
+- **Mark kind-level components `(OnInstantiate, Inherit)`.** This covers looks, tuning and capability defaults. Changing a kind then updates every instance, and saves hold only overrides plus the `IsA` pair. **Exception (found in Phase 3):** not for built-in or widely queried components; see section 17. Our source manager copies those to instances and pushes a kind's changed value.
 - **Use `auto_override` only for per-instance state.** That means pose, motion state and anything a system writes every frame.
 - **Use `@tree ChildOf` for kind prefabs whose parts we address by path.** Our bridge, C# and AI tools all look entities up by dotted path (`flecs_unity.cpp:358`). Otherwise keep `Parent` for small fixed sub-trees that never need names (section 5).
 - **Keep templates for procedural geometry** (section 2). A kind prefab can contain template instances.
@@ -493,6 +493,19 @@ Repos: <https://github.com/orgs/flecs-hub/repositories>. Read through `gh api` o
   - The older `flecs-systems-*` renderers are superseded by Unity in our stack.
 
 ---
+
+## 17. Facts found while building sources, kinds and worlds (2026-11-13)
+
+- **Reloading a managed script deletes and recreates every entity it made.** Ids change, instances lose `IsA` and runtime values are lost; a schema reload strips its components everywhere. Evaluating a changed kind text as a one-shot script over the existing prefab keeps all ids (the source manager does this). A text that redeclares a type in use with another layout is refused with an error naming the type.
+- **Never change tables inside an observer** (adding or removing a component, or setting one the entity does not have yet). Note the change in the observer and apply it in a system. The gallery observers in `Native/App/src/Application.cpp` still set components in `OnSet` observers.
+- **A relationship that is a plain tag takes the data type of its target.** `(Rel, X)` where `X` is a component (a module entity is one) makes Flecs construct `X` on the entity; with a module this aborts the process without a message. Give such relationships `PairIsTag`.
+- **An inherit trait added after a cached query exists is ignored by that query.** Set traits at registration, before `core.view` is imported.
+- **Do not give a built-in or widely queried component `(OnInstantiate, Inherit)`.** In the pinned revision a cached query that matches an entity through `IsA` can keep a stale entry when that entity's table is deleted: internal assert `qt_other != NULL`, then a crash (reproduced by deleting one of two worlds whose instances inherited `Position`).
+- **A prefab's children are stored with `Parent` by default, not `ChildOf` pairs.** Then they cannot change after the prefab was instantiated (Debug aborts, Release keeps the old set) and instance parts have no names. Use `@tree ChildOf`.
+- **Flecs Script ignores the world's current scope** (`ecs_set_scope`). A base in `Kind : Base` is looked up in the root only, `using` must be at the top of a script and a dotted path is not a valid scope statement.
+- `ecs_get_target(e, IsA, i)` continues into the kinds of e's kinds. Two children must never share a name, even for a moment (deleting one leaves the other unreachable by name). A query that combines a fixed term with an invalid expression asserts: validate the expression alone first.
+- Flecs Script rejects `.5`; write `0.5`. A script error in a test's setup shows in the runner as "Tests exceeded three minutes".
+- Each distinct owner puts its views in a table of their own (ownership pairs fragment). Fine at the 256-binding budget. Ownership is runtime state and is not saved.
 
 ## Top changes for us (impact vs effort)
 

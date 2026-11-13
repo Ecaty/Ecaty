@@ -199,19 +199,12 @@ namespace Runtime.Capabilities
         }
         /// <summary>
         /// Shared contracts come from CapabilitySchema.flecs; configuration structs are generated from [Capability] classes.
-        /// A restored session keeps its saved schema source. Configurations it lacks are added in a separate module.
+        /// The schema is app-owned: saves never carry it, so it is installed once per session from the current text.
         /// </summary>
         public static void InstallSchema(FlecsSession target)
         {
             if (target.ManagedScriptSource(SchemaModule) == null)
-            {
                 target.SetManagedScript(SchemaModule, Resources.Load<TextAsset>(SchemaModule).text + "\n" + CapabilityCatalog.Schema());
-                return;
-            }
-            // One module per added struct: never re-evaluate a module that already defines live component types.
-            foreach (var d in CapabilityCatalog.All)
-                if (target.Lookup(d.Info.Component) == 0)
-                    target.SetManagedScript(SchemaModule + "Additions." + d.Info.Component, d.Schema);
         }
         public const string SchemaModule = "CapabilitySchema";
         void PublishType(ICapabilityAdapter a)

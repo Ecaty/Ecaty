@@ -83,6 +83,7 @@ namespace Game
                 capabilities.Assets = RuntimeComposition.Current.Capabilities;
                 capabilities.Initialize(world);
                 capabilities.RegisterDiscovered();
+                world.gameObject.AddComponent<LookAdapter>().Initialize(world, camera);
                 capabilities.TargetResolver = id =>
                 {
                     foreach (var model in experience.Models.Values)

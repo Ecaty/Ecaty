@@ -170,6 +170,10 @@ namespace Game.Editor
                 Require(!alpha.Creation.FindPart("extra"), "Removing a runtime entity did not remove its brush.");
                 checks.Add("Native Script creates and removes a brush without a recipe-tool round trip");
                 string saved = experience.Capture();
+                string[] appOwned = { "ClayBrushSchema", "PoseSchema", "EngineSchema", "RuntimeLibrary", "ActorSchema", "MotorLibrary", "CapabilitySchema" };
+                var savedData = JObject.Parse(saved);
+                Require((int)savedData["version"] == 3, "A capture is not version 3.");
+                Require(!((JArray)savedData["sources"]).Any(s => appOwned.Contains((string)s["path"])), "A capture contains an app-owned module.");
                 // Golden save: committed fixture, never written by this check. Later builds must keep loading it.
                 string goldenPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Tests/Fixtures/Saves/experience-v1.json"));
                 Require(File.Exists(goldenPath), "The golden save is missing: " + goldenPath + ". Restore Tests/Fixtures/Saves/experience-v1.json from version control.");
@@ -212,10 +216,20 @@ namespace Game.Editor
                 Require(((JArray)golden["sources"]).All(s => world.Session.ManagedScriptSource((string)s["path"]) != null), "Golden save: a source module was not restored.");
                 Require(((JArray)golden["actors"]).All(a => experience.Models.TryGetValue((string)a["entity"], out var model) && model.Creation.PresentationRoot), "Golden save: a model was not restored.");
                 checks.Add("The committed version 1 experience save (Tests/Fixtures/Saves/experience-v1.json) still loads with every source and model");
+                // App-owned modules are installed from Resources, not read from the file: put a stale text in a copy of the golden file.
+                var stale = (JObject)golden.DeepClone();
+                var staleActor = ((JArray)stale["sources"]).Single(s => (string)s["path"] == "ActorSchema");
+                staleActor["code"] = "// stale text from an older build\n" + (string)staleActor["code"];
+                experience.Load(stale.ToString(Formatting.None));
+                await Frames(10);
+                foreach (var pair in new[] { ("ActorSchema", "Runtime/Schemas/ActorSchema"), ("EngineSchema", "Runtime/Schemas/EngineSchema"), ("MotorLibrary", "Runtime/Behaviors/ActorBehavior") })
+                    Require(world.Session.ManagedScriptSource(pair.Item1) == Resources.Load<TextAsset>(pair.Item2).text, "Loading an older save did not install the current text of " + pair.Item1 + ".");
+                checks.Add("Loading a save installs the app's own schema and library modules from Resources, not from the file");
                 Require((int)golden["version"] == 1 && File.ReadAllBytes(goldenPath).SequenceEqual(goldenBytes), "The golden save is not the unchanged version 1 file.");
                 string upgradedText = experience.Capture();
                 var upgraded = JObject.Parse(upgradedText);
-                Require((int)upgraded["version"] == 2 && (string)upgraded["engine"] == FlecsSession.Version && (int)upgraded["abi"] == FlecsSession.AbiVersion, "A capture after loading version 1 is not version 2 with engine and abi.");
+                Require((int)upgraded["version"] == 3 && (string)upgraded["engine"] == FlecsSession.Version && (int)upgraded["abi"] == FlecsSession.AbiVersion, "A capture after loading version 1 is not version 3 with engine and abi.");
+                Require(!((JArray)upgraded["sources"]).Any(s => appOwned.Contains((string)s["path"])), "A capture after loading version 1 contains an app-owned module.");
                 (string[] Models, string[] Sources, string[] States) Shape(string text)
                 {
                     var d = JObject.Parse(text);
@@ -227,9 +241,9 @@ namespace Game.Editor
                 experience.Load(upgradedText);
                 var shapeAfter = Shape(experience.Capture());
                 Require(shapeBefore.Models.SequenceEqual(shapeAfter.Models) && shapeBefore.Sources.SequenceEqual(shapeAfter.Sources) && shapeBefore.States.SequenceEqual(shapeAfter.States),
-                    "Saving and loading a version 2 capture changed its models, sources or states.");
+                    "Saving and loading a version 3 capture changed its models, sources or states.");
                 await Frames(10);
-                checks.Add("A version 1 file loads unchanged on disk; the next capture is version 2 with engine and abi and reloads to the same models, sources and state components");
+                checks.Add("A version 1 file loads unchanged on disk; the next capture is version 3 with engine and abi and no app-owned modules and reloads to the same models, sources and state components");
                 var broken = JObject.Parse(experience.Capture());
                 broken["controlled"] = "NoSuchModel";
                 var modelsBefore = experience.Models.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray();

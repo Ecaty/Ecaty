@@ -70,14 +70,13 @@ namespace Game.Tests
             Assert.That(probe.Lookup("CapSpline"), Is.Not.EqualTo(0));
         }
         [Test]
-        public void LegacySchemaSessionGainsOnlyMissingConfigurations()
+        public void InstalledSchemaDefinesEveryConfigurationAndIsInstalledOnce()
         {
-            using var legacy = new FlecsSession(0);
-            legacy.SetManagedScript(CapabilityRuntime.SchemaModule, "struct CapBinding(target: entity, enabled: bool, revision: i32)\n" + Legacy["CapLight"]);
-            CapabilityRuntime.InstallSchema(legacy);
-            Assert.That(legacy.ManagedScriptSource(CapabilityRuntime.SchemaModule + "Additions.CapLight"), Is.Null);
-            Assert.That(legacy.Lookup("CapBody"), Is.Not.EqualTo(0));
-            Assert.That(legacy.Lookup("CapPostProcessing"), Is.Not.EqualTo(0));
+            string source = session.ManagedScriptSource(CapabilityRuntime.SchemaModule);
+            CapabilityRuntime.InstallSchema(session);
+            Assert.That(session.ManagedScriptSource(CapabilityRuntime.SchemaModule), Is.EqualTo(source));
+            foreach (var d in CapabilityCatalog.All)
+                Assert.That(session.Lookup(d.Info.Component), Is.Not.EqualTo(0), d.Info.Component);
         }
         [Test]
         public void EveryConfigurationRoundTripsThroughFlecs()
