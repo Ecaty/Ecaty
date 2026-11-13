@@ -278,6 +278,21 @@ namespace Game.Tests
                 })
             };
             string folder = System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "../Logs/Look"));
+            // One camera and light for both shots, given a few frames before the first picture, so both shots wait the same way.
+            // Rows are 1.6 apart and columns 2, spheres are 1 wide; the camera sees about 15 x 8.5 units at the spheres.
+            var cameraObject = new GameObject("Look screenshot camera");
+            var lightObject = new GameObject("Look screenshot light");
+            var target = new RenderTexture(960, 540, 24);
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.78f, 0.78f, 0.8f);
+            camera.fieldOfView = 30;
+            camera.transform.position = origin + new Vector3(0, 0, -16);
+            camera.targetTexture = target;
+            var light = lightObject.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.transform.rotation = Quaternion.Euler(40, -30, 0);
+            string[] written = new string[shots.Length];
             int n = 0;
             foreach (var shot in shots)
             {
@@ -290,33 +305,24 @@ namespace Game.Tests
                     var p = origin + new Vector3(shot.items[i].x, shot.items[i].y, 0);
                     scene.Session.SetComponentJson(Path + names[i], "Position", string.Format(CultureInfo.InvariantCulture, "{{\"x\":{0},\"y\":{1},\"z\":{2}}}", p.x, p.y, p.z));
                 }
-                scene.Settle();
-                yield return null;
-                scene.Settle();
-                GameObject cameraObject = null, lightObject = null;
-                RenderTexture target = null;
+                for (int frame = 0; frame < 3; frame++)
+                {
+                    scene.Settle();
+                    yield return null;
+                }
                 Texture2D picture = null;
                 try
                 {
-                    cameraObject = new GameObject("Look screenshot camera");
-                    var camera = cameraObject.AddComponent<Camera>();
-                    camera.clearFlags = CameraClearFlags.SolidColor;
-                    camera.backgroundColor = new Color(0.78f, 0.78f, 0.8f);
-                    camera.fieldOfView = 30;
-                    camera.transform.position = origin + new Vector3(0, 0, -16);
-                    lightObject = new GameObject("Look screenshot light");
-                    var light = lightObject.AddComponent<Light>();
-                    light.type = LightType.Directional;
-                    light.transform.rotation = Quaternion.Euler(40, -30, 0);
-                    target = new RenderTexture(960, 540, 24);
-                    camera.targetTexture = target;
+                    camera.Render();
                     camera.Render();
                     RenderTexture.active = target;
                     picture = new Texture2D(target.width, target.height, TextureFormat.RGB24, false);
                     picture.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0);
                     picture.Apply();
                     Directory.CreateDirectory(folder);
-                    File.WriteAllBytes(System.IO.Path.Combine(folder, shot.name + ".png"), picture.EncodeToPNG());
+                    string file = System.IO.Path.Combine(folder, shot.name + ".png");
+                    File.WriteAllBytes(file, picture.EncodeToPNG());
+                    written[n] = file;
                 }
                 catch (Exception)
                 {
@@ -325,17 +331,21 @@ namespace Game.Tests
                 finally
                 {
                     RenderTexture.active = null;
-                    if (cameraObject)
-                        Object.Destroy(cameraObject);
-                    if (lightObject)
-                        Object.Destroy(lightObject);
-                    if (target)
-                        target.Release();
                     if (picture)
                         Object.Destroy(picture);
                 }
+                // The next shot starts from an empty scene.
+                foreach (var name in names)
+                    scene.Session.DeleteEntity(Path + name);
+                scene.Settle();
                 n++;
             }
+            Object.Destroy(cameraObject);
+            Object.Destroy(lightObject);
+            target.Release();
+            foreach (var file in written)
+                if (file != null)
+                    Assert.That(new FileInfo(file).Length, Is.GreaterThan(15 * 1024), file + " looks like an empty frame");
         }
     }
 }

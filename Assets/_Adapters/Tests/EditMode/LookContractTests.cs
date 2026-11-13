@@ -72,10 +72,10 @@ namespace Game.Tests
             foreach (var template in new[] { opaque, clear })
             {
                 Assert.That(template.IsKeywordEnabled("_EMISSION"), template.name + " emission keyword");
-                Assert.That(template.IsKeywordEnabled("_NORMALMAP"), template.name + " normal map keyword");
             }
             Assert.That(clear.renderQueue, Is.EqualTo(3000));
             Assert.That(opaque.renderQueue, Is.LessThan(2500));
+            Assert.That(clear.IsKeywordEnabled("_SURFACE_TYPE_TRANSPARENT"));
             Assert.That(clear.GetFloat("_ZWrite"), Is.EqualTo(0f));
             Assert.That(clear.GetFloat("_Surface"), Is.EqualTo(1f));
         }
@@ -92,16 +92,17 @@ namespace Game.Tests
                     Assert.That(LookPatternTextures.Generate(manifest, shape, random, 0.5f, Color.white, Color.black, 32, out var a2, out var n2));
                     CollectionAssert.AreEqual(a1, a2, "albedo shape " + shape + " random " + random);
                     CollectionAssert.AreEqual(n1, n2, "normal shape " + shape + " random " + random);
-                    // The field repeats, and is continuous across the border of the square.
+                    // The field repeats, and is continuous across the border of the square. The two samples are 2e-5 apart: the cell
+                    // edges are steep (up to about 600 per unit), so a wider step would measure the slope, not a seam.
                     for (int i = 0; i < 20; i++)
                     {
                         float x = (i * 0.137f) % 1f, y = (i * 0.291f + 0.05f) % 1f;
                         float v = LookPatternTextures.Field(p, shape, random, 0.5f, x, y);
                         Assert.That(LookPatternTextures.Field(p, shape, random, 0.5f, x + 1f, y), Is.EqualTo(v).Within(1e-4f));
                         Assert.That(LookPatternTextures.Field(p, shape, random, 0.5f, x, y + 2f), Is.EqualTo(v).Within(1e-4f));
-                        float across = LookPatternTextures.Field(p, shape, random, 0.5f, 0.0001f, y) - LookPatternTextures.Field(p, shape, random, 0.5f, -0.0001f, y);
+                        float across = LookPatternTextures.Field(p, shape, random, 0.5f, 0.00001f, y) - LookPatternTextures.Field(p, shape, random, 0.5f, -0.00001f, y);
                         Assert.That(Mathf.Abs(across), Is.LessThan(0.05f), "left and right borders must meet (shape " + shape + ")");
-                        across = LookPatternTextures.Field(p, shape, random, 0.5f, x, 0.0001f) - LookPatternTextures.Field(p, shape, random, 0.5f, x, -0.0001f);
+                        across = LookPatternTextures.Field(p, shape, random, 0.5f, x, 0.00001f) - LookPatternTextures.Field(p, shape, random, 0.5f, x, -0.00001f);
                         Assert.That(Mathf.Abs(across), Is.LessThan(0.05f), "top and bottom borders must meet (shape " + shape + ")");
                     }
                 }

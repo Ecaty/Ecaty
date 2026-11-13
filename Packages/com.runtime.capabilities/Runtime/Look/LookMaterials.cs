@@ -100,6 +100,14 @@ namespace Runtime.Capabilities
             float clear = (float)key.Clear / steps, polish = (float)key.Polish / steps, glow = (float)key.Glow / steps;
             bool glass = clear > m.clearThreshold;
             var material = new Material(glass ? clearTemplate : opaqueTemplate) { name = "Look " + key.GetHashCode().ToString("x8") };
+            // Unity drops _NORMALMAP from a template that has no normal map, so the instance turns on what it needs.
+            material.EnableKeyword("_NORMALMAP");
+            material.EnableKeyword("_EMISSION");
+            if (glass)
+            {
+                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                material.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+            }
             var colour = LookColour.Of(key.ColourH, key.ColourS, key.ColourL, steps);
             colour.a = glass ? 1f - m.clearAlpha * clear : 1f;
             material.SetFloat(metallic, (float)key.Metal / steps);
