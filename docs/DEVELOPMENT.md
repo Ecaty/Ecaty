@@ -81,7 +81,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 ## Git across submodules
 
-- Commit/push a changed child first, then commit the updated pointer in Ecaty; the pointer must name a commit on the public child remote. Task branches `codex/<task>`; no force pushes or global Git config changes. `.meta` files travel with assets.
+- Commit/push a changed child first, then commit the updated pointer in Ecaty; the pointer must name a commit on the public child remote. Task branches follow AGENTS.md (`feature/<name>` etc., no random suffixes); no force pushes or global Git config changes. `.meta` files travel with assets.
 - Before publishing, review the staged diff in each repo for credentials/local data; do not stage unrelated files. Pushes need current-task authorization.
 
 ## Workflow rules
