@@ -10,6 +10,7 @@ Default read before changing code: [AGENTS](../AGENTS.md), [STATUS](STATUS.md), 
 
 ## Architecture
 - [PROJECT](PROJECT.md): approved architectural decisions.
+- [ENGINE-PLAN](ENGINE-PLAN.md): whole-engine review, target architecture and phased plan (proposal, awaiting review).
 - [FLECS-ARCHITECTURE-AUDIT](FLECS-ARCHITECTURE-AUDIT.md): native/bridge audit.
 - [FLECS-NOTES](FLECS-NOTES.md): Flecs 4.2 features by topic (prefabs, Script, relationships, queries, observers, saves) with recommendations for us.
 - [RUNTIME-STACK](RUNTIME-STACK.md), [RUNTIME-ENGINE](RUNTIME-ENGINE.md), [RUNTIME-COMPOSITION-DESIGN](RUNTIME-COMPOSITION-DESIGN.md): runtime layers, models, behaviors, composition.
