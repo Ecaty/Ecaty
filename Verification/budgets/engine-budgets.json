@@ -183,6 +183,26 @@
     "kind": "ratio",
     "guard": 4600.0
   },
+  "describe_type": {
+    "description": "One fu_describe_json of the nested component Look.",
+    "kind": "ratio",
+    "guard": 3.1
+  },
+  "world_checkpoint_1000": {
+    "description": "fu_world_checkpoint of a world with one kind (three parts) and 1000 instances (about 13 ms).",
+    "kind": "ratio",
+    "guard": 660.0
+  },
+  "world_dry_run_1000": {
+    "description": "fu_world_dry_run of a one-line script on that world (the world is copied, about 97 ms). Guard at 2x the measured ratio.",
+    "kind": "ratio",
+    "guard": 6400.0
+  },
+  "tick_alerts_1000": {
+    "description": "fu_tick with that world (1000 instances) and nothing changing: the alert checks must not make an idle tick expensive.",
+    "kind": "ratio",
+    "guard": 1.5
+  },
   "sound_shape_1s": {
     "description": "One fu_sound_shape call on one second of audio at 44100 Hz (size 0.7, rough 0.5). Runs on a worker thread in Unity, so the guard only catches a gross regression (about 2x the measured ratio).",
     "kind": "ratio",

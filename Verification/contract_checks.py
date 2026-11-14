@@ -1726,6 +1726,136 @@ def sound_contract():
             "every member has a brief")
 
 
+# --- Tools: describe, kinds, dry run, undo and alerts (Native/Core/src/Describe.cpp, Worlds.cpp, Links.cpp; tests/tool_tests.cpp over the C ABI) ---
+
+describe_json = bind_extra("fu_describe_json", P, [P, S])
+kinds_json = bind_extra("fu_kinds_json", P, [P, c.c_uint64])
+alerts_json = bind_extra("fu_alerts_json", P, [P, c.c_uint64])
+world_dry_run = bind_extra("fu_world_dry_run", c.c_int32, [P, c.c_uint64, S])
+world_checkpoint = bind_extra("fu_world_checkpoint", c.c_int32, [P, c.c_uint64])
+world_undo = bind_extra("fu_world_undo", c.c_uint64, [P, c.c_uint64])
+
+BRIEF_NAMES = ("Position Rotation Orientation Scale Color Primitive Label CapBinding CapState Source Look WorldStyle MotionLoop SecondPose "
+               "Free Gravity Float Wind Drag EffectiveForce Particles Rule Then Count Sound SoundClip Spin "
+               "Pinned Ghost RuleOf Playing Switched IsYou GameOver NotSaved WorldRoot Entered TransformOwner AppearanceOwner").split()
+
+
+def described(world, name):
+    text = World.take(describe_json(world.ctx, name.encode()))
+    return None if text is None else json.loads(text)
+
+
+def without_brief(node, where):
+    """Paths of the members, at every level, that have no brief."""
+    missing = [] if node.get("brief") else [where]
+    for member in node.get("members", []):
+        missing += without_brief(member, f"{where}.{member['name']}")
+    return missing
+
+
+def alert_rows(world, scope):
+    return json.loads(World.take(alerts_json(world.ctx, scope)) or "[]")
+
+
+@check("tools")
+def tools_contract():
+    with isolated_world() as world:
+        look = described(world, "Look")
+        assert look and look["is"] == "component", f"Look: {look and look.get('is')}"
+        material = next((m for m in look["members"] if m["name"] == "material"), None)
+        assert material and material.get("members"), "the members of material are not nested"
+        polish = next((m for m in material["members"] if m["name"] == "polish"), None)
+        assert polish and polish.get("min") == 0 and polish.get("max") == 1, f"polish: {polish}"
+        assert not without_brief(look, "Look"), f"no brief on: {without_brief(look, 'Look')}"
+        rule = described(world, "Rule")
+        when = next(m for m in rule["members"] if m["name"] == "when")
+        thens = next(m for m in rule["members"] if m["name"] == "thens")
+        assert "Touches" in when.get("values", []) and thens.get("count") == 6, f"Rule when/thens: {when}, {thens}"
+        assert described(world, "Ghost")["is"] == "tag", "Ghost is not a tag"
+        assert lib.fu_describe_json(world.ctx, b"NoSuchThing") is None, "an unknown name must give NULL"
+        missing = []
+        for name in BRIEF_NAMES:
+            node = described(world, name)
+            if node is None:
+                missing.append(name)
+            else:
+                missing += without_brief(node, name)
+        assert not missing, f"no brief on: {missing}"
+
+        # Kinds: the library lists a kind and its part; a world lists its own two.
+        assert source_apply(world.ctx, b"library.sources.Lamp", b"library",
+                            b"prefab Lamp {\n  Position: {0, 0, 0}\n  prefab shade { Position: {0, 1, 0} }\n}") == 0, world.error()
+        entity = world_create(world.ctx, b"w")
+        assert source_apply(world.ctx, b"worlds.w.sources.Coin", b"worlds.w.kinds",
+                            b"prefab Coin { Position: {0, 0, 0} }\nprefab Gem : Coin { Scale: {2, 2, 2} }") == 0, world.error()
+        assert spawn(world.ctx, world.lookup("worlds.w.kinds.Coin"), entity, b"c1"), world.error()
+        library = json.loads(World.take(kinds_json(world.ctx, 0)))
+        names = [row["name"] for row in library]
+        assert names == ["library.Lamp"], f"the library kinds: {names}"
+        assert library[0]["parts"] == ["shade"], f"the parts of Lamp: {library[0]['parts']}"
+        own = {row["name"]: row for row in json.loads(World.take(kinds_json(world.ctx, entity)))}
+        assert sorted(own) == ["worlds.w.kinds.Coin", "worlds.w.kinds.Gem"], f"the world kinds: {sorted(own)}"
+        assert own["worlds.w.kinds.Gem"]["bases"] == ["worlds.w.kinds.Coin"], "Gem must derive from Coin"
+        coin = described(world, "worlds.w.kinds.Coin")
+        assert coin["is"] == "kind" and coin["instances"] == 2 and coin["source"] == "worlds.w.sources.Coin", f"Coin: {coin}"
+
+    # A dry run changes nothing.
+    with isolated_world() as world:
+        entity = world_create(world.ctx, b"w")
+        assert world_run(world.ctx, entity, b"a { Position: {1, 0, 0} }\nb { Position: {2, 0, 0} }") == 0, world.error()
+        before = world_rows(world, entity, "Position")
+        assert world_dry_run(world.ctx, entity, b"c { Position: {3, 0, 0} }\na { Position: {9, 9, 9} }") == 0, world.error()
+        assert world_rows(world, entity, "Position") == before and not world.lookup("worlds.w.c"), "a dry run added an entity"
+        assert component(world, "worlds.w.a", "Position")["x"] == 1, "a dry run changed a value"
+        assert not world.lookup("worlds.__dry_run"), "worlds.__dry_run is left"
+        line, column = c.c_int32(0), c.c_int32(0)
+        assert world_dry_run(world.ctx, entity, b"c { Position: {3, 0, 0} }\nd { Nope: {1} }") == -1, "a bad script must fail the dry run"
+        assert error_position(world.ctx, c.byref(line), c.byref(column)) == 1 and line.value == 2, f"error line {line.value}"
+        assert world_rows(world, entity, "Position") == before and not world.lookup("worlds.w.c") and not world.lookup("worlds.__dry_run"), \
+            "a failed dry run changed the world"
+
+    # Checkpoint and undo, step by step; the world stays entered.
+    with isolated_world() as world:
+        entity = world_create(world.ctx, b"w")
+        assert world_run(world.ctx, entity, b"a { Position: {1, 0, 0} }\nb { Position: {2, 0, 0} }") == 0, world.error()
+        assert world_enter(world.ctx, entity) == 0, world.error()
+        assert world_undo(world.ctx, entity) == 0, "nothing to undo at first"
+        assert world_checkpoint(world.ctx, entity) == 1, world.error()
+        assert world_run(world.ctx, entity, b"c { Position: {3, 0, 0} }") == 0 and lib.fu_delete_entity(world.ctx, b"worlds.w.a") == 1, world.error()
+        assert world_checkpoint(world.ctx, entity) == 2, world.error()
+        assert world_run(world.ctx, entity, b"b { Position: {7, 7, 7} }") == 0, world.error()
+        entity = world_undo(world.ctx, entity)
+        assert entity and world_entered(world.ctx) == entity, "the first undo did not return the entered world"
+        assert component(world, "worlds.w.b", "Position")["x"] == 2 and world.lookup("worlds.w.c") and not world.lookup("worlds.w.a"), \
+            "the first undo must take back only the second edit"
+        entity = world_undo(world.ctx, entity)
+        assert entity and world_entered(world.ctx) == entity, "the second undo did not keep the world entered"
+        assert world.lookup("worlds.w.a") and not world.lookup("worlds.w.c") and component(world, "worlds.w.a", "Position")["x"] == 1, \
+            "the second undo must take back the first edit"
+        assert world_undo(world.ctx, entity) == 0, "a third undo must return 0"
+
+    # Alerts.
+    with isolated_world() as world:
+        entity = world_create(world.ctx, b"w")
+        other = world_create(world.ctx, b"other")
+        assert world_run(world.ctx, entity, b"fine { Rule: {when: AtStart}; (RuleOf, fine) }\nlost { Rule: {when: AtStart} }\nboth { Free: {1}; Pinned }") == 0, world.error()
+        assert world_run(world.ctx, other, b"stray { Rule: {when: AtStart} }") == 0, world.error()
+        for _ in range(90):
+            assert lib.fu_tick(world.ctx, 1 / 30) == 0, world.error()
+        mine = {row["entity"]: row["message"] for row in alert_rows(world, entity)}
+        assert "belongs to nothing" in mine.get("worlds.w.lost", ""), f"no alert for the rule without an owner: {mine}"
+        assert "free or pinned" in mine.get("worlds.w.both", ""), f"no alert for the body: {mine}"
+        assert "worlds.w.fine" not in mine and not [e for e in mine if e.startswith("worlds.other")], f"alerts that do not belong: {sorted(mine)}"
+        assert "worlds.other.stray" in [row["entity"] for row in alert_rows(world, 0)], "scope 0 must show every alert"
+        assert world_run(world.ctx, entity, b"lost { (RuleOf, fine) }") == 0, world.error()
+        for _ in range(90):
+            assert lib.fu_tick(world.ctx, 1 / 30) == 0, world.error()
+        assert "worlds.w.lost" not in [row["entity"] for row in alert_rows(world, entity)], "the alert stays after the rule got an owner"
+    return ("describe: Look nested with polish 0..1, Rule enum values and 6 thens, tags, unknown is NULL, a brief on every member of "
+            f"{len(BRIEF_NAMES)} names; kinds by scope with parts, bases, instances and source; a dry run changes nothing and reports the line; "
+            "two checkpoints undo step by step, keep the world entered, the third returns 0; alerts per scope appear and clear")
+
+
 # --- Report --------------------------------------------------------------------------------------------------------
 
 passed = all(row["ok"] for row in results)

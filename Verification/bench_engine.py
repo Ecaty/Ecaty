@@ -67,6 +67,9 @@ world_load = bind("fu_world_load_json", U64, P, c.c_char_p, c.c_char_p)
 emit_events = bind("fu_emit_events", c.c_int32, P, P, c.c_int32)
 world_run = bind("fu_world_run_script", c.c_int32, P, U64, c.c_char_p)
 world_play = bind("fu_world_play", c.c_int32, P, U64)
+describe = bind("fu_describe_json", P, P, c.c_char_p)
+world_dry_run = bind("fu_world_dry_run", c.c_int32, P, U64, c.c_char_p)
+world_checkpoint = bind("fu_world_checkpoint", c.c_int32, P, U64)
 
 
 class View(c.Structure):
@@ -590,6 +593,52 @@ def world_load_1000():
         return best_calls(load, 5)
 
 
+# ---- tools: describe, checkpoint, dry run, alerts ----------------------------
+
+def describe_type():
+    """One fu_describe_json of the nested component Look."""
+    def call():
+        pointer = describe(w, b"Look")
+        if not pointer:
+            raise RuntimeError((error(w) or b"").decode())
+        free(pointer)
+    with world() as w:
+        return best_calls(call, 200)
+
+
+def world_checkpoint_1000():
+    """One fu_world_checkpoint of the world of world_save_1000 (a copy of the document is kept)."""
+    def call():
+        if world_checkpoint(w, entity) < 0:
+            raise RuntimeError((error(w) or b"").decode())
+    with world() as w:
+        entity = saved_world(w)
+        us = best_calls(call, 10)
+    print(f"world_checkpoint_1000: {us / 1000:.2f} ms", file=sys.stderr)
+    return us
+
+
+def world_dry_run_1000():
+    """One fu_world_dry_run of a one-line script on that world (the world is copied, the script runs, the copy is dropped)."""
+    def call():
+        if world_dry_run(w, entity, b"extra { Position: {1, 2, 3} }") != 0:
+            raise RuntimeError((error(w) or b"").decode())
+    with world() as w:
+        entity = saved_world(w)
+        us = best_calls(call, 5)
+    print(f"world_dry_run_1000: {us / 1000:.2f} ms", file=sys.stderr)
+    return us
+
+
+def tick_alerts_1000():
+    """fu_tick with that world (1000 instances) and nothing changing: the alert checks stay cheap when idle."""
+    with world() as w:
+        saved_world(w)
+        for _ in range(60):
+            tick(w, 0.05)
+        return best_calls(lambda: tick(w, 0.016), 200)
+
+
 # ---- behaviour checks (1 = as intended) ----------------------------------
 
 def handles_survive_unrelated_script_set():
@@ -650,6 +699,10 @@ METRICS = [
     ("spawn_1000", spawn_1000),
     ("world_save_1000", world_save_1000),
     ("world_load_1000", world_load_1000),
+    ("describe_type", describe_type),
+    ("world_checkpoint_1000", world_checkpoint_1000),
+    ("world_dry_run_1000", world_dry_run_1000),
+    ("tick_alerts_1000", tick_alerts_1000),
 ]
 FLAGS = [
     ("handles_survive_unrelated_script_set", handles_survive_unrelated_script_set),
