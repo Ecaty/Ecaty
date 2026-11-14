@@ -64,11 +64,11 @@ namespace Game.Editor
         static bool Active => SessionState.GetBool(KActive, false);
         static string NativePath(string relative) => relative.Replace('/', Path.DirectorySeparatorChar);
 
-        [InitializeOnLoadMethod]
         // One line per event, so a run can be followed in the Editor log (names and counts only).
         static void Trace(string text) => Debug.Log("Gallery save round trip [trace]: " + text + " | active=" + Active + " phase=" + SessionState.GetInt(KPhase, -1) + " case=" + SessionState.GetInt(KCase, -1)
             + " playing=" + EditorApplication.isPlaying + " willChange=" + EditorApplication.isPlayingOrWillChangePlaymode + " backup=" + Directory.Exists(BackupDir) + " manifest=" + File.Exists(ManifestPath));
 
+        [InitializeOnLoadMethod]
         static void Initialize()
         {
             Trace("domain loaded");
