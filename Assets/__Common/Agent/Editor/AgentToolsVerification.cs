@@ -258,7 +258,7 @@ namespace Game.Editor
                 // Kinds of a world, and a second world that must stay out of sight.
                 ulong other = session.CreateWorld("other");
                 Require(session.TryRunWorldScript(other, "stranger { Position: {9, 9, 9} }", out string otherError, out _, out _), "The second world could not be filled: " + otherError);
-                Require(session.ApplySource("worlds.other.sources.Alien", "worlds.other.kinds", "prefab Alien { Position: {0, 0, 0}; Primitive: {0} }"), "The second world's kind was refused");
+                session.ApplySource("worlds.other.sources.Alien", "worlds.other.kinds", "prefab Alien { Position: {0, 0, 0}; Primitive: {0} }"); // throws with the reason when refused
                 Require(session.EnteredWorld != 0, "Making a second world left the first"); // the world has a new entity after each undo: its first id is stale
                 Play(offered, async call =>
                 {
