@@ -1,7 +1,6 @@
 using flecs.script.math
-// GalleryTreeActivity, GalleryTreeMotion, GalleryLayerIntent and GalleryLayerState are native components (Native/App).
+// GalleryTreeActivity, GalleryTreeMotion, GalleryLayerIntent, GalleryLayerState, GalleryEntry, GalleryPlacement and the GalleryOnLayer relationship are native (Native/App).
 struct GalleryTreeConfig(diameter: f32, worldGap: f32, layerGap: f32, width: f32, opacity: f32, sphereOpacity: f32, rim: f32, frost: f32, rearFade: f32, speed: f32, response: f32, style: i32, feather: f32)
-struct GalleryPlacement(layer: i32, slot: i32)
 struct GalleryDrag(source: string, target: string, active: bool)
 struct GalleryVisibility(covered: f32, opacity: f32, pickable: bool)
 struct GalleryPortal(world: string)
@@ -18,7 +17,6 @@ struct GalleryGlassIntent(started: f32, entering: bool)
 struct GalleryGlassState(epoch: f32, progress: f32)
 // document: the world as a format 2 document; state: capability adapter state (JSON) for the bindings in it.
 struct GallerySavedWorld(format: i32, document: string, selected: string, revision: i32, state: string)
-GalleryOnLayer {}
 GalleryTreeSettings {
     GalleryTreeConfig: {1.65, 0.77, 2.9, 1, 0.5, 0.2, 0.72, 1, 0.98, 0.017, 7, 4, 0.35}
     GalleryTreeActivity: {1, false, 0, 0, 0}

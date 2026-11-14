@@ -189,7 +189,7 @@ Every example below is an instance of this split. "Vehicle → Plane" is just on
 
 **Recommendation: adopt, small change.**
 
-- **Add `Exclusive` to `GalleryOnLayer`.** Moving a world to another layer then replaces the pair instead of possibly adding a second one. Consider `DontFragment` too, so one table per layer is not created.
+- **Add `Exclusive` to `GalleryOnLayer`.** (Done in engine plan step 6.3: the relationship is native in `Native/App`, Exclusive, and the app module sets it from `GalleryEntry`.) Moving a world to another layer then replaces the pair instead of possibly adding a second one. Consider `DontFragment` too, so one table per layer is not created.
 - **Give `CapDependsOn` `(OnDeleteTarget, Remove)`.** Then deleting a binding cleans its dependants' edges. Make it `Acyclic` once that is confirmed available.
 - **Model creation-tool wires (BACKLOG 6) as relationships.** Use `(Triggers, target)`. Use `Symmetric` for two-way links.
 - **Use `Exclusive` + `DontFragment` for state machines.** They replace Union.

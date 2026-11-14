@@ -584,10 +584,10 @@ def set_state(world, entity, phase, generation):
 @check("modules-own-their-systems")
 def modules_own_systems():
     with isolated_world() as world:
-        systems = ["core.cap.MarkDirty", "core.geometry.UpdateFootprints", "core.tree.TickTrees", "app.SpinSystem", "app.GalleryRingMotionSystem"]
+        systems = ["core.cap.MarkDirty", "core.geometry.UpdateFootprints", "core.tree.TickTrees", "app.SpinSystem", "app.GalleryRingMotionSystem", "app.GalleryRingAssignSetObserver", "app.GalleryRingAssignRemoveObserver"]
         missing = [name for name in systems if not world.lookup(name)]
         assert not missing, f"not found: {missing}"
-        public = ["CapBinding", "CapState", "CapDependsOn", "CapDirty", "NativeTree", "NativeTreeResult", "NativeFootprint", "Position", "Spin", "GalleryLayerIntent"]
+        public = ["CapBinding", "CapState", "CapDependsOn", "CapDirty", "NativeTree", "NativeTreeResult", "NativeFootprint", "Position", "Spin", "GalleryLayerIntent", "GalleryEntry", "GalleryPlacement", "GalleryOnLayer"]
         moved = [name for name in public if not world.lookup(name)]
         assert not moved, f"public names must stay at the root scope: {moved}"
     return "systems live in core.cap, core.geometry, core.tree and app; public component names stay at the root"
@@ -1864,6 +1864,114 @@ def tools_contract():
     return ("describe: Look nested with polish 0..1, Rule enum values and 6 thens, tags, unknown is NULL, a brief on every member of "
             f"{len(BRIEF_NAMES)} names; kinds by scope with parts, bases, instances and source; a dry run changes nothing and reports the line; "
             "two checkpoints undo step by step, keep the world entered, the third returns 0; alerts per scope appear and clear")
+
+
+# --- Gallery rings (docs/ENGINE-PLAN.md step 6.3) ------------------------------------------------------------------
+# The app module places every active GalleryEntry on a ring when an entry is set or removed. 6 worlds fit on ring 1,
+# 12 on ring 2, 6 * n on ring n, ordered by (order, entity name in bytes).
+
+def ring_expected(entries):
+    """{name: (order, active)} -> {name: (layer, slot)} for the active entries, computed the plain way."""
+    active = sorted((order, name.encode()) for name, (order, on) in entries.items() if on)
+    placed, layer, slot = {}, 1, 0
+    for _, name in active:
+        if slot == layer * 6:
+            layer, slot = layer + 1, 0
+        placed[name.decode()] = (layer, slot)
+        slot += 1
+    return placed
+
+
+def ring_actual(world, names):
+    """{name: (layer, slot) or None, ring pair or None}; a name without GalleryEntry is skipped."""
+    rows = {}
+    for name in names:
+        if not world.lookup(name):
+            continue
+        entity = world.entity(name)
+        place = (entity.get("components") or {}).get("GalleryPlacement")
+        pair = (entity.get("pairs") or {}).get("GalleryOnLayer")
+        rows[name] = ((place["layer"], place["slot"]) if place else None, pair)
+    return rows
+
+
+def ring_verify(world, entries, what):
+    want = ring_expected(entries)
+    got = ring_actual(world, entries)
+    for name, (order, on) in entries.items():
+        layer_slot, pair = got.get(name, (None, None))
+        if name in want:
+            assert layer_slot == want[name], f"{what}: {name} should be {want[name]}, is {layer_slot}"
+            assert pair == f"GalleryTreeLayer{want[name][0]}", f"{what}: {name} should be on ring {want[name][0]}, pair is {pair!r}"
+        else:
+            assert pair is None, f"{what}: {name} is not active but still has the ring pair {pair!r}"
+
+
+def ring_set(world, name, entries, order=None, active=None):
+    old_order, old_active = entries[name]
+    order = old_order if order is None else order
+    active = old_active if active is None else active
+    entries[name] = (order, active)
+    value = json.dumps({"order": order, "width": 1, "depth": 1, "kind": 0, "active": active})
+    assert lib.fu_set_component_json(world.ctx, name.encode(), b"GalleryEntry", value.encode()) == 0, world.error()
+
+
+@check("gallery-rings-follow-entries")
+def gallery_rings():
+    orders = [3, 0, 6, 1, 5, 2, 4]  # R0..R6 out of sequence: ring order is R1 R3 R5 R0 R6 R4 R2
+    entries = {f"R{i}": (o, True) for i, o in enumerate(orders)}
+    script = "\n".join(f"R{i} {{ GalleryEntry: {{{o}, 1, 1, 0, true}} }}" for i, o in enumerate(orders))
+    with isolated_world() as world:
+        world.require_load("Rings", script)
+        ring_verify(world, entries, "after load")
+        first = ring_actual(world, entries)
+        assert [first[n][0] for n in ("R1", "R3", "R5", "R0", "R6", "R4")] == [(1, s) for s in range(6)], f"ring 1 is not slots 0 to 5: {first}"
+        assert first["R2"][0] == (2, 0), f"the seventh world must open ring 2: {first['R2']}"
+        layer = world.lookup("GalleryTreeLayer1")
+        assert layer and lib.fu_entity_path(world.ctx, layer) and World.take(lib.fu_entity_path(world.ctx, layer)) == "GalleryTreeLayer1", \
+            "the ring entity must exist at the root scope"
+        # A script may still describe the ring entity; it is the same entity.
+        world.require_load("RingTree", "GalleryTreeLayer1 { Position: {0,0,0} }")
+        assert world.lookup("GalleryTreeLayer1") == layer, "the ring entity changed identity"
+        # One order changes: the others move to make room.
+        ring_set(world, "R2", entries, order=-1)
+        ring_verify(world, entries, "R2 first")
+        assert ring_actual(world, entries)["R4"][0] == (2, 0), "R4 should have moved to ring 2"
+        # An inactive entry leaves its ring and the gap closes.
+        ring_set(world, "R3", entries, active=False)
+        ring_verify(world, entries, "R3 inactive")
+        # An active one comes back at its order.
+        ring_set(world, "R3", entries, active=True)
+        ring_verify(world, entries, "R3 active again")
+        # Same order: the name decides, compared by bytes.
+        ring_set(world, "R5", entries, order=entries["R0"][0])
+        ring_verify(world, entries, "tie of R5 and R0")
+        got = ring_actual(world, entries)
+        assert got["R0"][0][1] < got["R5"][0][1], "R0 must come before R5 on a tie"
+        # Removing the component closes the gap like inactive, and the entity keeps its other data.
+        assert remove_component(world.ctx, world.lookup("R6"), world.lookup("GalleryEntry"), 0) == 1
+        del entries["R6"]
+        ring_verify(world, entries, "R6 without an entry")
+        assert ring_actual(world, ["R6"])["R6"][1] is None, "an entity without an entry kept its ring pair"
+        # A deleted entity leaves a gap too.
+        assert lib.fu_delete_entity(world.ctx, b"R1") == 1
+        del entries["R1"]
+        ring_verify(world, entries, "R1 deleted")
+        # A prefab never takes a slot.
+        assert run_script(world, "prefab Kind { GalleryEntry: {-5, 1, 1, 0, true} }") is None, world.error()
+        ring_verify(world, entries, "after a prefab")
+        assert "GalleryPlacement" not in (world.entity("Kind").get("components") or {}), "a prefab was placed on a ring"
+        world.tick(3)
+        ring_verify(world, entries, "after ticks")
+    # Rings grow by 6 each: 6 + 12 fill rings 1 and 2, the 19th world opens ring 3.
+    many = {f"M{i:02d}": (i, True) for i in range(19)}
+    with isolated_world() as world:
+        world.require_load("Many", "\n".join(f"{n} {{ GalleryEntry: {{{o}, 1, 1, 0, true}} }}" for n, (o, _) in many.items()))
+        ring_verify(world, many, "19 worlds")
+        assert ring_actual(world, many)["M18"][0] == (3, 0) and ring_actual(world, many)["M17"][0] == (2, 11)
+        world.tick(5)
+        ring_verify(world, many, "idle ticks change nothing")
+    return "7 entries out of order: ring 1 slots 0 to 5 then ring 2; an order change, inactive, removed component, deleted entity and a name tie keep rings right; prefabs are ignored; 19 worlds open ring 3"
 
 
 # --- Report --------------------------------------------------------------------------------------------------------
