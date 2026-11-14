@@ -65,8 +65,13 @@ namespace Game.Editor
         static string NativePath(string relative) => relative.Replace('/', Path.DirectorySeparatorChar);
 
         [InitializeOnLoadMethod]
+        // One line per event, so a run can be followed in the Editor log (names and counts only).
+        static void Trace(string text) => Debug.Log("Gallery save round trip [trace]: " + text + " | active=" + Active + " phase=" + SessionState.GetInt(KPhase, -1) + " case=" + SessionState.GetInt(KCase, -1)
+            + " playing=" + EditorApplication.isPlaying + " willChange=" + EditorApplication.isPlayingOrWillChangePlaymode + " backup=" + Directory.Exists(BackupDir) + " manifest=" + File.Exists(ManifestPath));
+
         static void Initialize()
         {
+            Trace("domain loaded");
             EditorApplication.update -= Tick;
             EditorApplication.playModeStateChanged -= OnPlayMode;
             Application.logMessageReceived -= OnLog;
@@ -84,6 +89,7 @@ namespace Game.Editor
 
         static void OnPlayMode(PlayModeStateChange change)
         {
+            Trace("play mode " + change);
             // A Play that would not stop during a timed-out run ends later: restore then.
             if (change == PlayModeStateChange.EnteredEditMode && !Active)
                 Recover();
@@ -270,6 +276,7 @@ namespace Game.Editor
 
         static void SetPhase(int phase, int seconds)
         {
+            Trace("phase -> " + phase);
             SessionState.SetInt(KPhase, phase);
             SessionState.SetString(KDeadline, DateTime.UtcNow.AddSeconds(seconds).Ticks.ToString());
         }
@@ -398,6 +405,7 @@ namespace Game.Editor
         // Play has stopped: read what the app wrote.
         static void Evaluate()
         {
+            Trace("evaluate");
             int index = SessionState.GetInt(KCase, 0);
             string name = CaseNames[index];
             var obs = JObject.Parse(SessionState.GetString(KObs, "{}"));
@@ -513,6 +521,7 @@ namespace Game.Editor
 
         static void Clear()
         {
+            Trace("clear");
             SessionState.EraseBool(KActive);
             SessionState.EraseInt(KPhase);
             SessionState.EraseInt(KCase);
@@ -562,6 +571,7 @@ namespace Game.Editor
 
         static void Backup()
         {
+            Trace("backup begins");
             string root = Application.persistentDataPath;
             if (Directory.Exists(BackupDir))
                 Directory.Delete(BackupDir, true); // no manifest: a half-written copy from a crash during the backup, nothing was changed yet
@@ -606,6 +616,7 @@ namespace Game.Editor
         // removed only when there are none.
         static List<string> Restore()
         {
+            Trace("restore begins, called from " + new System.Diagnostics.StackTrace(1, false).GetFrame(0)?.GetMethod()?.Name);
             var problems = new List<string>();
             var manifest = JObject.Parse(File.ReadAllText(ManifestPath));
             string root = (string)manifest["root"];
