@@ -60,6 +60,26 @@
     "kind": "ratio",
     "guard": 1.8
   },
+  "tick_links_idle": {
+    "description": "fu_tick with 200 elements, 20 rules and 5 counts in a world that does not play: rules cost nothing when not playing.",
+    "kind": "ratio",
+    "guard": 1.5
+  },
+  "tick_links_playing_idle": {
+    "description": "The same world playing, with no event and no timer rule: rules cost almost nothing when nothing happens.",
+    "kind": "ratio",
+    "guard": 1.7
+  },
+  "links_touch_event": {
+    "description": "One Touched event that fires one rule with three thens, plus the tick, in the playing world above.",
+    "kind": "ratio",
+    "guard": 2.3
+  },
+  "links_timers_100": {
+    "description": "fu_tick in a playing world with 100 elements of one kind with an every-0.5-seconds rule (a burst of 100 firings every 31 ticks, averaged).",
+    "kind": "ratio",
+    "guard": 2.6
+  },
   "read_views_1000": {
     "description": "fu_read_views over 1000 entities.",
     "kind": "ratio",

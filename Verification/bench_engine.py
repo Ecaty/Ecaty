@@ -64,6 +64,8 @@ world_create = bind("fu_world_create", U64, P, c.c_char_p)
 world_save = bind("fu_world_save_json", P, P, U64)
 world_load = bind("fu_world_load_json", U64, P, c.c_char_p, c.c_char_p)
 emit_events = bind("fu_emit_events", c.c_int32, P, P, c.c_int32)
+world_run = bind("fu_world_run_script", c.c_int32, P, U64, c.c_char_p)
+world_play = bind("fu_world_play", c.c_int32, P, U64)
 
 
 class View(c.Structure):
@@ -253,6 +255,71 @@ def places_crossing():
                 raise RuntimeError("the event was not delivered")
             tick(w, 0.016)
         return best_calls(cross, 300)
+
+
+# ---- links, rules and Play --------------------------------------------------
+
+def links_world(w, play, elements=200, rules=20, counts=5, timers=0):
+    """A world with `elements` elements, `counts` counts and `rules` touch rules (each adds to a count), playing or not.
+    With `timers`, also that many elements of one kind with an every-0.5-seconds rule. Returns the world entity."""
+    entity = world_create(w, b"g")
+    lines = [f"C{i} {{ Count: {{start: 0}} }}" for i in range(counts)]
+    lines += [f"e{i} {{ Position: {{{i},0,0}} }}" for i in range(elements)]
+    lines.append("hit { Position: {0,0,0} }")
+    if timers:
+        lines.append("prefab Ticker { Position: {0,0,0} }")
+        lines += [f"t{i} : Ticker {{ Position: {{{i},0,0}} }}" for i in range(timers)]
+    lines.append("rules {")
+    lines += [f"  r{i} {{ (RuleOf, e{i}); Rule: {{when: Touches, that: e{i + 1}, thens: [{{verb: Counts, count: C{i % counts}, by: 1}}]}} }}"
+              for i in range(rules)]
+    lines.append("  three { (RuleOf, hit); Rule: {when: Touches, that: e150, thens: "
+                 "[{verb: Counts, count: C0, by: 1}, {verb: Counts, count: C1, by: 1}, {verb: Counts, count: C2, by: 1}]} }")
+    if timers:
+        lines.append("  every { (RuleOf, Ticker); Rule: {when: Every, seconds: 0.5, thens: [{verb: Counts, count: C0, by: 1}]} }")
+    lines.append("}")
+    if world_run(w, entity, "\n".join(lines).encode()) != 0:
+        raise RuntimeError((error(w) or b"").decode())
+    if play and world_play(w, entity) != 0:
+        raise RuntimeError((error(w) or b"").decode())
+    tick(w, 0.016)
+    tick(w, 0.016)
+    return entity
+
+
+def tick_links_idle():
+    """200 elements, 20 rules and 5 counts in a world that does not play: rules cost nothing."""
+    with world() as w:
+        links_world(w, False)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def tick_links_playing_idle():
+    """The same world playing, with no event and no timer rule: still close to the empty tick."""
+    with world() as w:
+        links_world(w, True)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def links_touch_event():
+    """One Touched event that fires one rule with three thens, plus the tick (the same world, playing)."""
+    with world() as w:
+        links_world(w, True)
+        fact = (Event * 1)(Event(lookup(w, b"Touched"), lookup(w, b"worlds.g.hit"), lookup(w, b"worlds.g.e150"), 0, 0, 0, 0))
+
+        def touch():
+            if emit_events(w, fact, 1) != 1:
+                raise RuntimeError("the event was not delivered")
+            tick(w, 0.016)
+        value = best_calls(touch, 300)
+        print(f"links_touch_event absolute: {value:.2f} us", file=sys.stderr)
+        return value
+
+
+def links_timers_100():
+    """100 elements of one kind with an every-0.5-seconds rule, playing: the tick cost (a burst every 31 ticks)."""
+    with world() as w:
+        links_world(w, True, timers=100)
+        return best_calls(lambda: tick(w, 0.016), 600)
 
 
 # ---- view snapshot and presentation -------------------------------------
@@ -546,6 +613,10 @@ METRICS = [
     ("tick_places_idle_1000", tick_places_idle_1000),
     ("places_force_edit_1000", places_force_edit_1000),
     ("places_crossing", places_crossing),
+    ("tick_links_idle", tick_links_idle),
+    ("tick_links_playing_idle", tick_links_playing_idle),
+    ("links_touch_event", links_touch_event),
+    ("links_timers_100", links_timers_100),
     ("read_views_1000", lambda: read_views_metric(1000)),
     ("view_changes_10000_static", view_changes_10000_static),
     ("read_views_10000", lambda: read_views_metric(10000)),

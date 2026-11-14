@@ -1432,6 +1432,165 @@ def places_contract():
             "EffectiveForce is 48 bytes with volume at 40 and is not saved; every authored member has a brief")
 
 
+# --- Links, rules and Play (Native/Core/src/Links.cpp; the coin game of tests/links_tests.cpp over the C ABI) -----------
+
+world_play = bind_extra("fu_world_play", c.c_int32, [P, c.c_uint64])
+world_stop = bind_extra("fu_world_stop", c.c_uint64, [P, c.c_uint64])
+remove_component = bind_extra("fu_remove_component", c.c_int32, [P, c.c_uint64, c.c_uint64, c.c_uint64])
+
+LINKS_KINDS = ("prefab Fox { Position: {0, 0, 0}; IsYou }\nprefab Coin { Position: {0, 0, 0} }\n"
+               "prefab Ghost { Position: {0, 0, 0} }\nprefab Spark { Position: {0, 0, 0}; Scale: {1, 1, 1} }")
+LINKS_SCENE = (
+    "Star { Count: {start: 0} }\n"
+    "Heart { Count: {start: 3} }\n"
+    "fox : kinds.Fox { Position: {0, 0, 0} }\n"
+    "coin1 : kinds.Coin { Position: {2, 0, 0} }\n"
+    "coin2 : kinds.Coin { Position: {4, 0, 0} }\n"
+    "coin3 : kinds.Coin { Position: {6, 0, 0} }\n"
+    "ghost : kinds.Ghost { Position: {-3, 0, 0} }\n"
+    "lamp { Position: {0, 5, 0} }\n"
+    "rules {\n"
+    "  collect { (RuleOf, kinds.Fox); Rule: {when: Touches, that: kinds.Coin, thens: [{verb: Removes}, {verb: Counts, count: Star, by: 1}, {verb: Plays}]} }\n"
+    "  hurt { (RuleOf, kinds.Fox); Rule: {when: Touches, that: kinds.Ghost, thens: [{verb: Counts, count: Heart, by: -1}]} }\n"
+    "  win { (RuleOf, Star); Rule: {when: Reaches, n: 3, thens: [{verb: Win}]} }\n"
+    "  lose { (RuleOf, Heart); Rule: {when: Reaches, n: 0, thens: [{verb: Lose}]} }\n"
+    "  sparks { (RuleOf, lamp); Rule: {when: Every, seconds: 0.5, thens: [{verb: Makes, kind: kinds.Spark}]} }\n"
+    "  light { (RuleOf, lamp); Rule: {when: AtStart, thens: [{verb: SwitchesOn, target: This}]} }\n"
+    "  lit { (RuleOf, lamp); Rule: {when: IsOn, thens: [{verb: Grows, target: This, by: 1}]} }\n"
+    "}\n")
+
+
+@check("links")
+def links_contract():
+    def build(world, name):
+        entity = world_create(world.ctx, name.encode())
+        assert entity, world.error()
+        assert source_apply(world.ctx, f"worlds.{name}.sources.Kinds".encode(), f"worlds.{name}.kinds".encode(), LINKS_KINDS.encode()) == 0, world.error()
+        assert world_run(world.ctx, entity, LINKS_SCENE.encode()) == 0, world.error()
+        return entity
+
+    def path(name, element):
+        return f"worlds.{name}.{element}"
+
+    def exists(world, name, element):
+        return bool(world.lookup(path(name, element)))
+
+    def count(world, name, element):
+        return component(world, path(name, element), "Count")["value"]
+
+    def fired(world, name, rule):
+        state = component(world, path(name, rule), "RuleState")
+        return state["fired"] if state else 0
+
+    def has_tag(world, entity, tag):
+        return tag in world.entity(entity).get("tags", [])
+
+    def outcome(world, entity):
+        return world.entity(entity).get("pairs", {}).get("GameOver")
+
+    def touch(world, name, a, b):
+        fact = (Event * 1)(Event(world.lookup("Touched"), world.lookup(path(name, a)), world.lookup(path(name, b)), 0, 0, 0, 0))
+        assert emit_events(world.ctx, fact, 1) == 1, "Touched was not delivered"
+        world.tick(1)
+
+    def made(world, name, kind):
+        rows = world_rows(world, world.lookup(f"worlds.{name}"), f"(IsA, worlds.{name}.kinds.{kind})")
+        return len(rows or [])
+
+    with isolated_world() as world:
+        game = build(world, "game")
+        other = build(world, "other")
+        touch(world, "game", "fox", "coin1")
+        assert exists(world, "game", "coin1") and count(world, "game", "Star") == 0, "something happened before Play"
+        # Only the world that plays reacts.
+        assert world_play(world.ctx, game) == 0, world.error()
+        assert world_play(world.ctx, game) == 0, "Play on a playing world must be harmless"
+        assert has_tag(world, f"worlds.game", "Playing") and not has_tag(world, "worlds.other", "Playing"), "the Playing tag"
+        world.tick(2)
+        assert has_tag(world, "worlds.game.lamp", "Switched"), "an at-start rule did not switch the lamp on"
+        world.tick(2)
+        assert component(world, "worlds.game.lamp", "Scale")["x"] == 2 and fired(world, "game", "rules.lit") == 1, \
+            "an is-on rule did not grow the lamp, once"
+        touch(world, "other", "fox", "coin1")
+        assert exists(world, "other", "coin1") and count(world, "other", "Star") == 0 and not has_tag(world, "worlds.other.lamp", "Switched"), \
+            "a world that does not play reacted"
+        # Touches, in both orders; counts and removes.
+        touch(world, "game", "fox", "coin1")
+        assert not exists(world, "game", "coin1") and exists(world, "game", "coin2") and count(world, "game", "Star") == 1, "a touch must remove the coin and count a star"
+        assert fired(world, "game", "rules.collect") == 1 and fired(world, "game", "rules.hurt") == 0, "only the rule about coins must fire"
+        touch(world, "game", "coin2", "fox")
+        assert not exists(world, "game", "coin2") and count(world, "game", "Star") == 2, "a touch must be noticed whichever element reports it"
+        touch(world, "game", "fox", "ghost")
+        assert count(world, "game", "Heart") == 2 and exists(world, "game", "ghost"), "the ghost costs a heart and stays"
+        touch(world, "game", "ghost", "coin3")
+        assert exists(world, "game", "coin3") and count(world, "game", "Star") == 2, "a touch nobody has a rule for must do nothing"
+        assert outcome(world, "worlds.game") is None, "the game ended too early"
+        # Every N seconds, with makes.
+        for _ in range(50):
+            assert lib.fu_tick(world.ctx, 0.02) == 0, world.error()
+        assert 2 <= made(world, "game", "Spark") <= 3, f"sparks after a second: {made(world, 'game', 'Spark')}"
+        assert made(world, "other", "Spark") == 0, "a world that does not play made something"
+        # Reaches: win.
+        touch(world, "game", "fox", "coin3")
+        world.tick(1)
+        assert count(world, "game", "Star") == 3 and outcome(world, "worlds.game") == "Won", f"the third star must win: {outcome(world, 'worlds.game')}"
+        # A saved document holds the rules by verb name and nothing of the round.
+        document = saved(world, game)
+        assert '"verb":"Removes"' in document and '"when":"Touches"' in document and '"verb":"Makes"' in document, "verbs are not in the document by name"
+        assert "RuleState" not in document and "Playing" not in document and "GameOver" not in document, "state of a round was saved"
+        # Stop rewinds.
+        old = game
+        game = world_stop(world.ctx, game)
+        assert game and game != old and world.lookup("worlds.game") == game, f"Stop did not return the new world: {world.error()}"
+        assert not has_tag(world, "worlds.game", "Playing") and outcome(world, "worlds.game") is None, "Playing or GameOver is left after Stop"
+        assert all(exists(world, "game", n) for n in ("coin1", "coin2", "coin3", "rules.collect")), "removed elements are not back"
+        assert made(world, "game", "Spark") == 0, "made elements are left after Stop"
+        assert count(world, "game", "Star") == 0 and count(world, "game", "Heart") == 3, "counts are not at their start"
+        assert not has_tag(world, "worlds.game.lamp", "Switched") and fired(world, "game", "rules.collect") == 0, "a switch or a firing count is left"
+        assert world_stop(world.ctx, game) == game, "Stop on a world that does not play returns the same world"
+        # A second round, lost.
+        assert world_play(world.ctx, game) == 0, world.error()
+        world.tick(2)
+        for _ in range(3):
+            touch(world, "game", "fox", "ghost")
+        world.tick(1)
+        assert count(world, "game", "Heart") == 0 and outcome(world, "worlds.game") == "Lost", f"no hearts must lose: {outcome(world, 'worlds.game')}"
+        assert world_play(world.ctx, 0xDEAD0000) == -1 and world.error(), "Play on a dead entity must fail with an error"
+
+    with isolated_world() as world:
+        assert lib.fu_run_script(world.ctx, WORLD_SCHEMA.encode()) == 0, world.error()
+        assert lib.fu_run_script(world.ctx, b"p1 { Position: {0,0,0} }\nbob { Position: {1,0,0}; Broken; (Likes, p1) }") == 0, world.error()
+        bob, broken, likes, p1 = (world.lookup(n) for n in ("bob", "Broken", "Likes", "p1"))
+        assert remove_component(world.ctx, bob, broken, 0) == 1 and remove_component(world.ctx, bob, broken, 0) == 0, "removing a tag: 1, then 0"
+        assert remove_component(world.ctx, bob, likes, p1) == 1 and remove_component(world.ctx, bob, likes, p1) == 0, "removing a pair: 1, then 0"
+        assert "Broken" not in world.entity("bob").get("tags", []) and "Likes" not in world.entity("bob").get("pairs", {}), "the tag or the pair is still there"
+        assert remove_component(world.ctx, 0, broken, 0) == -1, "a bad entity must return -1"
+
+    with isolated_world() as world:
+        def layout_size(name):
+            buffer = c.create_string_buffer(8192)
+            length = lib.fu_type_layout_into(world.ctx, world.lookup(name), buffer, 8192)
+            assert 0 < length < 8192, f"{name} layout length {length}"
+            return json.loads(buffer.raw[:length].decode())["size"]
+        assert layout_size("Rule") == 224 and layout_size("Then") == 32, f"sizes: Rule {layout_size('Rule')}, Then {layout_size('Then')}"
+        size_note = "Rule 224 and Then 32 by layout"
+        plain = lib.fu_component_size(world.ctx, world.lookup("Rule"))
+        assert plain == 224, f"fu_component_size(Rule) = {plain}"
+        members = {"Rule": ["when", "that", "count", "n", "seconds", "thens"], "Then": ["verb", "target", "kind", "count", "by"],
+                   "Count": ["start", "value"], "RuleOf": [], "Playing": [], "Switched": [], "GameOver": [], "IsYou": [],
+                   "Touched": [], "Tapped": []}
+        missing = []
+        for type_name, names in members.items():
+            for item in [type_name] + [f"{type_name}.{n}" for n in names]:
+                components = world.entity(item).get("components", {})
+                if not components.get("(flecs.doc.Description,flecs.doc.Brief)", {}).get("value"):
+                    missing.append(item)
+        assert not missing, f"no brief on: {missing}"
+    return ("the coin game over the C ABI: nothing before Play, only the playing world reacts, at-start, touches in both orders, counts, removes, "
+            "reaches (win and lose), every-N-seconds makes, is-on grows; Stop rewinds; the document has verbs by name and no round state; "
+            f"fu_remove_component 1 then 0 for a tag and a pair; {size_note} (fu_component_size(Rule) = {plain}); every member has a brief")
+
+
 # --- Report --------------------------------------------------------------------------------------------------------
 
 passed = all(row["ok"] for row in results)
