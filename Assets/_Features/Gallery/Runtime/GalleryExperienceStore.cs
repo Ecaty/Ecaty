@@ -30,6 +30,11 @@ namespace Game
             }
         }
         string resident; ulong worldId; Transform root; bool visible;
+        // Undo, rewind, stop and load give a world a new root entity: the session counts them, and the store looks the world up again.
+        int seenGeneration;
+        // The new root entity is known but its view is not created yet (views are made by SyncViews): Follow tries again on the next call.
+        bool pending;
+        Vector3 origin;
         // Spin values of a hidden resident, by entity path. The live Spin is zero while hidden.
         readonly Dictionary<string, JToken> paused = new();
         public int Generation
@@ -37,7 +42,14 @@ namespace Game
             get; private set;
         }
         public string ResidentId => resident;
-        public Transform ResidentRoot => root;
+        public Transform ResidentRoot
+        {
+            get
+            {
+                Follow();
+                return root;
+            }
+        }
         public bool Visible => visible;
         public GalleryExperienceStore(FlecsWorld owner)
         {
@@ -66,6 +78,68 @@ namespace Game
             return has;
         }
         static string Prefix(string id) => GalleryWorldDocument.Root(id) + ".";
+        // Takes the resident world's new entity after the native side replaced it (undo, rewind, stop, load), and puts its view where
+        // Activate put the old one. Nothing happens, and no native call is made, while the session's counter has not moved.
+        void Follow()
+        {
+            var session = world.Session;
+            if (session == null || session.IsDisposed)
+                return;
+            if (resident == null)
+            {
+                seenGeneration = session.WorldGeneration;
+                return;
+            }
+            if (seenGeneration == session.WorldGeneration && !pending)
+                return;
+            seenGeneration = session.WorldGeneration;
+            ulong current = session.Lookup(GalleryWorldDocument.Root(resident));
+            if (current == 0)
+            {
+                // The world is gone: nothing to save or delete, and the old entity must not be used again.
+                resident = null;
+                root = null;
+                worldId = 0;
+                visible = false;
+                pending = false;
+                paused.Clear();
+                Generation++;
+                return;
+            }
+            if (current != worldId)
+            {
+                worldId = current;
+                root = null;
+                pending = true;
+                Generation++;
+            }
+            if (!pending)
+                return;
+            world.SyncViews();
+            if (!Mount(false))
+                return;
+            pending = false;
+            root.gameObject.SetActive(visible);
+        }
+        // Finds the resident's root view and takes over its origin. False while the view does not exist yet, or (when not
+        // strict) while another owner holds its pose: Follow runs inside getters and tries again instead of throwing.
+        bool Mount(bool strict = true)
+        {
+            root = world.FindView(worldId)?.transform;
+            if (!root)
+                return false;
+            if (!world.AcquirePose(worldId, AppOwner))
+            {
+                if (strict)
+                    throw new InvalidOperationException("Saved world origin already owned");
+                root = null;
+                return false;
+            }
+            root.position = origin;
+            root.rotation = Quaternion.identity;
+            RefreshLayers();
+            return true;
+        }
         CapabilityRuntime Capabilities => world.GetComponent<CapabilityRuntime>();
         JObject ReadRecord(string id)
         {
@@ -97,6 +171,7 @@ namespace Game
         // Entity paths of the resident world that match a query.
         List<string> Rows(string expression)
         {
+            Follow();
             var paths = new List<string>();
             foreach (var row in JObject.Parse(world.Session.QueryWorld(worldId, expression))["results"])
                 paths.Add(row["parent"] == null ? (string)row["name"] : (string)row["parent"] + "." + (string)row["name"]);
@@ -105,6 +180,7 @@ namespace Game
         // The resident world as a document. A hidden world has zero Spin live, so its remembered values go back in.
         string LiveDocument()
         {
+            Follow();
             string text = world.Session.SaveWorld(worldId);
             if (visible || paused.Count == 0)
                 return text;
@@ -120,6 +196,7 @@ namespace Game
         }
         public JArray Features(string id)
         {
+            Follow();
             if (resident != null && resident == id && root)
                 return GalleryWorldDocument.Features(LiveDocument());
             var record = ReadRecord(id);
@@ -134,6 +211,13 @@ namespace Game
         {
             if (!Has(id))
                 return;
+            Follow();
+            if (pending)
+            {
+                world.SyncViews();
+                Follow();
+            }
+            this.origin = origin;
             if (resident != id)
             {
                 var record = ReadRecord(id);
@@ -141,9 +225,11 @@ namespace Game
                 // A refused document changes nothing: the previous resident stays as it is.
                 if (!world.Session.TryLoadWorld(id, document, out ulong loaded, out string error))
                     throw new InvalidOperationException("Saved world " + id + " was refused: " + error);
+                seenGeneration = world.Session.WorldGeneration;
                 Unload();
                 resident = id;
                 worldId = loaded;
+                pending = false;
                 visible = false;
                 paused.Clear();
                 Generation++;
@@ -157,11 +243,8 @@ namespace Game
                     if (scripts.Count > 0)
                         Store(id, world.Session.SaveWorld(loaded), (string)record["selected"], (string)record["state"]);
                     world.SyncViews();
-                    root = world.FindView(worldId)?.transform;
-                    if (!root)
+                    if (!Mount())
                         throw new InvalidOperationException("Saved world produced no root view");
-                    if (!world.AcquirePose(worldId, AppOwner))
-                        throw new InvalidOperationException("Saved world origin already owned");
                     string stateText = (string)record["state"];
                     if (!string.IsNullOrEmpty(stateText))
                         Capabilities?.QueueRestore(JObject.Parse(stateText), true);
@@ -171,11 +254,14 @@ namespace Game
                     resident = null;
                     root = null;
                     worldId = 0;
+                    pending = false;
                     world.Session.DeleteWorld(loaded);
                     world.SyncViews();
                     throw;
                 }
             }
+            if (!root)
+                throw new InvalidOperationException("Saved world has no root view");
             root.position = origin;
             root.rotation = Quaternion.identity;
             SetVisible(id, true);
@@ -191,6 +277,7 @@ namespace Game
         static readonly string NoSpin = V(0, 0, 0).ToString(Formatting.None);
         public void SetVisible(string id, bool show)
         {
+            Follow();
             if (resident != id || !root)
                 return;
             if (visible != show)
@@ -219,6 +306,7 @@ namespace Game
         }
         public Transform[] FocusTargets()
         {
+            Follow();
             if (resident == null)
                 return Array.Empty<Transform>();
             var targets = new List<(ulong Entity, Transform View)>();
@@ -238,6 +326,7 @@ namespace Game
         }
         public void CaptureResident()
         {
+            Follow();
             if (resident == null || !root || !visible)
                 return;
             // Bindings are entities of the world: the document holds them once. Only adapter state is kept beside it.
@@ -328,6 +417,7 @@ namespace Game
         // Adds a shape to the resident world. A hidden world keeps its Spin paused and its document is written at once.
         void AddLive(JObject shape)
         {
+            Follow();
             string name = (string)shape["name"];
             string path = Prefix(resident) + name;
             world.Session.Spawn(world.Session.Lookup(GalleryWorldDocument.Kind), worldId, name);
@@ -384,6 +474,13 @@ namespace Game
         }
         public void Unload()
         {
+            Follow();
+            // A replaced world whose view is not there yet: sync once so its edits are still saved.
+            if (pending)
+            {
+                world.SyncViews();
+                Follow();
+            }
             if (resident == null)
                 return;
             CaptureResident();
@@ -395,6 +492,7 @@ namespace Game
             resident = null;
             root = null;
             worldId = 0;
+            pending = false;
             visible = false;
             paused.Clear();
         }

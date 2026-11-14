@@ -922,7 +922,13 @@ def sources():
         assert source_remove(world.ctx, b"sources.Probe") >= 0, world.error()
         assert world.lookup("library.Probe") == 0 and source_text(world, "sources.Probe") is None, "the removed source left its kind behind"
         assert world.lookup("library.__fu_staging") == 0, "the staging scope exists"
-    return ("edit keeps ids; refused texts (script error with line 3, struct, non-prefab, new source, kind in use) change nothing; "
+        # A name that belongs to something else is never taken over, and a refused text never deletes it.
+        assert lib.fu_run_script(world.ctx, b"plain { Position: {5, 5, 5} }") == 0, world.error()
+        for name in ("plain", "Position"):
+            assert apply_source(world, name, "this is { not a script ((") == -1 and world.lookup(name), f"a broken text over {name} deleted it"
+            assert apply_source(world, name, PROBE_KIND) == -1 and world.lookup(name), f"a good text over {name} was accepted"
+        assert "already used" in world.error(), world.error()
+    return ("edit keeps ids; a name of something else is refused and survives; refused texts (script error with line 3, struct, non-prefab, new source, kind in use) change nothing; "
             "undo restores; text reads full length and -1; removal after the last instance; no staging scope")
 
 
@@ -1054,6 +1060,12 @@ def worlds():
         assert world_rows(world, a, "not a query (") is None and "Invalid query" in world.error(), \
             f"an invalid expression must return NULL with an error: {world.error()!r}"
         assert world_rows(world, a, "Position") is not None, "the world must work after an invalid query"
+        # A query reads its own world's elements only.
+        for text in ("Position(worlds.b.p1)", "Position, Position(worlds.b.p1)", "Position($x), ChildOf($x, worlds.b)", "Position(worlds)"):
+            assert world_rows(world, a, text) is None and "its own elements only" in world.error(), f"{text} was not refused: {world.error()!r}"
+        assert world_rows(world, a, "Position(worlds.a.p1)") and world_rows(world, a, "IsA($this, worlds.b.kinds.Plane)") == [], "a query of its own, or with another world as the target"
+        # A name with a dot is refused, so undo can read the world back.
+        assert spawn(world.ctx, world.lookup("worlds.a.kinds.Plane"), a, b"x.y") == 0 and "'.'" in world.error(), "a name with a dot was accepted"
         # A script runs under its world only.
         assert world_run(world.ctx, a, b"only_a { Position: {9,9,9} }") == 0, world.error()
         assert world.lookup("worlds.a.only_a") and not world.lookup("worlds.b.only_a") and not world.lookup("only_a"), \
@@ -1148,6 +1160,17 @@ def world_documents():
         }
         for name, text in refused.items():
             assert text != document or name == "a cut document", f"{name}: the replacement did not change the document"
+            refuse(world, name, text, a, 55)
+        # Wrong JSON types and names that are patterns are refused with a message, never a crash.
+        for name, text in {
+            "a root that is a number": '{"format":2,"root":5,"entities":[]}',
+            "a source scope that is a number": '{"format":2,"sources":[{"name":"n","text":"t","scope":7}],"entities":[]}',
+            "a prefab flag that is text": '{"format":2,"entities":[{"path":"x","prefab":"yes"}]}',
+            "components that are a list": '{"format":2,"entities":[{"path":"x","components":[1,2]}]}',
+            "a wildcard tag": '{"format":2,"entities":[{"path":"x","tags":["*"]}]}',
+            "an entity that is its own kind": '{"format":2,"entities":[{"path":"x","kinds":["~x"]}]}',
+            "a path of 70 segments": '{"format":2,"entities":[{"path":"' + ".".join(["x"] * 71) + '"}]}',
+        }.items():
             refuse(world, name, text, a, 55)
         # The intact document replaces the loaded world with new entities.
         old_p1 = world.lookup("worlds.a.p1")
@@ -1726,6 +1749,9 @@ def sound_contract():
             "every member has a brief")
 
 
+types_json = bind_extra("fu_types_json", P, [P])
+
+
 # --- Tools: describe, kinds, dry run, undo and alerts (Native/Core/src/Describe.cpp, Worlds.cpp, Links.cpp; tests/tool_tests.cpp over the C ABI) ---
 
 describe_json = bind_extra("fu_describe_json", P, [P, S])
@@ -1861,9 +1887,37 @@ def tools_contract():
         for _ in range(90):
             assert lib.fu_tick(world.ctx, 1 / 30) == 0, world.error()
         assert "worlds.w.lost" not in [row["entity"] for row in alert_rows(world, entity)], "the alert stays after the rule got an owner"
+
+    # A rule that names something deleted.
+    with isolated_world() as world:
+        entity = world_create(world.ctx, b"w")
+        assert world_run(world.ctx, entity, b"coin { Position: {0,0,0} }\ngem { Position: {1,0,0} }\n"
+                         b"collect { (RuleOf, gem); Rule: {when: Touches, that: coin, thens: [{verb: Removes}]} }") == 0, world.error()
+        def dangling():
+            for _ in range(90):
+                assert lib.fu_tick(world.ctx, 1 / 30) == 0, world.error()
+            return [row for row in alert_rows(world, entity) if row["entity"] == "worlds.w.collect"]
+        assert not dangling(), "a rule that names things that exist has an alert"
+        assert lib.fu_delete_entity(world.ctx, b"worlds.w.coin") == 1
+        rows = dangling()
+        assert rows and "no longer exists" in rows[0]["message"], f"no alert for a rule that names a deleted coin: {rows}"
+        assert world_run(world.ctx, entity, b"collect { Rule: {when: Touches, that: gem, thens: [{verb: Removes}]} }") == 0, world.error()
+        assert not dangling(), "the alert stays after the rule was pointed at something alive"
+        assert "Dangling" not in saved(world, entity), "the mark is saved"
+
+    # The list of authored types comes from the engine.
+    with isolated_world() as world:
+        listed = json.loads(World.take(types_json(world.ctx)))
+        core = ("Position Rotation Scale Color Primitive Label Look WorldStyle MotionLoop SecondPose Free Pinned Ghost Gravity Float Wind Drag "
+                "Particles Rule Count Sound SoundClip Spin").split()
+        assert listed == core, f"the authored types: {listed}"
+        assert all(described(world, name) for name in listed), "a listed type cannot be described"
+        assert lib.fu_set_component_json(world.ctx, b"Primitive", b"Authored", b'{"order":5}') == 0, world.error()
+        assert json.loads(World.take(types_json(world.ctx)))[0] == "Primitive", "a type with a lower order does not come first"
     return ("describe: Look nested with polish 0..1, Rule enum values and 6 thens, tags, unknown is NULL, a brief on every member of "
             f"{len(BRIEF_NAMES)} names; kinds by scope with parts, bases, instances and source; a dry run changes nothing and reports the line; "
-            "two checkpoints undo step by step, keep the world entered, the third returns 0; alerts per scope appear and clear")
+            "two checkpoints undo step by step, keep the world entered, the third returns 0; alerts per scope appear and clear; "
+            "a rule naming a deleted element raises RuleNamesMissing and loses it when repaired; fu_types_json lists the 23 authored types in order")
 
 
 # --- Gallery rings (docs/ENGINE-PLAN.md step 6.3) ------------------------------------------------------------------

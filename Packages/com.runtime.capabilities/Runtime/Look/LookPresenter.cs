@@ -36,7 +36,7 @@ namespace Runtime.Capabilities
         readonly List<ulong> scratch = new();
         readonly List<ulong> waiting = new();
         FlecsSession session;
-        int handle, generation, ticks, lastRetry, viewCount;
+        int handle, generation, ticks, lastRetry, viewCount, visuals;
         ulong owner;
         ulong[] entities = new ulong[64], targets = new ulong[64];
         LookValues[] rows = new LookValues[64];
@@ -85,6 +85,11 @@ namespace Runtime.Capabilities
             bool changed = session.QueryChanged(handle);
             if (changed)
                 Read();
+            if (visuals != world.VisualGeneration)
+            {
+                visuals = world.VisualGeneration;
+                Reapply();
+            }
             // The first pass of a change may find a view or renderer missing; look again when the views grew or after a while.
             if (waiting.Count > 0 && (changed || world.ViewCount != viewCount || ticks - lastRetry >= RetryTicks))
                 Retry();
@@ -125,6 +130,23 @@ namespace Runtime.Capabilities
                 Remove(scratch[i]);
             lastRetry = ticks;
             viewCount = world.ViewCount;
+        }
+
+        // A view's shape changed and its visual was replaced: the new renderer has the default material, so shown looks are applied again.
+        // The old renderer is destroyed only at the end of the frame, so a different renderer on the view is the sign, not a null one.
+        void Reapply()
+        {
+            foreach (var pair in tracked)
+            {
+                var item = pair.Value;
+                if (item.Phase != Phase.Shown)
+                    continue;
+                var view = world.FindView(pair.Key);
+                if (view && RendererOf(view) == item.Renderer && item.Renderer)
+                    continue;
+                if (!Show(pair.Key, item) && !waiting.Contains(pair.Key))
+                    waiting.Add(pair.Key);
+            }
         }
 
         void Retry()
@@ -205,6 +227,7 @@ namespace Runtime.Capabilities
             }
             tracked.Clear();
             waiting.Clear();
+            visuals = 0;
             session = null;
             handle = 0;
             owner = 0;

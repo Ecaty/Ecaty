@@ -39,6 +39,7 @@ namespace Runtime.Capabilities
             public int Primitive = int.MinValue;
             public int Seen;
             public bool Settled; // Not ours to touch (another collider or pose owner), or done.
+            public int NotBefore = int.MinValue; // A rebuilt role waits for the old components to be gone (Play mode destroys at frame end).
             public bool Owned;
             public Vector3 LocalSize = Vector3.one;
             public float Density = 1f, Drag = -1f;
@@ -95,6 +96,7 @@ namespace Runtime.Capabilities
         float clock;
         int sentTouched;
         int generation, ticks, lastRetry, viewCount;
+        bool rebuilding; // An entity changed role in Play mode: it is built on the next tick, not after RetryTicks.
         bool rescan; // A body was built after the rows were read: its parent and forces are read again.
         FlecsSession.Event[] events = new FlecsSession.Event[32];
         int eventCount, sentEntered, sentLeft, writes;
@@ -173,7 +175,7 @@ namespace Runtime.Capabilities
             bool forcesChanged = forces.Refresh(session);
             if (changed)
                 Reconcile();
-            else if (waiting.Count > 0 && (world.ViewCount != viewCount || ticks - lastRetry >= RetryTicks))
+            else if (waiting.Count > 0 && (rebuilding || world.ViewCount != viewCount || ticks - lastRetry >= RetryTicks))
                 Retry();
             if (changed || forcesChanged || rescan)
                 ReadForces(changed || rescan);
@@ -258,6 +260,14 @@ namespace Runtime.Capabilities
             {
                 Remove(entity);
                 item = null;
+                // Play mode destroys the old collider only at the end of the frame: building now would find it and settle for good.
+                if (Application.isPlaying)
+                {
+                    items.Add(entity, item = new Item { Role = role, Seen = generation, NotBefore = Time.frameCount + 1, Density = role == Role.Free ? density : 1f });
+                    rebuilding = true;
+                    waiting.Add(entity);
+                    return;
+                }
             }
             if (item == null)
                 items.Add(entity, item = new Item { Role = role });
@@ -277,6 +287,10 @@ namespace Runtime.Capabilities
             for (int i = waiting.Count - 1; i >= 0; i--)
                 if (!items.TryGetValue(waiting[i], out var item) || Build(waiting[i], item))
                     waiting.RemoveAt(i);
+            rebuilding = false;
+            for (int i = 0; i < waiting.Count; i++)
+                if (items.TryGetValue(waiting[i], out var pending) && pending.NotBefore != int.MinValue)
+                    rebuilding = true;
             lastRetry = ticks;
             viewCount = world.ViewCount;
         }
@@ -286,6 +300,8 @@ namespace Runtime.Capabilities
         {
             if (item.Settled)
                 return true;
+            if (Time.frameCount < item.NotBefore)
+                return false;
             var view = world.FindView(entity);
             if (!view)
             {
@@ -647,6 +663,8 @@ namespace Runtime.Capabilities
                 Destroy(item.Volume);
             if (item.Body)
                 Destroy(item.Body);
+            if (item.Contacts)
+                Destroy(item.Contacts);
             if (item.Collider)
                 Destroy(item.Collider);
             if (!item.Owned)
@@ -686,6 +704,7 @@ namespace Runtime.Capabilities
             colliders.Clear();
             contacts.Clear();
             waiting.Clear();
+            rebuilding = false;
             eventCount = 0;
             session = null;
             owner = entered = left = 0;

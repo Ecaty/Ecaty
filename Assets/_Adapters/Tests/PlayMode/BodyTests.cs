@@ -301,6 +301,42 @@ namespace Game.Tests
         }
 
         [UnityTest]
+        public IEnumerator ABodyThatChangesRoleIsRebuilt()
+        {
+            yield return null;
+            using var scene = new Scene(Scenario(ballFree: false).Replace("ball { ", "ball { Pinned; "));
+            yield return null;
+            scene.Bodies = new BodyPresenter(scene.World);
+            // Destroy is deferred in Play mode: a few frames let the old components go and the new ones be built.
+            IEnumerator Frames()
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    scene.Advance(0.04f);
+                    yield return null;
+                }
+            }
+            yield return Frames();
+            var view = scene.ViewObject("ball");
+            Assert.That(view.GetComponents<Collider>().Length, Is.EqualTo(1), "a pinned shape has one collider. " + scene.Info);
+            Assert.That(view.GetComponent<Rigidbody>(), Is.Null, "and no Rigidbody");
+            // Pinned to Free.
+            scene.Session.SetComponentJson("land.ball", "Free", "{\"density\":1}");
+            Assert.That(scene.Session.RemoveComponent(scene.Id("ball"), scene.Session.TypeId("Pinned")), Is.True, "the ball had Pinned");
+            yield return Frames();
+            Assert.That(view.GetComponent<Rigidbody>(), Is.Not.Null, "the ball is a body now. " + scene.Info);
+            Assert.That(view.GetComponents<BodyContacts>().Length, Is.EqualTo(1), "with one contact counter");
+            Assert.That(view.GetComponents<Collider>().Length, Is.EqualTo(1), "and one collider");
+            // Free to Pinned.
+            scene.Session.RunScript("land { ball { Pinned } }");
+            Assert.That(scene.Session.RemoveComponent(scene.Id("ball"), scene.Session.TypeId("Free")), Is.True, "the ball had Free");
+            yield return Frames();
+            Assert.That(view.GetComponent<Rigidbody>(), Is.Null, "the Rigidbody is gone. " + scene.Info);
+            Assert.That(view.GetComponents<BodyContacts>().Length, Is.EqualTo(0), "and the contact counter");
+            Assert.That(view.GetComponents<Collider>().Length, Is.EqualTo(1), "a pinned shape has one collider again. " + scene.Info);
+        }
+
+        [UnityTest]
         public IEnumerator RemovingFreeGivesTheBodyBack()
         {
             yield return null;

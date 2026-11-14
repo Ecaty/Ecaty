@@ -12,7 +12,7 @@ Current-state document. Dated history: [history/PROJECT-log-2026-11.md](history/
 
 ## Baseline
 
-- Windows x64 first. Unity 6000.6.7f1, URP 17.6.0. Mobile/XR need target libs; browser needs WebAssembly/static native and another transport.
+- Windows x64 first. Unity 6000.6.9f1, URP 17.6.0. Mobile/XR need target libs; browser needs WebAssembly/static native and another transport.
 - Native C++17 with Flecs C++ API. Pinned Flecs master 68790666a02b1dc679cdc9bc2d19fc285ba4fe1b (reports 4.2.0+6879066); `flecs.c`/`flecs.h` unmodified C99; submodule `Native/Core/vendor/flecs` (fork Ecaty/flecs; the submodule commit is the pin). Also pinned in Core as submodules of Ecaty forks: BehaviorTree.CPP, TinySoundFont (GeneralUser GS bank), Clipper2. All outside GitHub dependencies go through Ecaty forks as submodules; a weekly workflow reports upstream changes, updates stay manual.
 - One native Flecs world per session; C ABI `fu_*` (v5; 96-byte fu_view with orientation quaternion and flags; fu_write_presented writes observations only); `FlecsSession` owns the handle. Extra isolated worlds allowed where useful but need explicit state transfer and world-qualified adapter ownership; current design keeps one authoritative session.
 - Unity is presentation/deployment; replacing it with a custom C++ engine is not approved. Local Editor development is primary.

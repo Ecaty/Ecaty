@@ -297,7 +297,7 @@ namespace Runtime.Capabilities
                 item.Source.Stop();
                 item.Source.clip = null;
                 if (item.Added)
-                    UnityEngine.Object.Destroy(item.Source);
+                    DestroyObject(item.Source);
             }
             item.Source = null;
             if (item.Render != null)
@@ -322,6 +322,17 @@ namespace Runtime.Capabilities
         {
             Forget();
             renders.Dispose();
+        }
+
+        // Play mode destroys at the end of the frame; Edit mode has no frame, and Destroy there logs an error and leaks.
+        static void DestroyObject(UnityEngine.Object value)
+        {
+            if (!value)
+                return;
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(value);
+            else
+                UnityEngine.Object.DestroyImmediate(value);
         }
     }
 }

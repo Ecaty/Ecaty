@@ -175,7 +175,7 @@ namespace Runtime.Capabilities
             render.Discarded = true;
             render.Buffer = null;
             if (render.Clip)
-                Object.Destroy(render.Clip);
+                DestroyObject(render.Clip);
             render.Clip = null;
         }
 
@@ -192,6 +192,17 @@ namespace Runtime.Capabilities
             idle.Clear();
             // A running render is discarded above; Tick would only drop it, so they can go now.
             pending.Clear();
+        }
+
+        // Play mode destroys at the end of the frame; Edit mode has no frame, and Destroy there logs an error and leaks.
+        static void DestroyObject(Object value)
+        {
+            if (!value)
+                return;
+            if (Application.isPlaying)
+                Object.Destroy(value);
+            else
+                Object.DestroyImmediate(value);
         }
     }
 }

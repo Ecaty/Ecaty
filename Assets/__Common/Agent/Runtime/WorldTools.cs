@@ -211,7 +211,11 @@ namespace Game
             else if (name == "library" || name.StartsWith("library.", StringComparison.Ordinal))
                 tries.Add(name);
             else if (name.StartsWith("worlds.", StringComparison.Ordinal))
-                tries.Add(c.Full(name));
+            {
+                // Another world's names do not exist from here.
+                if (name == prefix || name.StartsWith(prefix + ".", StringComparison.Ordinal))
+                    tries.Add(name);
+            }
             else
             {
                 tries.Add(c.Full(name));
@@ -222,12 +226,19 @@ namespace Game
                 string json = c.Session.Describe(path);
                 if (json != null)
                 {
+                    // A type may be described from anywhere; a kind only when it is in this world or the library.
+                    if ((string)JObject.Parse(json)["is"] == "kind" && !InsideOrLibrary(c, path))
+                        continue;
                     result["description"] = c.Relative(JToken.Parse(json));
                     return;
                 }
             }
-            throw new Failure("Nothing is named " + name + ". Use list_kinds for kinds.");
+            throw new Failure("No type or kind named " + name + ". Use list_kinds for kinds.");
         }
+
+        // True for a path in the entered world or under the library.
+        private static bool InsideOrLibrary(Call c, string path) =>
+            path == "library" || path.StartsWith("library.", StringComparison.Ordinal) || path == c.Prefix || path.StartsWith(c.Prefix + ".", StringComparison.Ordinal);
 
         private static void ListKinds(Call c, JObject result)
         {
@@ -238,11 +249,22 @@ namespace Game
         private static void Query(Call c, JObject result)
         {
             string expression = c.Str("expression");
-            int limit = c.Args["limit"]?.Type == JTokenType.Integer ? Math.Clamp((int)c.Args["limit"], 1, 500) : 100;
+            int limit = Limit(c.Args["limit"]);
             string json = c.Session.QueryWorld(c.Entered, expression, limit);
             if (json.Length > 60000)
                 throw new Failure("Too many matches. Add a required component or lower the limit.");
             result["result"] = c.Relative(JToken.Parse(json));
+        }
+
+        // A whole JSON number (5 or 5.0) is a limit, clamped to 1..500; anything else is the default. A huge value does not throw.
+        private static int Limit(JToken token)
+        {
+            if (token == null || (token.Type != JTokenType.Integer && token.Type != JTokenType.Float))
+                return 100;
+            if (!double.TryParse(((JValue)token).ToString(CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                || double.IsNaN(value) || value != Math.Floor(value))
+                return 100;
+            return (int)Math.Clamp(value, 1d, 500d);
         }
 
         private static void Inspect(Call c, JObject result)
@@ -524,6 +546,21 @@ namespace Game
         private static string Num(JObject source, string name) =>
             source[name] is JValue v && (v.Type == JTokenType.Integer || v.Type == JTokenType.Float) ? Convert.ToString((double)v, CultureInfo.InvariantCulture) : null;
 
+        // An entity a rule names, as its full path inside the world: a kind of the world or the library, or an element of the world.
+        // Another world's entity, or one that does not exist, is answered with what was not found.
+        private static string RuleEntity(Call c, string text, bool kindOnly, bool elementOnly = false)
+        {
+            if (!elementOnly && FindKind(c, text, out string kindPath) != 0)
+                return kindPath;
+            if (!kindOnly)
+            {
+                string full = c.Full(text);
+                if (c.Session.Lookup(full) != 0)
+                    return full;
+            }
+            throw new Failure("No " + (kindOnly ? "kind" : elementOnly ? "element" : "kind or element") + " named " + text + " in this world.");
+        }
+
         private static string RuleScript(Call c)
         {
             string name = c.Str("name");
@@ -531,9 +568,9 @@ namespace Game
                 throw new Failure("Use a simple name for the rule.");
             var rule = new List<string> { "when: " + PathArg(c, c.Args, "when", true) };
             if (PathArg(c, c.Args, "that", false) is string that)
-                rule.Add("that: " + that);
+                rule.Add("that: " + RuleEntity(c, that, false));
             if (PathArg(c, c.Args, "count", false) is string count)
-                rule.Add("count: " + count);
+                rule.Add("count: " + RuleEntity(c, count, false, true));
             if (Num(c.Args, "n") is string n)
                 rule.Add("n: " + n);
             if (Num(c.Args, "seconds") is string seconds)
@@ -548,13 +585,13 @@ namespace Game
                 var parts = new List<string> { "verb: " + PathArg(c, then, "verb", true) };
                 foreach (string field in new[] { "target", "kind", "count" })
                     if (PathArg(c, then, field, false) is string text)
-                        parts.Add(field + ": " + text);
+                        parts.Add(field + ": " + (field == "kind" ? RuleEntity(c, text, true) : field == "count" ? RuleEntity(c, text, false, true) : text));
                 if (Num(then, "by") is string by)
                     parts.Add("by: " + by);
                 items.Add("{" + string.Join(", ", parts) + "}");
             }
             rule.Add("thens: [" + string.Join(", ", items) + "]");
-            return "rules {\n  " + name + " { (RuleOf, " + PathArg(c, c.Args, "owner", true) + "); Rule: {" + string.Join(", ", rule) + "} }\n}\n";
+            return "rules {\n  " + name + " { (RuleOf, " + RuleEntity(c, PathArg(c, c.Args, "owner", true), false) + "); Rule: {" + string.Join(", ", rule) + "} }\n}\n";
         }
 
         private static void AddRule(Call c, JObject result)

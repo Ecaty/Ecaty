@@ -4,7 +4,7 @@ Archived dated notes: [history/DEVELOPMENT-log-2026-11.md](history/DEVELOPMENT-l
 
 ## Start / resume
 
-- Clone recursively, or `git submodule update --init --recursive` (on Windows set `git config --global core.longpaths true` first; Native/Core's third-party libraries are nested submodules; see [Updating third-party forks](#updating-third-party-forks)). Install Git LFS. Use Unity 6000.6.7f1 on Windows x64.
+- Clone recursively, or `git submodule update --init --recursive` (on Windows set `git config --global core.longpaths true` first; Native/Core's third-party libraries are nested submodules; see [Updating third-party forks](#updating-third-party-forks)). Install Git LFS. Use Unity 6000.6.9f1 on Windows x64.
 - Open the Ecaty checkout. Read `AGENTS.md`, `docs/PROJECT.md`, this file, `docs/STATUS.md` (current state and next action), `docs/BACKLOG.md`. Inspect parent and submodule Git status first. Code and scripts must not depend on the checkout location or a particular account.
 - Unity CLI (`com.unity.pipeline`) gives the live Editor connection. If missing: `unity pipeline install --project-path <checkout>`; focus/refresh the Editor. Always pin `--project-path <checkout>`; never drive another project's Editor or start a second Editor on this folder. Discover commands with `unity command --query <topic>`; do not guess signatures.
 - Codex discovers `AGENTS.md` automatically; other chat tools need the context supplied. The in-app agent gets tools/capabilities explicitly, not developer docs.

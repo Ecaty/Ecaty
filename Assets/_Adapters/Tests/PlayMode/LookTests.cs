@@ -104,6 +104,30 @@ namespace Game.Tests
         }
 
         [UnityTest]
+        public IEnumerator ALookSurvivesAChangeOfShape()
+        {
+            yield return null;
+            using var scene = new Scene(Kind());
+            scene.Spawn("shape");
+            scene.SetLook("shape", LookJson(300, 1));
+            scene.Session.SetComponentJson(Path + "shape", "Primitive", "{\"kind\":0}");
+            scene.Settle();
+            var cube = scene.RendererOf("shape");
+            var look = cube.sharedMaterial;
+            Assert.That(scene.Looks.Materials.TryGetKey(look, out _), "the cube shows the look's material");
+            // The shape change replaces the view's visual object: the new renderer must get the look again.
+            scene.Session.SetComponentJson(Path + "shape", "Primitive", "{\"kind\":1}");
+            scene.Settle();
+            yield return null;
+            scene.Settle();
+            var sphere = scene.RendererOf("shape");
+            Assert.That(sphere, Is.Not.SameAs(cube), "the visual was replaced");
+            Assert.That(scene.Looks.Materials.TryGetKey(sphere.sharedMaterial, out _), "the new renderer has a material of the look, not the default one");
+            Assert.That(sphere.sharedMaterial, Is.SameAs(look), "the same look is the same shared material");
+            Assert.That(sphere.HasPropertyBlock(), Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator KindEditReachesInstancesButNotTheirOwnLook()
         {
             yield return null;

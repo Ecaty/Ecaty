@@ -228,7 +228,7 @@ namespace Runtime.Capabilities
         void Build(GameObject view, Item item)
         {
             if (item.Object)
-                UnityEngine.Object.Destroy(item.Object);
+                DestroyObject(item.Object);
             item.View = view;
             item.Object = new GameObject("Particles");
             item.Object.transform.SetParent(view.transform, false);
@@ -394,7 +394,7 @@ namespace Runtime.Capabilities
         void Release(Item item)
         {
             if (item.Object)
-                UnityEngine.Object.Destroy(item.Object);
+                DestroyObject(item.Object);
             item.Object = null;
             item.System = null;
             if (item.Material)
@@ -414,5 +414,16 @@ namespace Runtime.Capabilities
         }
 
         public void Dispose() => Forget();
+
+        // Play mode destroys at the end of the frame; Edit mode has no frame, and Destroy there logs an error and leaks.
+        static void DestroyObject(UnityEngine.Object value)
+        {
+            if (!value)
+                return;
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(value);
+            else
+                UnityEngine.Object.DestroyImmediate(value);
+        }
     }
 }

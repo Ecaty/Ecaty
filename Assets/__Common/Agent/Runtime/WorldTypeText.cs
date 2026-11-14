@@ -14,19 +14,14 @@ namespace Game
     {
         public const int Budget = 6000;
 
-        public static readonly string[] Types =
-        {
-            "Position", "Rotation", "Scale", "Color", "Primitive", "Label", "Look", "WorldStyle", "MotionLoop", "SecondPose",
-            "Free", "Pinned", "Ghost", "Gravity", "Float", "Wind", "Drag", "Particles", "Rule", "Count", "Sound", "SoundClip", "Spin"
-        };
-
         // The conduct rules followed by the types, for the instructions while a world is entered.
         public static string Compose(FlecsSession session, string conduct) => conduct.TrimEnd() + "\n\n" + Build(session);
 
         public static string Build(FlecsSession session)
         {
             var described = new List<JObject>();
-            foreach (string type in Types)
+            // The engine lists the types in reading order: nothing here is a hand-kept list.
+            foreach (string type in JArray.Parse(session.Types() ?? "[]").Values<string>())
             {
                 string json = session.Describe(type);
                 if (json != null)

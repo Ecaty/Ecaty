@@ -141,7 +141,7 @@ namespace Game.Editor
                 string conduct = Resources.Load<TextAsset>("Agent/Prompts/WorldInstructions")?.text;
                 Require(!string.IsNullOrWhiteSpace(conduct) && WorldTypeText.Compose(session, conduct).Contains("Look"), "World instructions are missing");
                 checks.Add("type text from Describe: briefs of Look.material and Rule.when, Touches listed, " + types.Length + " of " + WorldTypeText.Budget + " characters, "
-                    + WorldTypeText.Types.Count(t => session.Describe(t) != null) + " of " + WorldTypeText.Types.Length + " types described");
+                    + JArray.Parse(session.Types()).Values<string>().Count(t => session.Describe(t) != null) + " of " + JArray.Parse(session.Types()).Count + " types described");
 
                 // A scripted chat: build a small scene, break it, read the alert, undo. A tool loop allows 24 calls, so it has three turns.
                 string secondName = null;
@@ -201,9 +201,10 @@ namespace Game.Editor
                     Require(alert != null && ((string)alert["message"]).Contains("belongs to nothing"), "No alert for the ownerless rule: " + raised);
                     Require(((JArray)raised["alerts"]).All(a => (string)a["entity"] != "rules.start"), "The owned rule raised an alert: " + raised);
 
+                    ulong enteredBefore = session.EnteredWorld;
                     var undone = call("undo", "{}");
                     Require((bool)undone["ok"], "undo failed: " + undone);
-                    Require(session.EnteredWorld != 0, "The undo left the world");
+                    Require(session.EnteredWorld != 0 && session.EnteredWorld != enteredBefore, "The undo did not move the entered mark to the world's new entity");
                     for (int i = 0; i < 25; i++)
                         session.Tick(0.1f);
                     var cleared = call("alerts", "{}");
@@ -257,6 +258,7 @@ namespace Game.Editor
                 // Kinds of a world, and a second world that must stay out of sight.
                 ulong other = session.CreateWorld("other");
                 Require(session.TryRunWorldScript(other, "stranger { Position: {9, 9, 9} }", out string otherError, out _, out _), "The second world could not be filled: " + otherError);
+                Require(session.ApplySource("worlds.other.sources.Alien", "worlds.other.kinds", "prefab Alien { Position: {0, 0, 0}; Primitive: {0} }"), "The second world's kind was refused");
                 Require(session.EnteredWorld != 0, "Making a second world left the first"); // the world has a new entity after each undo: its first id is stale
                 Play(offered, async call =>
                 {
@@ -276,6 +278,19 @@ namespace Game.Editor
                     var scoped = Names(call("query", "{\"expression\":\"Position\"}")["result"]);
                     Require(scoped.Contains("hut_one") && scoped.Contains("a") && !scoped.Contains("stranger"), "query returned an entity of another world: " + string.Join(", ", scoped));
                     Require(!(bool)call("inspect", new { entity = "worlds.other.stranger" })["ok"], "inspect reached the other world");
+                    // A kind of another world cannot be described, and a rule cannot name its entities; a type can be described from anywhere.
+                    var foreignKind = call("describe", new { name = "worlds.other.kinds.Alien" });
+                    Require(!(bool)foreignKind["ok"] && foreignKind.ToString().Contains("No type or kind named"), "describe showed a kind of another world: " + foreignKind);
+                    Require((bool)call("describe", new { name = "Position" })["ok"], "describe refused a type");
+                    var foreignRule = call("add_rule", new { name = "intruder", owner = "worlds.other.stranger", when = "AtStart", thens = new[] { new { verb = "Grows" } } });
+                    Require(!(bool)foreignRule["ok"], "add_rule accepted an owner of another world: " + foreignRule);
+                    var foreignKindRule = call("add_rule", new { name = "intruder", owner = "hut_one", when = "AtStart", thens = new[] { new { verb = "Makes", kind = "worlds.other.kinds.Alien" } } });
+                    Require(!(bool)foreignKindRule["ok"], "add_rule accepted a kind of another world: " + foreignKindRule);
+                    Require(session.Lookup("worlds.other.rules.intruder") == 0 && !Names(call("query", "{\"expression\":\"Rule\"}")["result"]).Contains("intruder"), "A refused rule was left behind");
+                    var whole = call("query", "{\"expression\":\"Position\",\"limit\":5.0}");
+                    Require((bool)whole["ok"], "query refused a limit of 5.0: " + whole);
+                    var huge = call("query", "{\"expression\":\"Position\",\"limit\":99999999999999999999}");
+                    Require((bool)huge["ok"], "query refused a huge limit: " + huge);
                     await Task.CompletedTask;
                 });
                 session.EnterWorld(0);

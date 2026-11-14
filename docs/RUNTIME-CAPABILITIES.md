@@ -4,7 +4,7 @@
 
 ## Try it
 
-1. Open the project with Unity 6000.6.7f1 and let imports finish.
+1. Open the project with Unity 6000.6.9f1 and let imports finish.
 2. **Runtime > Runtime engine > Prepare capability assets** once (again after importing a plugin).
 3. **Runtime > Runtime engine > Start capability workshop**, then query `CapBinding`, `CapState`, `CapType`, `CapAsset` or `NativeTreeNode` in Flecs Explorer. Edit a configuration in Play; `CapState` reports the applied generation or the failure.
 4. **Verify capabilities** runs the workshop/reconstruction check. `Tests/Run-All.cmd` runs the generic contract and lifecycle tests.
