@@ -27,6 +27,8 @@ namespace Game.Editor
     /// - At the end, on any error and on any timeout the files are restored, extra files in the gallery folder deleted, the
     ///   hashes compared with the manifest (the last check of the report) and only then the backup folder removed. When the
     ///   comparison fails the backup is kept.
+    /// - Only the main Editor process acts: asset import workers also run [InitializeOnLoadMethod] and have their own
+    ///   SessionState, so without that check a worker restores and removes the backup in the middle of a run.
     /// - [InitializeOnLoadMethod] restores from a manifest whenever no run is in progress (Editor restart, crash, and Play that
     ///   finally stopped after a timeout) and the Editor is not playing.
     /// - Start() restores from a manifest left by an unfinished run before it begins.
@@ -64,13 +66,25 @@ namespace Game.Editor
         static bool Active => SessionState.GetBool(KActive, false);
         static string NativePath(string relative) => relative.Replace('/', Path.DirectorySeparatorChar);
 
-        // One line per event, so a run can be followed in the Editor log (names and counts only).
-        static void Trace(string text) => Debug.Log("Gallery save round trip [trace]: " + text + " | active=" + Active + " phase=" + SessionState.GetInt(KPhase, -1) + " case=" + SessionState.GetInt(KCase, -1)
+        // One line per event, so a run can be followed in the Editor log (names and counts only). Off unless
+        // SessionState "Game.GallerySaveRoundTrip.Trace" is set.
+        static void Trace(string text)
+        {
+            if (SessionState.GetBool(K + "Trace", false))
+                Debug.Log("Gallery save round trip [trace]: " + text + " | active=" + Active + " phase=" + SessionState.GetInt(KPhase, -1) + " case=" + SessionState.GetInt(KCase, -1)
             + " playing=" + EditorApplication.isPlaying + " willChange=" + EditorApplication.isPlayingOrWillChangePlaymode + " backup=" + Directory.Exists(BackupDir) + " manifest=" + File.Exists(ManifestPath));
+        }
+
+        // Unity's asset import workers are Editor processes of their own: they load these assemblies and run every
+        // [InitializeOnLoadMethod], but SessionState is per process, so a worker never sees a run in progress. A worker that
+        // "recovered" restored the saves and removed the backup in the middle of a run. Only the main Editor may act.
+        static bool MainEditor => !AssetDatabase.IsAssetImportWorkerProcess() && UnityEditor.MPE.ProcessService.level == UnityEditor.MPE.ProcessLevel.Main;
 
         [InitializeOnLoadMethod]
         static void Initialize()
         {
+            if (!MainEditor)
+                return;
             Trace("domain loaded");
             EditorApplication.update -= Tick;
             EditorApplication.playModeStateChanged -= OnPlayMode;
@@ -99,7 +113,7 @@ namespace Game.Editor
         {
             try
             {
-                if (Active || EditorApplication.isPlayingOrWillChangePlaymode || !File.Exists(ManifestPath))
+                if (!MainEditor || Active || EditorApplication.isPlayingOrWillChangePlaymode || !File.Exists(ManifestPath))
                     return;
                 var problems = Restore();
                 Debug.LogWarning("Gallery save round trip: restored the saves from the backup of a run that did not finish" + (problems.Count == 0 ? "." : " with " + problems.Count + " problem(s); the backup is kept in Library/SaveRoundTripBackup."));
@@ -117,6 +131,8 @@ namespace Game.Editor
 
         public static bool Start()
         {
+            if (!MainEditor)
+                return false;
             if (Active)
             {
                 Debug.LogWarning("Gallery save round trip: a run is already in progress.");
