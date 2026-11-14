@@ -370,5 +370,119 @@ namespace Game.Tests
             }
             yield return null;
         }
+        // The apply loop writes to Unity only what changed in the view.
+        const string AppliedScript = "AppliedView { Position: {1,2,3}; Rotation: {0,0,0}; Scale: {1,1,1}; Color: {0.2,0.4,0.6,1}; Primitive: {0} }\nTestOwner {}";
+        static FlecsWorld CreateAppliedWorld(out Transform t, out ulong view)
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            world.Session.SetManagedScript("AppliedModule", AppliedScript);
+            world.SyncViews();
+            world.SyncViews();
+            view = world.Session.Lookup("AppliedView");
+            t = world.FindView(view).transform;
+            return world;
+        }
+        [UnityTest]
+        public IEnumerator OnlyWhatChangedIsWrittenToTheView()
+        {
+            var world = CreateAppliedWorld(out var t, out var view);
+            try
+            {
+                var session = world.Session;
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)));
+                session.SetComponentJson("AppliedView", "Rotation", "{\"x\":0,\"y\":90,\"z\":0}");
+                world.SyncViews();
+                Assert.That(Quaternion.Angle(t.localRotation, Quaternion.Euler(0, 90, 0)), Is.LessThan(0.01f), "The rotation must follow");
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)), "The position is unchanged");
+                Assert.That(t.localScale, Is.EqualTo(Vector3.one), "The scale is unchanged");
+                // A colour change must not rewrite the scale.
+                t.localScale = new Vector3(3, 4, 5);
+                session.SetComponentJson("AppliedView", "Color", "{\"r\":0.9,\"g\":0.1,\"b\":0.3,\"a\":1}");
+                world.SyncViews();
+                var shown = ShownColor(world, view);
+                Assert.That(shown.r, Is.EqualTo(0.9f).Within(1e-4f), "The new colour is shown");
+                Assert.That(shown.g, Is.EqualTo(0.1f).Within(1e-4f));
+                Assert.That(t.localScale, Is.EqualTo(new Vector3(3, 4, 5)), "The hand-set scale was not rewritten by a colour change");
+                session.SetComponentJson("AppliedView", "Scale", "{\"x\":2,\"y\":2,\"z\":2}");
+                world.SyncViews();
+                Assert.That(t.localScale, Is.EqualTo(new Vector3(2, 2, 2)), "A scale change shows the world's scale");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        [UnityTest]
+        public IEnumerator PresentedMatchesWhatTheViewShows()
+        {
+            var world = CreateAppliedWorld(out var t, out var view);
+            try
+            {
+                world.Session.SetComponentJson("AppliedView", "Rotation", "{\"x\":10,\"y\":200,\"z\":350}");
+                world.SyncViews();
+                var presented = JObject.Parse(world.Session.ComponentJson(view, "Presented"));
+                var euler = t.localEulerAngles;
+                var shownColor = ShownColor(world, view);
+                Assert.That((float)presented["position"]["x"], Is.EqualTo(t.localPosition.x).Within(0.01f));
+                Assert.That((float)presented["position"]["y"], Is.EqualTo(t.localPosition.y).Within(0.01f));
+                Assert.That((float)presented["position"]["z"], Is.EqualTo(t.localPosition.z).Within(0.01f));
+                Assert.That((float)presented["rotation"]["x"], Is.EqualTo(euler.x).Within(0.01f));
+                Assert.That((float)presented["rotation"]["y"], Is.EqualTo(euler.y).Within(0.01f));
+                Assert.That((float)presented["rotation"]["z"], Is.EqualTo(euler.z).Within(0.01f));
+                Assert.That((float)presented["scale"]["x"], Is.EqualTo(t.localScale.x).Within(0.01f));
+                Assert.That((float)presented["scale"]["y"], Is.EqualTo(t.localScale.y).Within(0.01f));
+                Assert.That((float)presented["scale"]["z"], Is.EqualTo(t.localScale.z).Within(0.01f));
+                Assert.That((float)presented["color"]["r"], Is.EqualTo(shownColor.r).Within(0.01f));
+                Assert.That((float)presented["color"]["g"], Is.EqualTo(shownColor.g).Within(0.01f));
+                Assert.That((float)presented["color"]["b"], Is.EqualTo(shownColor.b).Within(0.01f));
+                Assert.That((float)presented["color"]["a"], Is.EqualTo(shownColor.a).Within(0.01f));
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        [UnityTest]
+        public IEnumerator PoseIsWrittenAgainAfterOwnershipEnds()
+        {
+            var world = CreateAppliedWorld(out var t, out var view);
+            try
+            {
+                var session = world.Session;
+                ulong owner = session.Lookup("TestOwner");
+                Assert.That(world.AcquirePose(view, owner), Is.True);
+                t.localPosition = new Vector3(5, 0, 0);
+                session.SetComponentJson("AppliedView", "Position", "{\"x\":7,\"y\":8,\"z\":9}");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(5, 0, 0)), "An owned pose stays where the owner put it");
+                world.ReleasePose(view, owner);
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(7, 8, 9)), "Release shows the world's position");
+                // Held and moved, then released in the world without a view change reaching Unity first: the next change
+                // of the view (a colour) must still bring the pose back, because the loop did not write it while it was held.
+                Assert.That(world.AcquirePose(view, owner), Is.True);
+                world.SyncViews();
+                t.localPosition = new Vector3(5, 0, 0);
+                world.SyncViews();
+                Assert.That(session.Release(view, session.TransformOwner, owner), Is.True);
+                session.SetComponentJson("AppliedView", "Color", "{\"r\":0.5,\"g\":0.5,\"b\":0.5,\"a\":1}");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(7, 8, 9)), "A pose the loop did not write while it was held is written at the next change of the view");
+                // A position change after a release shows as well.
+                Assert.That(world.AcquirePose(view, owner), Is.True);
+                world.SyncViews();
+                t.localPosition = new Vector3(5, 0, 0);
+                world.ReleasePose(view, owner);
+                session.SetComponentJson("AppliedView", "Position", "{\"x\":1,\"y\":1,\"z\":1}");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 1, 1)), "A position change after the release shows");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
     }
 }
