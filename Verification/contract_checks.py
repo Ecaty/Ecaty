@@ -1734,6 +1734,7 @@ alerts_json = bind_extra("fu_alerts_json", P, [P, c.c_uint64])
 world_dry_run = bind_extra("fu_world_dry_run", c.c_int32, [P, c.c_uint64, S])
 world_checkpoint = bind_extra("fu_world_checkpoint", c.c_int32, [P, c.c_uint64])
 world_undo = bind_extra("fu_world_undo", c.c_uint64, [P, c.c_uint64])
+world_checkpoint_drop = bind_extra("fu_world_checkpoint_drop", c.c_int32, [P, c.c_uint64])
 
 BRIEF_NAMES = ("Position Rotation Orientation Scale Color Primitive Label CapBinding CapState Source Look WorldStyle MotionLoop SecondPose "
                "Free Gravity Float Wind Drag EffectiveForce Particles Rule Then Count Sound SoundClip Spin "
@@ -1820,6 +1821,15 @@ def tools_contract():
         assert world_run(world.ctx, entity, b"a { Position: {1, 0, 0} }\nb { Position: {2, 0, 0} }") == 0, world.error()
         assert world_enter(world.ctx, entity) == 0, world.error()
         assert world_undo(world.ctx, entity) == 0, "nothing to undo at first"
+        assert world_checkpoint_drop(world.ctx, entity) == -1, "nothing to drop at first"
+        assert world_checkpoint(world.ctx, entity) == 1 and world_checkpoint_drop(world.ctx, entity) == 0, "a dropped checkpoint must leave none"
+        assert world_undo(world.ctx, entity) == 0 and world.lookup("worlds.w.a"), "dropping a checkpoint must load nothing"
+        # A set keeps the members it leaves out; one that does not fit changes nothing.
+        assert lib.fu_set_component_json(world.ctx, b"worlds.w.b", b"Position", b'{"y":4}') == 0, world.error()
+        assert component(world, "worlds.w.b", "Position") == {"x": 2, "y": 4, "z": 0}, "a set of one member must keep the others"
+        assert lib.fu_set_component_json(world.ctx, b"worlds.w.b", b"Position", b'{"y":0,"x":"abc"}') == -1, "a text for a number must be refused"
+        assert component(world, "worlds.w.b", "Position") == {"x": 2, "y": 4, "z": 0}, "a refused set must change nothing"
+        assert lib.fu_set_component_json(world.ctx, b"worlds.w.b", b"Position", b'{"y":0}') == 0, world.error()
         assert world_checkpoint(world.ctx, entity) == 1, world.error()
         assert world_run(world.ctx, entity, b"c { Position: {3, 0, 0} }") == 0 and lib.fu_delete_entity(world.ctx, b"worlds.w.a") == 1, world.error()
         assert world_checkpoint(world.ctx, entity) == 2, world.error()
