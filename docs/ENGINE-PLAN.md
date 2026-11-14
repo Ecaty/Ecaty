@@ -478,6 +478,16 @@ Each is a native module, an adapter and its tests. They can run one at a time af
 | 6.2 | Instanced drawing for repeated simple things, only if 6.1 or a desktop profile shows GameObject cost. | Before and after profile. | L, **F** |
 | 6.3 | Gallery behaviour moved into native systems where it is still mirrored C# (ring assignment first). | Gallery suite. | L, **F→S** |
 
+**Phase 6 status (2026-11-14).** One step has a first slice; the other two could not start here.
+
+| Step | State | What exists, and what is open |
+|---|---|---|
+| 6.1 Device baseline | Not started. | It needs the Android test phone, which this session cannot reach. The Android library is rebuilt after every native change, so the phone build has the current engine. The release native configuration is still decision 5. |
+| 6.2 Instanced drawing | Not started. | Its condition is not met: there is no device or desktop profile that shows GameObject cost. |
+| 6.3 Gallery in native systems | First slice done: ring assignment. | **Native** (`Native/App/src/Application.cpp`): `GalleryEntry`, `GalleryPlacement` and the exclusive relationship `GalleryOnLayer` are native. When an entry is set or removed, two observers sort the active entries by order, then by name, fill ring 1 with 6, ring 2 with 12 and ring n with 6 times n, write `GalleryPlacement` only where it differs and set `(GalleryOnLayer, GalleryTreeLayer<n>)`. Nothing runs per frame, and nothing runs while a world is destroyed. **Unity** (`CrystalWorldGallery.Arrange`): reads the placement with one typed query and lays the worlds out from it; it no longer computes layer and slot, writes the placement as JSON or rewrites the `GalleryTreeBindings` script (that script flushed the query cache on every change). The Script declarations of the three names are gone. A tie in order is now broken by byte order of the name, not by culture; ties do not happen through the gallery's own edits. **Open:** navigation, enter and return, drag and swap, visibility and picking still run in C# with a Flecs mirror; they are product behaviour, so the Game session should agree before they move. The six ring entities and the limit of rings are still created and held in C#. |
+
+**Checks.** Native: the contract check `gallery-rings-follow-entries` (60 contract checks in all), the other native checks and the benchmark pass. Unity at `d0be9b9` from a detached checkout in the main folder: Run-All passed (Validator 150, Resources 68, PlayerScripts, EditMode 22, PlayMode 43, Gallery 142) and Extended passed 15 of 15; the Editor log had no Flecs error, Unity rewrote no tracked file and both golden save files stayed byte-identical.
+
 **Order.** 0 → 1 → 4.1 (Look) alongside 2 → 3 → 4.2–4.6 → 5 → 6. Creation-tools delivery step 1 (arcs, seed, handles; C# only) does not depend on this plan and can proceed in parallel; its steps 2–4 should wait for Phase 3 so wires, volumes and shells are not built twice.
 
 ---
