@@ -84,6 +84,7 @@ namespace Game
                 capabilities.Initialize(world);
                 capabilities.RegisterDiscovered();
                 world.gameObject.AddComponent<LookAdapter>().Initialize(world, camera);
+                world.gameObject.AddComponent<SoundAdapter>().Initialize(world, System.IO.Path.Combine(Application.persistentDataPath, "Sounds"));
                 world.gameObject.AddComponent<BodyAdapter>().Initialize(world);
                 capabilities.TargetResolver = id =>
                 {
