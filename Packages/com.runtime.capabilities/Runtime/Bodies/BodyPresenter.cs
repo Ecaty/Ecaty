@@ -87,7 +87,13 @@ namespace Runtime.Capabilities
         readonly Rows<PositionValues> pinned = new(PinnedQuery, null);
         readonly Rows<PositionValues> ghosts = new(GhostQuery, null);
         FlecsSession session;
-        ulong owner, entered, left;
+        ulong owner, entered, left, touched;
+        // One bump counts once: a pair is reported again only after it has been apart this long (simulated seconds).
+        const float ApartSeconds = 0.3f;
+        readonly Dictionary<Collider, ulong> colliders = new();
+        readonly Dictionary<(ulong, ulong), float> contacts = new();
+        float clock;
+        int sentTouched;
         int generation, ticks, lastRetry, viewCount;
         bool rescan; // A body was built after the rows were read: its parent and forces are read again.
         FlecsSession.Event[] events = new FlecsSession.Event[32];
@@ -129,7 +135,7 @@ namespace Runtime.Capabilities
                 return "bodies{owner=" + (owner != 0 ? "found" : "missing") + ", rows free=" + free.Count + " pinned=" + pinned.Count
                     + " ghosts=" + ghosts.Count + " parents=" + parents.Count + " forces=" + forces.Count + "; built bodies=" + bodiesBuilt
                     + " pinned=" + shapes + " ghosts=" + volumes + " poseOwned=" + pose + " waiting=" + waiting.Count
-                    + "; ignored exits=" + ignoredExits + "; sent entered=" + sentEntered + " left=" + sentLeft + "; writes=" + writes
+                    + "; ignored exits=" + ignoredExits + "; sent entered=" + sentEntered + " left=" + sentLeft + " touched=" + sentTouched + "; writes=" + writes
                     + "; last skip=" + (lastSkip ?? "none") + "; last crossing=" + (lastCrossing ?? "none") + "}";
             }
         }
@@ -158,6 +164,7 @@ namespace Runtime.Capabilities
             if (!Ready())
                 return;
             NotePoses();
+            clock += dt;
             ticks++;
             bool changed = free.Refresh(session);
             changed |= parents.Refresh(session);
@@ -208,6 +215,7 @@ namespace Runtime.Capabilities
                 if (owner == 0)
                     return false;
                 entered = session.Lookup("PlaceEntered");
+                touched = session.Lookup("Touched");
                 left = session.Lookup("PlaceLeft");
                 // Check the mirrors against the native layout (throws on a mismatch).
                 session.TryRead<FreeValues>(owner, FreePath, out _);
@@ -288,7 +296,7 @@ namespace Runtime.Capabilities
             if (item.Root == view)
             {
                 if (item.Primitive != primitive)
-                    Reshape(item, primitive);
+                    Reshape(entity, item, primitive);
                 return true;
             }
             // A collider or body that is not ours belongs to someone else.
@@ -320,6 +328,7 @@ namespace Runtime.Capabilities
             item.Root = view;
             item.Primitive = primitive;
             item.Collider = MakeCollider(view, primitive, out item.LocalSize);
+            colliders[item.Collider] = entity;
             switch (item.Role)
             {
                 case Role.Ghost:
@@ -335,8 +344,10 @@ namespace Runtime.Capabilities
                     body.linearDamping = 0f;
                     item.Body = body;
                     body.mass = MassOf(item);
-                    if (TraceContacts)
-                        item.Contacts = view.AddComponent<BodyContacts>();
+                    item.Contacts = view.AddComponent<BodyContacts>();
+                    item.Contacts.Presenter = this;
+                    item.Contacts.Entity = entity;
+                    item.Contacts.Describe = TraceContacts;
                     bodies[body] = entity;
                     rescan = true;
                     break;
@@ -344,12 +355,15 @@ namespace Runtime.Capabilities
             return true;
         }
 
-        void Reshape(Item item, int primitive)
+        void Reshape(ulong entity, Item item, int primitive)
         {
+            if (!ReferenceEquals(item.Collider, null))
+                colliders.Remove(item.Collider);
             if (item.Collider)
                 Destroy(item.Collider);
             item.Primitive = primitive;
             item.Collider = MakeCollider(item.Root, primitive, out item.LocalSize);
+            colliders[item.Collider] = entity;
             if (item.Role == Role.Ghost)
             {
                 item.Collider.isTrigger = true;
@@ -448,9 +462,11 @@ namespace Runtime.Capabilities
                 if (item.Parent != 0)
                 {
                     var view = world.FindView(item.Parent);
-                    if (!view)
+                    // A parent that is not a view (a world entity has no Position) is the world's own space.
+                    if (view)
+                        space = view.transform;
+                    else if (session.TryRead<PositionValues>(item.Parent, "Position", out _))
                         continue;
-                    space = view.transform;
                 }
                 if (count == writeIds.Length)
                 {
@@ -535,11 +551,12 @@ namespace Runtime.Capabilities
                     return;
                 }
             }
+            if (enter)
+                Touch(entity, volume.Entity);
             ulong kind = enter ? entered : left;
             if (kind == 0)
                 return;
-            if (eventCount == events.Length)
-                Array.Resize(ref events, eventCount * 2);
+            Reserve();
             var size = volume.Shape.bounds.size;
             var point = world.transform.InverseTransformPoint(body.position);
             lastCrossing = (enter ? "entered " : "left ") + volume.name + " by " + body.name + " at " + point;
@@ -555,6 +572,48 @@ namespace Runtime.Capabilities
             };
         }
 
+        void Reserve()
+        {
+            if (eventCount == events.Length)
+                Array.Resize(ref events, eventCount * 2);
+        }
+
+        // A free body began to touch (or keeps touching) a collider of another element.
+        internal void Collided(ulong entity, Collider other, bool beginning)
+        {
+            if (other && colliders.TryGetValue(other, out ulong second))
+                Touch(entity, second, beginning);
+        }
+
+        // Sends one Touched fact for a pair, and not again until the two have been apart for ApartSeconds.
+        void Touch(ulong a, ulong b, bool beginning = true)
+        {
+            if (a == b || touched == 0 || session == null || session.IsDisposed)
+                return;
+            var key = a < b ? (a, b) : (b, a);
+            bool known = contacts.TryGetValue(key, out float last);
+            contacts[key] = clock;
+            if (!beginning || (known && clock - last < ApartSeconds))
+                return;
+            Reserve();
+            lastCrossing = "touched " + a + " and " + b;
+            events[eventCount++] = new FlecsSession.Event { Kind = touched, Entity = a, Other = b };
+        }
+
+        void ForgetContacts(ulong entity)
+        {
+            if (contacts.Count == 0)
+                return;
+            scratchPairs.Clear();
+            foreach (var key in contacts.Keys)
+                if (key.Item1 == entity || key.Item2 == entity)
+                    scratchPairs.Add(key);
+            for (int i = 0; i < scratchPairs.Count; i++)
+                contacts.Remove(scratchPairs[i]);
+        }
+
+        readonly List<(ulong, ulong)> scratchPairs = new();
+
         Collider bodyCollider(Rigidbody body) => bodies.TryGetValue(body, out ulong id) && items.TryGetValue(id, out var item) ? item.Collider : null;
 
         void Send()
@@ -566,19 +625,23 @@ namespace Runtime.Capabilities
             for (int i = 0; i < count; i++)
                 if (events[i].Kind == entered)
                     sentEntered++;
+                else if (events[i].Kind == touched)
+                    sentTouched++;
                 else
                     sentLeft++;
             session.Emit(events, count);
             // The native side re-parents and writes the position itself: the next pose is written again in the new space.
             for (int i = 0; i < count; i++)
-                if (items.TryGetValue(events[i].Entity, out var item))
+                if (events[i].Kind != touched && items.TryGetValue(events[i].Entity, out var item))
                     item.Write = true;
         }
 
         // Takes the added components off an entity and gives its pose back. Not called for views that are gone.
         void Strip(ulong entity, Item item, bool alive)
         {
-            if (item.Body)
+            if (!ReferenceEquals(item.Collider, null))
+                colliders.Remove(item.Collider);
+            if (!ReferenceEquals(item.Body, null))
                 bodies.Remove(item.Body);
             if (item.Volume)
                 Destroy(item.Volume);
@@ -599,6 +662,7 @@ namespace Runtime.Capabilities
         {
             if (!items.Remove(entity, out var item))
                 return;
+            ForgetContacts(entity);
             Strip(entity, item, session != null && !session.IsDisposed);
         }
 
@@ -619,6 +683,8 @@ namespace Runtime.Capabilities
                 Strip(pair.Key, pair.Value, false);
             items.Clear();
             bodies.Clear();
+            colliders.Clear();
+            contacts.Clear();
             waiting.Clear();
             eventCount = 0;
             session = null;
