@@ -718,22 +718,93 @@ namespace Game
             var savedActivity = (JObject)activity.DeepClone();
             savedActivity["elapsed"] = motionTime;
             savedActivity["started"] = 0;
-            return new JObject { ["version"] = 1, ["worlds"] = experiences.Capture(), ["view"] = view, ["returnView"] = Read("GalleryTreeReturn", "GalleryView"), ["focus"] = focus, ["activity"] = savedActivity, ["navigation"] = navigation, ["cameraAnchor"] = Read("GalleryTreeSettings", "GalleryCameraAnchor"), ["portal"] = new JObject { ["world"] = Read("GalleryTreeSettings", "GalleryPortal"), ["gallery"] = Read("GalleryEntryPortal", "GalleryView"), ["local"] = Read("GalleryPortalWorld", "GalleryView") }, ["layers"] = new JArray(Enumerable.Range(1, 6).Select(i => (JToken)CaptureLayer(i))), ["entries"] = new JArray(items.Select(i => new JObject { ["id"] = i.Entry.Id, ["state"] = Read(i.Entry.Id, "GalleryEntry"), ["track"] = Read(i.Entry.Id, "GalleryTrack"), ["camera"] = InsideWorld && CurrentWorldId == i.Entry.Id && stage.ActualView != null ? stage.ActualView : Read(i.Entry.Id, "GalleryView"), ["sample"] = Read(i.Entry.Id, "GallerySample"), ["residence"] = new JObject { ["elapsed"] = WorldTime(i.Entry.Id), ["started"] = 0, ["target"] = (int)Read(i.Entry.Id, "GalleryResidence")["target"] } })) }.ToString();
+            return new JObject { ["version"] = 2, ["worlds"] = experiences.Capture(), ["view"] = view, ["returnView"] = Read("GalleryTreeReturn", "GalleryView"), ["focus"] = focus, ["activity"] = savedActivity, ["navigation"] = navigation, ["cameraAnchor"] = Read("GalleryTreeSettings", "GalleryCameraAnchor"), ["portal"] = new JObject { ["world"] = Read("GalleryTreeSettings", "GalleryPortal"), ["gallery"] = Read("GalleryEntryPortal", "GalleryView"), ["local"] = Read("GalleryPortalWorld", "GalleryView") }, ["layers"] = new JArray(Enumerable.Range(1, 6).Select(i => (JToken)CaptureLayer(i))), ["entries"] = new JArray(items.Select(i => new JObject { ["id"] = i.Entry.Id, ["state"] = Read(i.Entry.Id, "GalleryEntry"), ["track"] = Read(i.Entry.Id, "GalleryTrack"), ["camera"] = InsideWorld && CurrentWorldId == i.Entry.Id && stage.ActualView != null ? stage.ActualView : Read(i.Entry.Id, "GalleryView"), ["sample"] = Read(i.Entry.Id, "GallerySample"), ["residence"] = new JObject { ["elapsed"] = WorldTime(i.Entry.Id), ["started"] = 0, ["target"] = (int)Read(i.Entry.Id, "GalleryResidence")["target"] } })) }.ToString();
         }
-        public void RestoreArrangement(string json, bool launching = false)
+        public void RestoreArrangement(string json, bool launching = false) => RestoreArrangement(json, launching, true);
+        void RestoreArrangement(string json, bool launching, bool recover)
         {
             var data = JObject.Parse(json);
-            if ((int?)data["version"] != 1 || data["entries"] is not JArray entries || entries.Count > GalleryExperienceStore.MaxEntries)
+            int version = (int?)data["version"] ?? 0;
+            if ((version != 1 && version != 2) || data["entries"] is not JArray entries || entries.Count > GalleryExperienceStore.MaxEntries)
                 throw new ArgumentException("Invalid layered gallery arrangement");
+            // Content decides whether a file can be restored: every entry is checked completely before anything changes.
+            // Presentation parts (view, focus, activity, cameras, samples) never refuse a file; ApplyArrangement reads them leniently.
             foreach (var token in entries)
             {
-                string id = (string)token["id"];
-                var d = (JObject)token["state"];
-                if (!System.Text.RegularExpressions.Regex.IsMatch(id ?? "", "^Gallery[A-Za-z0-9_]+$") || (int)d["kind"] < 0 || (int)d["kind"] > 8)
+                if (token is not JObject entry || entry["id"]?.Type != JTokenType.String || entry["state"] is not JObject d
+                    || !System.Text.RegularExpressions.Regex.IsMatch((string)entry["id"], "^Gallery[A-Za-z0-9_]+$")
+                    || !IsWhole(d["order"]) || !IsWhole(d["kind"]) || (int)d["kind"] < 0 || (int)d["kind"] > 8 || d["active"]?.Type != JTokenType.Boolean)
                     throw new ArgumentException("Invalid world entry");
             }
             if (data["worlds"] is JArray definitions && definitions.Any(d => !entries.Any(e => (string)e["id"] == (string)d["id"])))
                 throw new ArgumentException("Saved content is missing its gallery entry");
+            // Version 1 rows are converted at once, so a file is never mixed. Every document is checked before anything changes.
+            JArray worlds = null;
+            if (data["worlds"] is JArray saved)
+            {
+                worlds = new JArray();
+                foreach (var row in saved)
+                {
+                    if (version == 1)
+                    {
+                        if (row is not JObject || row["id"]?.Type != JTokenType.String || row["record"] is not JObject)
+                            throw new ArgumentException("Invalid world entry");
+                        string id = (string)row["id"];
+                        var converted = GalleryWorldDocument.FromV1(id, (JObject)row["record"]);
+                        converted["id"] = id;
+                        worlds.Add(converted);
+                    }
+                    else
+                        worlds.Add(row.DeepClone());
+                }
+            }
+            experiences.Check(worlds);
+            string entryCapture = null;
+            if (recover)
+            {
+                try
+                {
+                    entryCapture = CaptureArrangement();
+                }
+                catch (Exception)
+                {
+                    // Nothing to return to yet (the first restore while the gallery starts).
+                }
+            }
+            try
+            {
+                ApplyArrangement(data, entries, worlds, launching);
+            }
+            catch (Exception)
+            {
+                if (entryCapture != null)
+                {
+                    try
+                    {
+                        RestoreArrangement(entryCapture, launching, false);
+                    }
+                    catch (Exception again)
+                    {
+                        Debug.LogWarning("Layered gallery could not return to its earlier state: " + again.Message);
+                    }
+                }
+                throw;
+            }
+        }
+        static bool IsNumber(JToken token) => token != null && (token.Type == JTokenType.Integer || token.Type == JTokenType.Float);
+        static bool IsWhole(JToken token) => token != null && (token.Type == JTokenType.Integer || (token.Type == JTokenType.Float && Math.Floor((double)token) == (double)token));
+        // A presentation object of a file: its own when it is one, otherwise what the gallery has now. Named numbers that are
+        // not numbers (missing, text) keep the current value.
+        static JObject Part(JToken saved, JObject current, params string[] numbers)
+        {
+            var part = saved as JObject ?? (JObject)current.DeepClone();
+            foreach (string name in numbers)
+                if (!IsNumber(part[name]))
+                    part[name] = current[name];
+            return part;
+        }
+        void ApplyArrangement(JObject data, JArray entries, JArray worlds, bool launching)
+        {
             CancelDrag();
             stage.ResetContexts();
             foreach (var token in entries)
@@ -741,7 +812,7 @@ namespace Game
                 var state = (JObject)token["state"];
                 EnsureEntity((string)token["id"], (int)state["order"], (int)state["kind"], (bool)state["active"]);
             }
-            experiences.Restore(data["worlds"] as JArray);
+            experiences.Restore(worlds);
             navigation = (JObject)Read("GalleryTreeSettings", "GalleryTreeNavigation").DeepClone();
             if (data["navigation"] is JObject savedNavigation)
                 navigation.Merge(savedNavigation);
@@ -773,21 +844,25 @@ namespace Game
                 Write(id, "GalleryEntry", d);
                 if (!byId.ContainsKey(id))
                     AddItem(id);
-                Write(id, "GalleryView", (JObject)token["camera"]);
-                Write(id, "GallerySample", (JObject)token["sample"]);
+                if (token["camera"] is JObject camera)
+                    Write(id, "GalleryView", camera);
+                if (token["sample"] is JObject sample)
+                    Write(id, "GallerySample", sample);
                 if (token["track"] is JObject track)
                     Write(id, "GalleryTrack", track);
-                var residence = (JObject)token["residence"];
-                residence["started"] = time;
-                Write(id, "GalleryResidence", residence);
+                if (token["residence"] is JObject residence)
+                {
+                    residence["started"] = time;
+                    Write(id, "GalleryResidence", residence);
+                }
             }
-            view = (JObject)data["view"];
+            view = Part(data["view"], Read("GalleryTreeSettings", "GalleryView"), "x", "y", "z", "zoom");
             Write("GalleryTreeReturn", "GalleryView", data["returnView"] as JObject ?? view);
-            focus = (JObject)data["focus"];
+            focus = Part(data["focus"], Read("GalleryTreeSettings", "GalleryFocus"), "target");
             focus["preview"] = "";
-            activity = (JObject)data["activity"];
+            activity = Part(data["activity"], Read("GalleryTreeSettings", "GalleryTreeActivity"));
             activity["rate"] = 1;
-            activity["elapsed"] = (float?)activity["elapsed"] ?? 0;
+            activity["elapsed"] = IsNumber(activity["elapsed"]) ? (float)activity["elapsed"] : 0f;
             activity["started"] = time;
             WriteView();
             WriteFocus();
@@ -795,20 +870,28 @@ namespace Game
             if (data["layers"] is JArray turns)
                 for (int i = 0; i < Mathf.Min(6, turns.Count); i++)
                 {
+                    if (turns[i] is not JObject turn)
+                        continue;
                     var intent = Read(LayerId(i + 1), "GalleryLayerIntent");
-                    intent["angle"] = (float)turns[i]["turn"];
+                    if (IsNumber(turn["turn"]))
+                        intent["angle"] = (float)turn["turn"];
                     intent["started"] = time;
-                    if (turns[i]["glowPhase"] != null)
-                        intent["glowPhase"] = (float)turns[i]["glowPhase"];
-                    if (turns[i]["glowRate"] != null)
-                        intent["glowRate"] = (float)turns[i]["glowRate"];
+                    if (IsNumber(turn["glowPhase"]))
+                        intent["glowPhase"] = (float)turn["glowPhase"];
+                    if (IsNumber(turn["glowRate"]))
+                        intent["glowRate"] = (float)turn["glowRate"];
                     Write(LayerId(i + 1), "GalleryLayerIntent", intent);
                 }
             if (data["portal"] is JObject portal)
             {
-                Write("GalleryTreeSettings", "GalleryPortal", (JObject)portal["world"]);
-                Write("GalleryEntryPortal", "GalleryView", (JObject)portal["gallery"]);
-                Write("GalleryPortalWorld", "GalleryView", (JObject)portal["local"]);
+                // An older file holds the portal's world as plain text; today it is the component's object. Both are read:
+                // a cast that fails here ends the restore, and a failed restore must never cost the saved worlds.
+                Write("GalleryTreeSettings", "GalleryPortal", portal["world"] as JObject
+                    ?? new JObject { ["world"] = portal["world"]?.Type == JTokenType.String ? (string)portal["world"] : "" });
+                if (portal["gallery"] is JObject portalGallery)
+                    Write("GalleryEntryPortal", "GalleryView", portalGallery);
+                if (portal["local"] is JObject portalLocal)
+                    Write("GalleryPortalWorld", "GalleryView", portalLocal);
             }
             foreach (var savedItem in items)
                 if (experiences.Has(savedItem.Entry.Id))
@@ -845,15 +928,61 @@ namespace Game
                 entryBlend = 1;
             }
         }
+        // A file that could not be resumed and could not be copied aside is not written over in this session.
+        bool saveBlocked, saveBlockWarned;
         public void SaveArrangement()
         {
+            if (saveBlocked)
+            {
+                if (!saveBlockWarned)
+                {
+                    saveBlockWarned = true;
+                    Debug.LogWarning("The arrangement that could not be resumed is not saved over, because it could not be copied aside.");
+                }
+                return;
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(SavePath));
             string temp = SavePath + ".tmp";
-            File.WriteAllText(temp, CaptureArrangement());
+            string text = CaptureArrangement();
+            KeepVersion1(SavePath);
+            File.WriteAllText(temp, text);
             if (File.Exists(SavePath))
                 File.Replace(temp, SavePath, null);
             else
                 File.Move(temp, SavePath);
+        }
+        // The first version 2 write over a version 1 file keeps the old file beside it.
+        static void KeepVersion1(string path)
+        {
+            try
+            {
+                if (!File.Exists(path))
+                    return;
+                string backup = Path.Combine(Path.GetDirectoryName(path), "tree-arrangement.v1.json");
+                if (File.Exists(backup) || (int?)JObject.Parse(File.ReadAllText(path))["version"] != 1)
+                    return;
+                File.Copy(path, backup);
+            }
+            catch (Exception e) { Debug.LogWarning("Version 1 arrangement could not be copied: " + e.Message); }
+        }
+        // A file that could not be resumed is copied aside before this session saves over it, so nothing saved is lost.
+        static bool KeepUnread(string path)
+        {
+            try
+            {
+                string stem = Path.Combine(Path.GetDirectoryName(path), "tree-arrangement.unread-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
+                string copy = stem + ".json";
+                for (int n = 2; File.Exists(copy); n++)
+                    copy = stem + "-" + n + ".json";
+                File.Copy(path, copy);
+                Debug.LogWarning("The arrangement that could not be resumed is kept as " + Path.GetFileName(copy));
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("The arrangement that could not be resumed could not be copied: " + e.Message);
+                return false;
+            }
         }
         static string PreviousArrangementPath => Path.Combine(Application.persistentDataPath, "GalleryPrototype", "arrangement.json");
         void LoadArrangement()
@@ -864,7 +993,11 @@ namespace Game
                 {
                     RestoreArrangement(File.ReadAllText(SavePath), true);
                 }
-                catch (Exception e) { Debug.LogWarning("Layered gallery could not resume: " + e.Message); }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Layered gallery could not resume: " + e.Message);
+                    saveBlocked = !KeepUnread(SavePath);
+                }
                 return;
             }
             // Import the eight existing worlds without rewriting the earlier flat-gallery save.

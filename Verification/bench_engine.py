@@ -13,6 +13,7 @@ import contextlib
 import ctypes as c
 import itertools
 import json
+import math
 import os
 import pathlib
 import subprocess
@@ -57,6 +58,18 @@ query_create = bind("fu_query_create", c.c_int32, P, c.c_char_p)
 query_changed = bind("fu_query_changed", c.c_int32, P, c.c_int32)
 query_read = bind("fu_query_read_data", c.c_int32, P, c.c_int32, c.c_char_p, P, P, P, c.c_int32, c.c_int32)
 script_edit = bind("fu_script_edit", c.c_int32, P, c.c_char_p, c.c_char_p, c.c_char_p, c.c_char_p)
+source_apply = bind("fu_source_apply", c.c_int32, P, c.c_char_p, c.c_char_p, c.c_char_p)
+lookup = bind("fu_lookup", U64, P, c.c_char_p)
+spawn = bind("fu_spawn", U64, P, U64, U64, c.c_char_p)
+world_create = bind("fu_world_create", U64, P, c.c_char_p)
+world_save = bind("fu_world_save_json", P, P, U64)
+world_load = bind("fu_world_load_json", U64, P, c.c_char_p, c.c_char_p)
+emit_events = bind("fu_emit_events", c.c_int32, P, P, c.c_int32)
+world_run = bind("fu_world_run_script", c.c_int32, P, U64, c.c_char_p)
+world_play = bind("fu_world_play", c.c_int32, P, U64)
+describe = bind("fu_describe_json", P, P, c.c_char_p)
+world_dry_run = bind("fu_world_dry_run", c.c_int32, P, U64, c.c_char_p)
+world_checkpoint = bind("fu_world_checkpoint", c.c_int32, P, U64)
 
 
 class View(c.Structure):
@@ -166,6 +179,166 @@ def tick_trees_256():
             for i in range(256)))
         tick(w, 0.016)
         return best_calls(lambda: tick(w, 0.016), 400)
+
+
+def tick_motion_256_parts():
+    """16 loops with 16 moving parts each: the cost of motion while it runs."""
+    lines = []
+    for e in range(16):
+        parts = "\n".join(
+            f" p{i} {{ Position: {{0,{i},0}}; SecondPose: {{move: {{x: 0, y: 1, z: 0}}, turn: {{x: 0, y: 45, z: 0}}, stretch: 0.5}} }}"
+            for i in range(16))
+        lines.append(f"M{e} {{ Position: {{{e},0,0}}; MotionLoop: {{snap: 0.5, bounce: 0.5, period: 2, phase: {e / 16}}}\n{parts}\n}}")
+    with world() as w:
+        set_script(w, "Motion", "\n".join(lines))
+        tick(w, 0.016)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def tick_motion_idle_1000():
+    """1000 elements with parts and no loop or second pose: motion must cost nothing when unused."""
+    lines = [f"E{i} {{ Position: {{{i},0,0}}\n a {{ Position: {{0,1,0}} }}\n b {{ Position: {{0,2,0}} }} }}" for i in range(1000)]
+    with world() as w:
+        set_script(w, "Idle", "\n".join(lines))
+        tick(w, 0.016)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+# ---- places and bodies ------------------------------------------------------
+
+class Event(c.Structure):
+    _fields_ = [("event", U64), ("entity", U64), ("other", U64),
+                ("x", c.c_float), ("y", c.c_float), ("z", c.c_float), ("value", c.c_float)]
+
+
+def places_world(w, bodies=1000, ponds=10):
+    """A land with `ponds` ponds (Float and Drag) and `bodies` free bodies spread over them."""
+    lines = ["land { Ghost; Gravity: {0, -9.8, 0}"]
+    for p in range(ponds):
+        lines.append(f" pond{p} {{ Ghost; Float: {{1}}; Drag: {{2.5}}; Position: {{{p * 20},0,0}}")
+        lines += [f"  b{i} {{ Free: {{1}}; Position: {{{i % 7},0,0}} }}" for i in range(p * bodies // ponds, (p + 1) * bodies // ponds)]
+        lines.append(" }")
+    lines.append("}")
+    set_script(w, "Places", "\n".join(lines))
+    tick(w, 0.016)
+    tick(w, 0.016)
+
+
+def tick_places_idle_1000():
+    """1000 free bodies in 10 ponds on a land, nothing changing: places cost nothing when idle."""
+    with world() as w:
+        places_world(w)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def places_force_edit_1000():
+    """One edit of the land's Gravity plus the tick that resolves the 1000 bodies below it."""
+    values = itertools.cycle([b'{"x":0,"y":-1.6,"z":0}', b'{"x":0,"y":-9.8,"z":0}'])
+
+    def edit():
+        if set_json(w, b"land", b"Gravity", next(values)) != 0:
+            raise RuntimeError((error(w) or b"").decode())
+        tick(w, 0.016)
+    with world() as w:
+        places_world(w)
+        return best_calls(edit, 200)
+
+
+def places_crossing():
+    """One PlaceEntered or PlaceLeft event plus the tick that re-parents one body, with 1000 bodies present."""
+    with world() as w:
+        places_world(w)
+        body, pond = lookup(w, b"land.pond1.b100"), lookup(w, b"land.pond1")
+        entered, left = lookup(w, b"PlaceEntered"), lookup(w, b"PlaceLeft")
+        if not (body and pond and entered and left):
+            raise RuntimeError("places entities are missing")
+        facts = itertools.cycle([(Event * 1)(Event(entered, body, pond, 20, 0, 0, 10)), (Event * 1)(Event(left, body, pond, 20, 0, 0, 0))])
+
+        def cross():
+            if emit_events(w, next(facts), 1) != 1:
+                raise RuntimeError("the event was not delivered")
+            tick(w, 0.016)
+        return best_calls(cross, 300)
+
+
+# ---- links, rules and Play --------------------------------------------------
+
+def links_world(w, play, elements=200, rules=20, counts=5, timers=0):
+    """A world with `elements` elements, `counts` counts and `rules` touch rules (each adds to a count), playing or not.
+    With `timers`, also that many elements of one kind with an every-0.5-seconds rule. Returns the world entity."""
+    entity = world_create(w, b"g")
+    lines = [f"C{i} {{ Count: {{start: 0}} }}" for i in range(counts)]
+    lines += [f"e{i} {{ Position: {{{i},0,0}} }}" for i in range(elements)]
+    lines.append("hit { Position: {0,0,0} }")
+    if timers:
+        lines.append("prefab Ticker { Position: {0,0,0} }")
+        lines += [f"t{i} : Ticker {{ Position: {{{i},0,0}} }}" for i in range(timers)]
+    lines.append("rules {")
+    lines += [f"  r{i} {{ (RuleOf, e{i}); Rule: {{when: Touches, that: e{i + 1}, thens: [{{verb: Counts, count: C{i % counts}, by: 1}}]}} }}"
+              for i in range(rules)]
+    lines.append("  three { (RuleOf, hit); Rule: {when: Touches, that: e150, thens: "
+                 "[{verb: Counts, count: C0, by: 1}, {verb: Counts, count: C1, by: 1}, {verb: Counts, count: C2, by: 1}]} }")
+    if timers:
+        lines.append("  every { (RuleOf, Ticker); Rule: {when: Every, seconds: 0.5, thens: [{verb: Counts, count: C0, by: 1}]} }")
+    lines.append("}")
+    if world_run(w, entity, "\n".join(lines).encode()) != 0:
+        raise RuntimeError((error(w) or b"").decode())
+    if play and world_play(w, entity) != 0:
+        raise RuntimeError((error(w) or b"").decode())
+    tick(w, 0.016)
+    tick(w, 0.016)
+    return entity
+
+
+def tick_links_idle():
+    """200 elements, 20 rules and 5 counts in a world that does not play: rules cost nothing."""
+    with world() as w:
+        links_world(w, False)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def tick_links_playing_idle():
+    """The same world playing, with no event and no timer rule: still close to the empty tick."""
+    with world() as w:
+        links_world(w, True)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def links_touch_event():
+    """One Touched event that fires one rule with three thens, plus the tick (the same world, playing)."""
+    with world() as w:
+        links_world(w, True)
+        fact = (Event * 1)(Event(lookup(w, b"Touched"), lookup(w, b"worlds.g.hit"), lookup(w, b"worlds.g.e150"), 0, 0, 0, 0))
+
+        def touch():
+            if emit_events(w, fact, 1) != 1:
+                raise RuntimeError("the event was not delivered")
+            tick(w, 0.016)
+        value = best_calls(touch, 300)
+        print(f"links_touch_event absolute: {value:.2f} us", file=sys.stderr)
+        return value
+
+
+def links_timers_100():
+    """100 elements of one kind with an every-0.5-seconds rule, playing: the tick cost (a burst every 31 ticks)."""
+    with world() as w:
+        links_world(w, True, timers=100)
+        return best_calls(lambda: tick(w, 0.016), 600)
+
+
+def sound_shape_1s():
+    """One fu_sound_shape call on one second of audio at 44100 Hz (size 0.7, rough 0.5). It runs on a worker thread in Unity."""
+    shape = bind("fu_sound_shape", c.c_int32, P, c.c_int32, c.c_int32, c.c_float, c.c_float, P, c.c_int32)
+    count = 44100
+    samples = (c.c_float * count)(*[0.6 * math.sin(2 * math.pi * 440 * i / count) for i in range(count)])
+    output = (c.c_float * count)()
+
+    def call():
+        if shape(samples, count, count, 0.7, 0.5, output, count) != count:
+            raise RuntimeError("fu_sound_shape failed")
+    value = best_calls(call, 20)
+    print(f"sound_shape_1s absolute: {value / 1000:.2f} ms", file=sys.stderr)
+    return value
 
 
 # ---- view snapshot and presentation -------------------------------------
@@ -296,20 +469,174 @@ prefab Plane : Vehicle { Speed: {200}; Wings: {30}
 
 
 def typed_read_bodies_up():
-    lines = ["struct Gravity(g: f32)\nstruct Buoyancy(d: f32)\nstruct Drag(k: f32)\nstruct Body(density: f32)",
-             "land { Gravity: {9.8}", " water { Buoyancy: {1}; Drag: {3}"]
+    # Own type names: Gravity, Float and Drag are built in (Places.cpp).
+    lines = ["struct Pull(g: f32)\nstruct Buoyancy(d: f32)\nstruct Slow(k: f32)\nstruct Body(density: f32)",
+             "land { Pull: {9.8}", " water { Buoyancy: {1}; Slow: {3}"]
     lines += [f"  fish{i} {{ Body: {{1}} }}" for i in range(500)]
     lines += [" }"] + [f" rock{i} {{ Body: {{3}} }}" for i in range(500)] + ["}"]
-    lines += ["space { Gravity: {0}", " ship { Body: {2} } }", "drift { Body: {1} }"]
+    lines += ["space { Pull: {0}", " ship { Body: {2} } }", "drift { Body: {1} }"]
     with world() as w:
         set_script(w, "places", "\n".join(lines))
-        handle = query_create(w, b"Body, ?Gravity(up), ?Buoyancy(up), ?Drag(up)")
+        handle = query_create(w, b"Body, ?Pull(up), ?Buoyancy(up), ?Slow(up)")
         entities = (U64 * 2048)()
         values = (c.c_float * 2048)()
         read = lambda: query_read(w, handle, None, entities, None, values, 4, 2048)
         if read() < 1000:
             raise RuntimeError("typed read returned too few rows")
         return best_calls(read, 1000)
+
+
+# ---- kinds: editing a kind while its instances exist ------------------------
+
+def craft_kind(red=1, tail=False, parts=2):
+    """Text of the kind `Craft`: a body, `parts` parts (one nested) and optionally one more part."""
+    text = f"prefab Craft {{\n  Position: {{0,0,0}}\n  Color: {{{red},0,0,1}}\n  Primitive: {{0}}\n"
+    text += "  prefab wing { Position: {1,0,0}\n    Color: {0,1,0,1}\n    prefab tip { Color: {0,0,1,1} } }\n"
+    if parts > 2:
+        text += "  prefab fin { Position: {0,1,0}; Color: {1,1,0,1} }\n"
+    if tail:
+        text += "  prefab tail { Position: {0,0,-1}; Color: {1,1,1,1} }\n"
+    return text + "}"
+
+
+def apply_kind(w, text):
+    if source_apply(w, b"sources.Craft", b"library", text.encode()) < 0:
+        raise RuntimeError((error(w) or b"").decode())
+
+
+def kind_world(w, instances, parts=2):
+    apply_kind(w, craft_kind(parts=parts))
+    kind = lookup(w, b"library.Craft")
+    for i in range(instances):
+        if not spawn(w, kind, 0, b"i%d" % i):
+            raise RuntimeError((error(w) or b"").decode())
+    tick(w, 0.016)
+
+
+def source_apply_value_1000():
+    """Edit commit: the text changes one value while 1,000 instances exist."""
+    counter = itertools.count()
+    with world() as w:
+        kind_world(w, 1000)
+        return best_calls(lambda: apply_kind(w, craft_kind(red=next(counter) % 5)), 100)
+
+
+def source_apply_part_1000():
+    """The text adds one part to a kind with 1,000 instances, then removes it again; the mean of the two applies."""
+    with world() as w:
+        kind_world(w, 1000)
+        texts = itertools.cycle([craft_kind(tail=True), craft_kind()])
+        return best_calls(lambda: apply_kind(w, next(texts)), 40)
+
+
+def spawn_1000():
+    """Per-instance cost of fu_spawn for 1,000 instances of a kind with three parts."""
+    instances = 1000
+
+    def batch():
+        with world() as w:
+            apply_kind(w, craft_kind(parts=3))
+            kind = lookup(w, b"library.Craft")
+            start = time.perf_counter()
+            for i in range(instances):
+                if not spawn(w, kind, 0, b"i%d" % i):
+                    raise RuntimeError((error(w) or b"").decode())
+            return (time.perf_counter() - start) / instances * 1e6
+    return best(batch)
+
+
+# ---- worlds: saving and loading a document ----------------------------------
+
+def saved_world(w, instances=1000):
+    """A world that owns one kind with three parts and `instances` instances with one changed value each; returns its document."""
+    entity = world_create(w, b"w1")
+    if not entity:
+        raise RuntimeError((error(w) or b"").decode())
+    if source_apply(w, b"worlds.w1.sources.Craft", b"worlds.w1.kinds", craft_kind(parts=3).encode()) < 0:
+        raise RuntimeError((error(w) or b"").decode())
+    kind = lookup(w, b"worlds.w1.kinds.Craft")
+    for i in range(instances):
+        if not spawn(w, kind, entity, b"i%d" % i) or set_json(
+                w, b"worlds.w1.i%d" % i, b"Position", b'{"x":%d,"y":1,"z":2}' % i) != 0:
+            raise RuntimeError((error(w) or b"").decode())
+    tick(w, 0.016)
+    return entity
+
+
+def saved_document(w, entity):
+    pointer = world_save(w, entity)
+    if not pointer:
+        raise RuntimeError((error(w) or b"").decode())
+    try:
+        return c.string_at(pointer)
+    finally:
+        free(pointer)
+
+
+def world_save_1000():
+    def save():
+        pointer = world_save(w, entity)
+        if not pointer:
+            raise RuntimeError((error(w) or b"").decode())
+        free(pointer)
+    with world() as w:
+        entity = saved_world(w)
+        return best_calls(save, 10)
+
+
+def world_load_1000():
+    def load():
+        if not world_load(w, b"w1", document):
+            raise RuntimeError((error(w) or b"").decode())
+    with world() as w:
+        document = saved_document(w, saved_world(w))
+        return best_calls(load, 5)
+
+
+# ---- tools: describe, checkpoint, dry run, alerts ----------------------------
+
+def describe_type():
+    """One fu_describe_json of the nested component Look."""
+    def call():
+        pointer = describe(w, b"Look")
+        if not pointer:
+            raise RuntimeError((error(w) or b"").decode())
+        free(pointer)
+    with world() as w:
+        return best_calls(call, 200)
+
+
+def world_checkpoint_1000():
+    """One fu_world_checkpoint of the world of world_save_1000 (a copy of the document is kept)."""
+    def call():
+        if world_checkpoint(w, entity) < 0:
+            raise RuntimeError((error(w) or b"").decode())
+    with world() as w:
+        entity = saved_world(w)
+        us = best_calls(call, 10)
+    print(f"world_checkpoint_1000: {us / 1000:.2f} ms", file=sys.stderr)
+    return us
+
+
+def world_dry_run_1000():
+    """One fu_world_dry_run of a one-line script on that world (the world is copied, the script runs, the copy is dropped)."""
+    def call():
+        if world_dry_run(w, entity, b"extra { Position: {1, 2, 3} }") != 0:
+            raise RuntimeError((error(w) or b"").decode())
+    with world() as w:
+        entity = saved_world(w)
+        us = best_calls(call, 5)
+    print(f"world_dry_run_1000: {us / 1000:.2f} ms", file=sys.stderr)
+    return us
+
+
+def tick_alerts_1000():
+    """fu_tick with that world (1000 instances) and nothing changing: the alert checks stay cheap when idle."""
+    with world() as w:
+        saved_world(w)
+        for _ in range(60):
+            tick(w, 0.05)
+        return best_calls(lambda: tick(w, 0.016), 200)
 
 
 # ---- behaviour checks (1 = as intended) ----------------------------------
@@ -346,6 +673,16 @@ METRICS = [
     ("tick_bindings_1000", lambda: tick_bindings(1000)),
     ("tick_splines_256", tick_splines_256),
     ("tick_trees_256", tick_trees_256),
+    ("tick_motion_256_parts", tick_motion_256_parts),
+    ("tick_motion_idle_1000", tick_motion_idle_1000),
+    ("tick_places_idle_1000", tick_places_idle_1000),
+    ("places_force_edit_1000", places_force_edit_1000),
+    ("places_crossing", places_crossing),
+    ("tick_links_idle", tick_links_idle),
+    ("tick_links_playing_idle", tick_links_playing_idle),
+    ("links_touch_event", links_touch_event),
+    ("links_timers_100", links_timers_100),
+    ("sound_shape_1s", sound_shape_1s),
     ("read_views_1000", lambda: read_views_metric(1000)),
     ("view_changes_10000_static", view_changes_10000_static),
     ("read_views_10000", lambda: read_views_metric(10000)),
@@ -357,6 +694,15 @@ METRICS = [
     ("tool_query_new", tool_query_new),
     ("spawn_prefab_instance", spawn_prefab_instance),
     ("typed_read_bodies_up", typed_read_bodies_up),
+    ("source_apply_value_1000", source_apply_value_1000),
+    ("source_apply_part_1000", source_apply_part_1000),
+    ("spawn_1000", spawn_1000),
+    ("world_save_1000", world_save_1000),
+    ("world_load_1000", world_load_1000),
+    ("describe_type", describe_type),
+    ("world_checkpoint_1000", world_checkpoint_1000),
+    ("world_dry_run_1000", world_dry_run_1000),
+    ("tick_alerts_1000", tick_alerts_1000),
 ]
 FLAGS = [
     ("handles_survive_unrelated_script_set", handles_survive_unrelated_script_set),

@@ -8,6 +8,8 @@
     { "name": "Runtime spatial", "kind": "editor", "start": "Game.Editor.RuntimeSpatialVerification.Start();return true;", "report": "Verification/runtime-spatial-checks.json", "timeout": 240 },
     { "name": "Photo object", "kind": "editor", "start": "Game.Editor.PhotoObjectVerification.Run();return true;", "report": "Verification/photo-object-checks.json", "timeout": 120 },
     { "name": "Chat loop (no providers)", "kind": "editor", "start": "Game.Editor.ChatLoopVerification.Start();return true;", "report": "Verification/chat-loop-checks.json", "timeout": 180 },
+    { "name": "Agent tools and schemas", "kind": "editor", "start": "Game.Editor.AgentToolsVerification.Start();return true;", "report": "Verification/agent-tools-checks.json", "timeout": 180 },
+    { "name": "Gallery save through a Play exit", "kind": "editor", "start": "Game.Editor.GallerySaveRoundTripVerification.Start();return true;", "report": "Verification/gallery-save-round-trip-checks.json", "timeout": 900 },
     { "name": "Native smoke", "kind": "python", "script": "Verification/native_smoke.py", "args": [], "report": "Verification/native-checks.json", "timeout": 120 },
     { "name": "Capability native smoke", "kind": "python", "script": "Verification/capability_native_smoke.py", "args": ["Assets/Plugins/Flecs/x86_64/flecs_unity.dll"], "report": "Verification/capability-native-checks.json", "timeout": 120 },
     { "name": "Runtime engine native smoke", "kind": "python", "script": "Verification/runtime_engine_smoke.py", "args": [], "report": "Verification/runtime-engine-native-checks.json", "timeout": 120 },

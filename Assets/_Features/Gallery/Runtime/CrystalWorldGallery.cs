@@ -26,6 +26,7 @@ namespace Game
             public Renderer Shell;
             public SphereCollider Hit;
             public int Level, Slot;
+            public int PlacedLayer, PlacedSlot; // the native GalleryPlacement, read by Arrange
             public float Alpha = 1, Highlight, Coverage, Visibility = 1, PublishedOpacity = 1, ScreenRadius, ScreenDepth;
             public Vector2 ScreenCenter; public bool Pickable = true;
             public readonly GalleryFeedbackSpring OpacitySpring = new(1), HighlightSpring = new();
@@ -186,6 +187,10 @@ namespace Game
         {
             public int order, width, depth, kind;
             public byte active;
+        }
+        struct PlacementData
+        {
+            public int layer, slot;
         }
         void WriteFloat(string id, string type, float value)
         {
@@ -465,25 +470,18 @@ namespace Game
             view = Read("GalleryTreeSettings", "GalleryView");
             focus = Read("GalleryTreeSettings", "GalleryFocus");
             activity = Read("GalleryTreeSettings", "GalleryTreeActivity");
-            // One typed read of every catalog entry through a stable native query handle (no JSON).
+            ReadEntries();
+        }
+        // One typed read of every catalog entry through a stable native query handle (no JSON).
+        void ReadEntries()
+        {
             int count;
             using (NativeReadMarker.Auto())
             {
                 count = world.Session.ReadQuery("GalleryEntry", null, ref entryEntities, ref entryTargets, ref entryValues);
                 nativeReads++;
             }
-            if (itemsByEntityRevision != world.Session.SourceRevision || itemsByEntityCount != items.Count)
-            {
-                itemsByEntity.Clear();
-                foreach (var item in items)
-                {
-                    ulong e = Entity(item.Entry.Id, true);
-                    if (e != 0)
-                        itemsByEntity[e] = item;
-                }
-                itemsByEntityRevision = world.Session.SourceRevision;
-                itemsByEntityCount = items.Count;
-            }
+            RefreshItemMap();
             for (int i = 0; i < count; i++)
                 if (itemsByEntity.TryGetValue(entryEntities[i], out var item))
                 {
@@ -491,8 +489,42 @@ namespace Game
                     item.Entry.Active = entryValues[i].active != 0;
                 }
         }
+        void RefreshItemMap()
+        {
+            if (itemsByEntityRevision == world.Session.SourceRevision && itemsByEntityCount == items.Count)
+                return;
+            itemsByEntity.Clear();
+            foreach (var item in items)
+            {
+                ulong e = Entity(item.Entry.Id, true);
+                if (e != 0)
+                    itemsByEntity[e] = item;
+            }
+            itemsByEntityRevision = world.Session.SourceRevision;
+            itemsByEntityCount = items.Count;
+        }
+        // The native app module owns the ring of every active world (GalleryPlacement); this only reads it.
+        void ReadPlacements()
+        {
+            foreach (var item in items)
+                item.PlacedLayer = item.PlacedSlot = 0;
+            int count;
+            using (NativeReadMarker.Auto())
+            {
+                count = world.Session.ReadQuery("GalleryPlacement", null, ref placementEntities, ref placementTargets, ref placementValues);
+                nativeReads++;
+            }
+            for (int i = 0; i < count; i++)
+                if (itemsByEntity.TryGetValue(placementEntities[i], out var item))
+                {
+                    item.PlacedLayer = placementValues[i].layer;
+                    item.PlacedSlot = placementValues[i].slot;
+                }
+        }
         ulong[] entryEntities = new ulong[64], entryTargets = new ulong[64];
         EntryData[] entryValues = new EntryData[64];
+        ulong[] placementEntities = new ulong[64], placementTargets = new ulong[64];
+        PlacementData[] placementValues = new PlacementData[64];
         readonly Dictionary<ulong, Item> itemsByEntity = new();
         int itemsByEntityRevision = -1, itemsByEntityCount = -1;
         void EnsureLayers(int count)
@@ -511,11 +543,14 @@ namespace Game
         }
         public void Arrange(bool immediate = false)
         {
-            // Allocation-free change check: same active order and the same (unchanged, cached) config object as last time.
+            // Layers and slots come from the native GalleryPlacement, which follows GalleryEntry; every caller writes the entry first.
+            // Allocation-free change check: same placed order and the same (unchanged, cached) config object as last time.
+            ReadEntries();
+            ReadPlacements();
             var ordered = arrangeScratch;
             ordered.Clear();
             foreach (var item in items)
-                if (item.Entry.Active)
+                if (item.Entry.Active && item.PlacedLayer > 0)
                     ordered.Add(item);
             ordered.Sort(CompareLayoutOrder);
             if (!immediate && layoutValid && ReferenceEquals(config, layoutConfig) && SameOrder(ordered, layoutOrder))
@@ -524,10 +559,15 @@ namespace Game
             layoutConfig = config;
             layoutOrder.Clear();
             layoutOrder.AddRange(ordered);
-            int count = ordered.Count, level = 1, cursor = 0;
+            foreach (var item in items)
+                item.Level = -1;
+            int count = ordered.Count, cursor = 0, level = 0;
             while (cursor < count)
             {
-                int n = Mathf.Min(level * 6, count - cursor);
+                level = ordered[cursor].PlacedLayer;
+                int n = 1;
+                while (cursor + n < count && ordered[cursor + n].PlacedLayer == level)
+                    n++;
                 EnsureLayers(level);
                 var layer = layers[level - 1];
                 layer.Radius = level * (F("diameter") + F("worldGap"));
@@ -538,15 +578,16 @@ namespace Game
                 {
                     var item = ordered[cursor + i];
                     var e = item.Entry;
+                    int slot = item.PlacedSlot;
                     bool moved = e.Anchor.parent != layer.transform;
                     var previous = e.Anchor.position;
                     e.Anchor.SetParent(layer.transform, true);
                     e.Anchor.localRotation = Quaternion.identity;
                     e.Anchor.localScale = Vector3.one;
-                    e.Anchor.SetSiblingIndex(i);
+                    e.Anchor.SetSiblingIndex(slot);
                     e.Anchor.gameObject.SetActive(true);
                     item.Level = level;
-                    item.Slot = i;
+                    item.Slot = slot;
                     e.Anchor.GetComponent<FlexalonObject>().Size = Vector3.one * F("diameter");
                     item.Hit.radius = F("diameter") * .5f;
                     item.Shell.transform.localScale = Vector3.one * F("diameter");
@@ -555,35 +596,27 @@ namespace Game
                     e.Content.localPosition = -e.NaturalBounds.center * e.TableScale;
                     if (immediate)
                     {
-                        float angle = (layer.StartAtDegrees + i * 360f / n) * Mathf.Deg2Rad;
+                        float angle = (layer.StartAtDegrees + slot * 360f / n) * Mathf.Deg2Rad;
                         e.Anchor.localPosition = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * layer.Radius;
                     }
                     else if (moved)
                         e.Anchor.position = previous;
-                    Write(e.Id, "GalleryPlacement", new JObject { ["layer"] = level, ["slot"] = i });
                 }
                 layer.MarkDirty();
                 cursor += n;
-                level++;
             }
-            for (int i = level - 1; i < layers.Count; i++)
+            for (int i = level; i < layers.Count; i++)
                 layers[i].gameObject.SetActive(false);
-            foreach (var item in items.Where(i => !i.Entry.Active))
-            {
-                item.Entry.Anchor.gameObject.SetActive(false);
-                item.Level = -1;
-            }
-            var bindings = new StringBuilder();
-            foreach (var item in items.Where(i => i.Entry.Active))
-                bindings.Append(item.Entry.Id).Append(" { (GalleryOnLayer, GalleryTreeLayer").Append(item.Level).Append(") }\n");
-            world.Session.SetManagedScript("GalleryTreeBindings", bindings.ToString());
-            art.EnsureBands(layoutRoot, level - 1, F("diameter") + F("worldGap"), F("layerGap"), 2.1f, F("width"));
+            foreach (var item in items)
+                if (item.Level < 0)
+                    item.Entry.Anchor.gameObject.SetActive(false);
+            art.EnsureBands(layoutRoot, level, F("diameter") + F("worldGap"), F("layerGap"), 2.1f, F("width"));
             global::Flexalon.Flexalon.GetOrCreate().UpdateDirtyNodes();
         }
         static readonly Comparison<Item> CompareLayoutOrder = (a, b) =>
         {
-            int order = a.Entry.Order.CompareTo(b.Entry.Order);
-            return order != 0 ? order : string.Compare(a.Entry.Id, b.Entry.Id, StringComparison.CurrentCulture);
+            int layer = a.PlacedLayer.CompareTo(b.PlacedLayer);
+            return layer != 0 ? layer : a.PlacedSlot.CompareTo(b.PlacedSlot);
         };
         static bool SameOrder(List<Item> a, List<Item> b)
         {

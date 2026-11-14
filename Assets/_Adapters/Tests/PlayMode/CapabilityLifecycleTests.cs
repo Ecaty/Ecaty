@@ -212,6 +212,133 @@ namespace Game.Tests
             }
             yield return null;
         }
+        static Color ShownColor(FlecsWorld world, ulong entity)
+        {
+            var renderer = world.FindView(entity).GetComponentInChildren<Renderer>();
+            var block = new MaterialPropertyBlock();
+            renderer.GetPropertyBlock(block);
+            return block.GetColor(Shader.PropertyToID("_BaseColor"));
+        }
+        static void AssertShows(Color shown, float red, float green, string what)
+        {
+            Assert.That(shown.r, Is.EqualTo(red).Within(1e-4f), what + " (red)");
+            Assert.That(shown.g, Is.EqualTo(green).Within(1e-4f), what + " (green)");
+        }
+        // A kind is one text. Editing it reaches every instance and its parts on screen; an own value stays.
+        [UnityTest]
+        public IEnumerator KindEditReachesEveryInstanceOnScreen()
+        {
+            const int count = 50;
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                string Kind(string red) => "prefab Craft {\n  Position: {0,0,0}\n  Scale: {1,1,1}\n  Color: {" + red + ",0,0,1}\n  Primitive: {0}\n"
+                    + "  prefab wing { Position: {1,0,0}; Scale: {0.5,0.5,0.5}; Color: {0,1,0,1}; Primitive: {1} }\n}";
+                var session = world.Session;
+                session.ApplySource("sources.Craft", "library", Kind("1"));
+                ulong kind = session.Lookup("library.Craft");
+                Assert.That(kind, Is.Not.EqualTo(0UL));
+                int before = world.ViewCount;
+                var instances = new ulong[count];
+                for (int i = 0; i < count; i++)
+                {
+                    instances[i] = session.Spawn(kind, 0, "CraftInstance" + i);
+                    session.SetComponentJson("CraftInstance" + i, "Position", "{\"x\":" + i + ",\"y\":0,\"z\":0}");
+                }
+                // One instance has its own colour before the edit.
+                session.SetComponentJson("CraftInstance7", "Color", "{\"r\":0.25,\"g\":0,\"b\":0,\"a\":1}");
+                world.SyncViews();
+                yield return null;
+                Assert.That(world.ViewCount - before, Is.EqualTo(2 * count), "Every instance and every part needs a view");
+                var parts = new ulong[count];
+                for (int i = 0; i < count; i++)
+                {
+                    parts[i] = session.Lookup("CraftInstance" + i + ".wing");
+                    Assert.That(world.FindView(instances[i]), Is.Not.Null, "Instance " + i + " has no object");
+                    Assert.That(world.FindView(parts[i]), Is.Not.Null, "Part " + i + " has no object");
+                    Assert.That(world.FindView(instances[i]).transform.localPosition.x, Is.EqualTo((float)i));
+                    AssertShows(ShownColor(world, instances[i]), i == 7 ? 0.25f : 1f, 0, "Instance " + i + " shows the kind's colour");
+                    AssertShows(ShownColor(world, parts[i]), 0, 1f, "Part " + i + " shows the kind's colour");
+                }
+                Assert.That(session.ApplySource("sources.Craft", "library", Kind("0.5")), Is.False, "An edit of a value removes nothing");
+                world.SyncViews();
+                yield return null;
+                for (int i = 0; i < count; i++)
+                {
+                    AssertShows(ShownColor(world, instances[i]), i == 7 ? 0.25f : 0.5f, 0, i == 7 ? "The instance with its own colour kept it" : "Instance " + i + " shows the edited colour");
+                    AssertShows(ShownColor(world, parts[i]), 0, 1f, "Part " + i + " keeps its colour");
+                    Assert.That(world.FindView(instances[i]).transform.localPosition.x, Is.EqualTo((float)i), "An edit must not move instance " + i);
+                }
+                Assert.That(world.ViewCount - before, Is.EqualTo(2 * count), "An edit must not create or remove objects");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        // A world saved as a document and loaded again replaces the first one: the objects of the old entities are gone
+        // and the new entities show the saved values.
+        [UnityTest]
+        public IEnumerator WorldDocumentRoundTripsOnScreen()
+        {
+            const int count = 10;
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            try
+            {
+                var session = world.Session;
+                ulong lab = session.CreateWorld("lab");
+                session.ApplySource("worlds.lab.sources.Lamp", "worlds.lab.kinds",
+                    "prefab Lamp {\n  Position: {0,0,0}\n  Scale: {1,1,1}\n  Color: {1,1,0,1}\n  Primitive: {0}\n"
+                    + "  prefab shade { Position: {0,1,0}; Scale: {0.5,0.5,0.5}; Color: {0,1,0,1}; Primitive: {1} }\n}");
+                ulong kind = session.Lookup("worlds.lab.kinds.Lamp");
+                Assert.That(kind, Is.Not.EqualTo(0UL));
+                world.SyncViews();
+                int before = world.ViewCount;
+                var oldIds = new List<ulong>();
+                for (int i = 0; i < count; i++)
+                {
+                    oldIds.Add(session.Spawn(kind, lab, "Lamp" + i));
+                    session.SetComponentJson("worlds.lab.Lamp" + i, "Position", "{\"x\":" + (i + 1) + ",\"y\":0,\"z\":" + 2 * i + "}");
+                }
+                world.SyncViews();
+                yield return null;
+                for (int i = 0; i < count; i++)
+                {
+                    oldIds.Add(session.Lookup("worlds.lab.Lamp" + i + ".shade"));
+                    Assert.That(world.FindView(oldIds[i]), Is.Not.Null, "Lamp " + i + " has no object");
+                    Assert.That(world.FindView(oldIds[count + i]), Is.Not.Null, "Part " + i + " has no object");
+                }
+                Assert.That(world.ViewCount - before, Is.EqualTo(2 * count), "Every instance and every part needs a view");
+                string document = session.SaveWorld(lab);
+                session.SetComponentJson("worlds.lab.Lamp2", "Position", "{\"x\":99,\"y\":99,\"z\":99}");
+                session.SetComponentJson("worlds.lab.Lamp5", "Position", "{\"x\":-5,\"y\":-5,\"z\":-5}");
+                session.DeleteEntity("worlds.lab.Lamp8");
+                world.SyncViews();
+                yield return null;
+                Assert.That(world.ViewCount - before, Is.EqualTo(2 * (count - 1)), "The deleted lamp and its part must lose their objects");
+                Assert.That(session.TryLoadWorld("lab", document, out ulong loaded, out string error), Is.True, error);
+                Assert.That(loaded, Is.Not.EqualTo(0UL));
+                world.SyncViews();
+                yield return null;
+                Assert.That(world.ViewCount - before, Is.EqualTo(2 * count), "The loaded world needs every instance and part again");
+                foreach (ulong old in oldIds)
+                    Assert.That(world.FindView(old), Is.Null, "An object of the replaced world was left");
+                for (int i = 0; i < count; i++)
+                {
+                    ulong lamp = session.Lookup("worlds.lab.Lamp" + i), shade = session.Lookup("worlds.lab.Lamp" + i + ".shade");
+                    Assert.That(world.FindView(lamp), Is.Not.Null, "Loaded lamp " + i + " has no object");
+                    Assert.That(world.FindView(shade), Is.Not.Null, "Loaded part " + i + " has no object");
+                    Assert.That(world.FindView(lamp).transform.localPosition, Is.EqualTo(new Vector3(i + 1, 0, 2 * i)), "Lamp " + i + " is not at its saved position");
+                    AssertShows(ShownColor(world, lamp), 1f, 1f, "Lamp " + i + " shows the kind's colour");
+                }
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
         // Ownership is an exclusive relationship in the world: one owner per view, and it ends with its owner entity.
         [UnityTest]
         public IEnumerator PoseOwnershipIsExclusiveAndEndsWithItsOwner()
@@ -236,6 +363,153 @@ namespace Game.Tests
                 t.localPosition = new Vector3(7, 0, 0);
                 world.ReleasePose(view, b);
                 Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)), "Release must snap back to the world's pose at once");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        // The apply loop writes to Unity only what changed in the view.
+        const string AppliedScript = "AppliedView { Position: {1,2,3}; Rotation: {0,0,0}; Scale: {1,1,1}; Color: {0.2,0.4,0.6,1}; Primitive: {0} }\nTestOwner {}";
+        static FlecsWorld CreateAppliedWorld(out Transform t, out ulong view)
+        {
+            var world = FlecsBootstrap.Create(Resources.Load<TextAsset>("Runtime/Examples/World"), Resources.Load<Material>("Shared/Rendering/PresentationMaterial"), 0);
+            world.Session.SetManagedScript("AppliedModule", AppliedScript);
+            world.SyncViews();
+            world.SyncViews();
+            view = world.Session.Lookup("AppliedView");
+            t = world.FindView(view).transform;
+            return world;
+        }
+        [UnityTest]
+        public IEnumerator OnlyWhatChangedIsWrittenToTheView()
+        {
+            var world = CreateAppliedWorld(out var t, out var view);
+            try
+            {
+                var session = world.Session;
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)));
+                session.SetComponentJson("AppliedView", "Rotation", "{\"x\":0,\"y\":90,\"z\":0}");
+                world.SyncViews();
+                Assert.That(Quaternion.Angle(t.localRotation, Quaternion.Euler(0, 90, 0)), Is.LessThan(0.01f), "The rotation must follow");
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 2, 3)), "The position is unchanged");
+                Assert.That(t.localScale, Is.EqualTo(Vector3.one), "The scale is unchanged");
+                // A colour change must not rewrite the scale.
+                t.localScale = new Vector3(3, 4, 5);
+                session.SetComponentJson("AppliedView", "Color", "{\"r\":0.9,\"g\":0.1,\"b\":0.3,\"a\":1}");
+                world.SyncViews();
+                var shown = ShownColor(world, view);
+                Assert.That(shown.r, Is.EqualTo(0.9f).Within(1e-4f), "The new colour is shown");
+                Assert.That(shown.g, Is.EqualTo(0.1f).Within(1e-4f));
+                Assert.That(t.localScale, Is.EqualTo(new Vector3(3, 4, 5)), "The hand-set scale was not rewritten by a colour change");
+                session.SetComponentJson("AppliedView", "Scale", "{\"x\":2,\"y\":2,\"z\":2}");
+                world.SyncViews();
+                Assert.That(t.localScale, Is.EqualTo(new Vector3(2, 2, 2)), "A scale change shows the world's scale");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        [UnityTest]
+        public IEnumerator PresentedMatchesWhatTheViewShows()
+        {
+            var world = CreateAppliedWorld(out var t, out var view);
+            try
+            {
+                world.Session.SetComponentJson("AppliedView", "Rotation", "{\"x\":10,\"y\":200,\"z\":350}");
+                world.SyncViews();
+                var presented = JObject.Parse(world.Session.ComponentJson(view, "Presented"));
+                var euler = t.localEulerAngles;
+                var shownColor = ShownColor(world, view);
+                Assert.That((float)presented["position"]["x"], Is.EqualTo(t.localPosition.x).Within(0.01f));
+                Assert.That((float)presented["position"]["y"], Is.EqualTo(t.localPosition.y).Within(0.01f));
+                Assert.That((float)presented["position"]["z"], Is.EqualTo(t.localPosition.z).Within(0.01f));
+                Assert.That((float)presented["rotation"]["x"], Is.EqualTo(euler.x).Within(0.01f));
+                Assert.That((float)presented["rotation"]["y"], Is.EqualTo(euler.y).Within(0.01f));
+                Assert.That((float)presented["rotation"]["z"], Is.EqualTo(euler.z).Within(0.01f));
+                Assert.That((float)presented["scale"]["x"], Is.EqualTo(t.localScale.x).Within(0.01f));
+                Assert.That((float)presented["scale"]["y"], Is.EqualTo(t.localScale.y).Within(0.01f));
+                Assert.That((float)presented["scale"]["z"], Is.EqualTo(t.localScale.z).Within(0.01f));
+                Assert.That((float)presented["color"]["r"], Is.EqualTo(shownColor.r).Within(0.01f));
+                Assert.That((float)presented["color"]["g"], Is.EqualTo(shownColor.g).Within(0.01f));
+                Assert.That((float)presented["color"]["b"], Is.EqualTo(shownColor.b).Within(0.01f));
+                Assert.That((float)presented["color"]["a"], Is.EqualTo(shownColor.a).Within(0.01f));
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        [UnityTest]
+        public IEnumerator PoseIsWrittenAgainAfterOwnershipEnds()
+        {
+            var world = CreateAppliedWorld(out var t, out var view);
+            try
+            {
+                var session = world.Session;
+                ulong owner = session.Lookup("TestOwner");
+                Assert.That(world.AcquirePose(view, owner), Is.True);
+                t.localPosition = new Vector3(5, 0, 0);
+                session.SetComponentJson("AppliedView", "Position", "{\"x\":7,\"y\":8,\"z\":9}");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(5, 0, 0)), "An owned pose stays where the owner put it");
+                world.ReleasePose(view, owner);
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(7, 8, 9)), "Release shows the world's position");
+                // Held and moved, then released in the world without a view change reaching Unity first: the next change
+                // of the view (a colour) must still bring the pose back, because the loop did not write it while it was held.
+                Assert.That(world.AcquirePose(view, owner), Is.True);
+                world.SyncViews();
+                t.localPosition = new Vector3(5, 0, 0);
+                world.SyncViews();
+                Assert.That(session.Release(view, session.TransformOwner, owner), Is.True);
+                session.SetComponentJson("AppliedView", "Color", "{\"r\":0.5,\"g\":0.5,\"b\":0.5,\"a\":1}");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(7, 8, 9)), "A pose the loop did not write while it was held is written at the next change of the view");
+                // A position change after a release shows as well.
+                Assert.That(world.AcquirePose(view, owner), Is.True);
+                world.SyncViews();
+                t.localPosition = new Vector3(5, 0, 0);
+                world.ReleasePose(view, owner);
+                session.SetComponentJson("AppliedView", "Position", "{\"x\":1,\"y\":1,\"z\":1}");
+                world.SyncViews();
+                Assert.That(t.localPosition, Is.EqualTo(new Vector3(1, 1, 1)), "A position change after the release shows");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
+        [UnityTest]
+        public IEnumerator ColourIsWrittenAgainAfterOwnershipEnds()
+        {
+            var world = CreateAppliedWorld(out var t, out var view);
+            try
+            {
+                var session = world.Session;
+                ulong owner = session.Lookup("TestOwner");
+                Assert.That(world.AcquireAppearance(view, owner), Is.True);
+                world.SyncViews();
+                var renderer = world.FindView(view).GetComponentInChildren<Renderer>();
+                var block = new MaterialPropertyBlock();
+                block.SetColor(Shader.PropertyToID("_BaseColor"), new Color(0.7f, 0.6f, 0.1f, 1f));
+                renderer.SetPropertyBlock(block);
+                session.SetComponentJson("AppliedView", "Color", "{\"r\":0.9,\"g\":0.1,\"b\":0.3,\"a\":1}");
+                world.SyncViews();
+                var held = ShownColor(world, view);
+                Assert.That(held.r, Is.EqualTo(0.7f).Within(1e-4f), "An owned appearance stays as the owner put it (red)");
+                Assert.That(held.g, Is.EqualTo(0.6f).Within(1e-4f), "An owned appearance stays as the owner put it (green)");
+                // Released in the world without a view change reaching Unity first: a change of the position only must still bring the colour back.
+                Assert.That(session.Release(view, session.AppearanceOwner, owner), Is.True);
+                session.SetComponentJson("AppliedView", "Position", "{\"x\":4,\"y\":5,\"z\":6}");
+                world.SyncViews();
+                var shown = ShownColor(world, view);
+                Assert.That(shown.r, Is.EqualTo(0.9f).Within(1e-4f), "A colour the loop did not write while it was held is written at the next change of the view (red)");
+                Assert.That(shown.g, Is.EqualTo(0.1f).Within(1e-4f), "A colour the loop did not write while it was held is written at the next change of the view (green)");
             }
             finally
             {

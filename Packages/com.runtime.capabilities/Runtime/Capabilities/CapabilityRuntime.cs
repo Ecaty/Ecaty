@@ -103,14 +103,14 @@ namespace Runtime.Capabilities
         }
         readonly Dictionary<string, JObject> pendingRestore = new();
         public JObject CaptureState() => CaptureState(null);
-        /// <summary>Selected adapter state of bindings whose entity path is within <paramref name="scope"/> (all when null).</summary>
+        /// <summary>Selected adapter state of bindings whose entity path is within <paramref name="scope"/> (all outside worlds when null).</summary>
         public JObject CaptureState(string scope)
         {
             var result = new JObject();
             foreach (var p in bindings)
             {
                 string path = p.Value.Context.Path;
-                if (!string.IsNullOrEmpty(scope) && path != scope && !path.StartsWith(scope + ".", StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(scope) ? path.StartsWith(CapabilityGraph.WorldsPrefix, StringComparison.Ordinal) : path != scope && !path.StartsWith(scope + ".", StringComparison.Ordinal))
                     continue;
                 var state = p.Value.Instance?.CaptureState();
                 if (state != null)
@@ -199,19 +199,12 @@ namespace Runtime.Capabilities
         }
         /// <summary>
         /// Shared contracts come from CapabilitySchema.flecs; configuration structs are generated from [Capability] classes.
-        /// A restored session keeps its saved schema source. Configurations it lacks are added in a separate module.
+        /// The schema is app-owned: saves never carry it, so it is installed once per session from the current text.
         /// </summary>
         public static void InstallSchema(FlecsSession target)
         {
             if (target.ManagedScriptSource(SchemaModule) == null)
-            {
                 target.SetManagedScript(SchemaModule, Resources.Load<TextAsset>(SchemaModule).text + "\n" + CapabilityCatalog.Schema());
-                return;
-            }
-            // One module per added struct: never re-evaluate a module that already defines live component types.
-            foreach (var d in CapabilityCatalog.All)
-                if (target.Lookup(d.Info.Component) == 0)
-                    target.SetManagedScript(SchemaModule + "Additions." + d.Info.Component, d.Schema);
         }
         public const string SchemaModule = "CapabilitySchema";
         void PublishType(ICapabilityAdapter a)

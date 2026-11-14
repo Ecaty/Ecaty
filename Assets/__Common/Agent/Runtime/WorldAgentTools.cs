@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Runtime.Agents;
@@ -17,10 +18,10 @@ namespace Game
             var tools = new List<IAgentTool> {
                 new Tool("query", "Inspect the live world with a native Flecs query. Example: Position, ?Primitive, ?Color, ?Scale, ?Spin, ?Presented. Query Clock for native time.", "expression", main,
                     a => Query(world, (string)a["expression"])),
-                new Tool("inspect_entity", "Inspect an entity/component by full path with reflected types and values. Example: diorama.Ground", "path", main,
-                    a => world.Session.EntityJson((string)a["path"])),
+                new Tool("inspect_entity", "Inspect an entity/component by full path with reflected types and values. Example: diorama.Ground.", "path", main,
+                    a => Inspect(world, (string)a["path"])),
                 new Tool("apply_script", "Apply one-time upstream Flecs Script edits. Example: scene { Cube { Color: {0, 0, 1, 1}; Scale: {2, 2, 2} } }. Use nested entity scopes, not dotted entity declarations. Separate statements by semicolons or newlines. Define runtime types as struct Temperature(value: f32). Use apply_behavior for ongoing motion or reactive rules. Errors are not transactional; inspect after failure.", "code", main,
-                    a => { if (experience) experience.ApplyEdit((string)a["code"]); else world.Session.RunScript((string)a["code"]); world.SyncViews(); return Observe(world, engine); }),
+                    a => ApplyScript(world, experience, (string)a["code"], engine)),
                 new Tool("observe_world", "Refresh actual presentation readback. Presented contains measured transforms/color and an applied frame counter. Photo actors are in runtime_actor with measured ActorMotion/PoseObserved. This is actual transform data, not screen perception.", null, main,
                     a => { world.SyncViews(); return Observe(world, engine); }),
                 new ObserveOverTime(world, main)
@@ -53,6 +54,26 @@ namespace Game
             if (experience)
                 tools.AddRange(RuntimeExperienceTools.Create(world, experience, main));
             return tools;
+        }
+
+        private static string Error(string message) => new JObject { ["error"] = message }.ToString(Formatting.None);
+
+        private static string Inspect(FlecsWorld world, string path) => world.Session.EntityJson(path);
+
+        private static string ApplyScript(FlecsWorld world, RuntimeExperience experience, string code, DioramaRuntime engine)
+        {
+            var session = world.Session;
+            if (experience)
+            {
+                // Each edit is one saved source and a load accepts at most 256.
+                if (session.ManagedPaths.Count(p => p != "RuntimeFaults") >= 256)
+                    return Error("The experience already has 256 sources, the most it can save. Remove behaviors or definitions first.");
+                experience.ApplyEdit(code);
+            }
+            else
+                session.RunScript(code);
+            world.SyncViews();
+            return Observe(world, engine);
         }
 
         private static string Query(FlecsWorld world, string expression)

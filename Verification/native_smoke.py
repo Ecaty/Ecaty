@@ -102,7 +102,7 @@ def request(w, port, path, method="GET", body=None):
 report = {"passed": False, "flecs": version().decode(), "checks": checks}
 w = None
 try:
-    assert abi() == 4 and c.sizeof(View) == 96
+    assert abi() == 5 and c.sizeof(View) == 96
     assert size() == c.sizeof(View)
     w = create(0)
     assert w, error(None)

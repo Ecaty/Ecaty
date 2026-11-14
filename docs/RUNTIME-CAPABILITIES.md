@@ -4,7 +4,7 @@
 
 ## Try it
 
-1. Open the project with Unity 6000.6.7f1 and let imports finish.
+1. Open the project with Unity 6000.6.9f1 and let imports finish.
 2. **Runtime > Runtime engine > Prepare capability assets** once (again after importing a plugin).
 3. **Runtime > Runtime engine > Start capability workshop**, then query `CapBinding`, `CapState`, `CapType`, `CapAsset` or `NativeTreeNode` in Flecs Explorer. Edit a configuration in Play; `CapState` reports the applied generation or the failure.
 4. **Verify capabilities** runs the workshop/reconstruction check. `Tests/Run-All.cmd` runs the generic contract and lifecycle tests.
@@ -51,7 +51,7 @@ public sealed class LightCapability : CapabilityInstance<LightConfig>
 - **Optional plugins:** put the configuration outside the plugin `#if` and add `Gate = "SYMBOL", Probe = "path/that/exists/when/installed"`; put the adapter inside `#if SYMBOL`. `CapabilityPluginDiscovery` sets the symbol from the probe. The schema exists whether or not the plugin is installed, so saves stay loadable.
 - **Tools without Unity:** `CapabilityConfigSchema.flecs` is a committed export of the generated structs (refreshed after each compile, or Runtime > Runtime engine > Export capability schema; an EditMode test fails when stale). Verification/*.py load it after `CapabilitySchema.flecs`.
 - **Plugins that create standalone meshes/materials** (e.g. Broccoli) wrap generation in `CreatedObjects.During(...)` and destroy the result on replace/dispose.
-- **Saves:** member names, types and order are a saved contract. A restored session keeps its saved schema source; configurations it lacks are added as `CapabilitySchemaAdditions.<Component>`. Append new members; do not rename or reorder.
+- **Saves:** member names, types and order are a saved contract. The capability schema module is app-owned: saves do not carry it and `CapabilityRuntime.InstallSchema` installs the current text once per session, before saved sources, so a member appended later reaches old saves. Append new members; do not rename or reorder. Result components (`CapReadback`, `CapAudioMeter`, `CapRigResult` and the other outputs) carry the `NotSaved` tag and are never written.
 - Keep product rules out of adapters. Behavior and recipes belong in runtime source-backed ECS definitions. `Assets/_Adapters/link.xml` preserves reflected adapters in stripped players.
 
 ## Implemented surfaces
@@ -76,9 +76,19 @@ These expose selected runtime operations, not every plugin Inspector field. New 
 
 `CapabilityGraph.Capture(session, runtime, scope, sourcePrefix)` serializes every CapBinding/NativeTree entity under a scope: registered configurations, `CapDependsOn` targets, selected adapter state (e.g. body pose/velocity) and managed sources owned by a prefix. `Restore` validates first, installs owned sources, recreates entities that no source defines (prerequisites first, in one generated module), writes configurations and queues adapter state for the first successful apply. Dropped prerequisites/cycles are reported, not thrown.
 
-- **Experience save** (RuntimeExperience): all sources as before plus `capabilityGraph`; older saves without it load unchanged.
-- **Gallery saved world:** `GallerySavedWorld.graph` holds the graph for `<id>Content` and owned sources `GalleryWorld_<id>.*`. Activation rebuilds it, unloading removes it. Bindings must live under the world's private root to belong to that world.
+- **Experience save** (RuntimeExperience): its sources (without the app-owned modules) plus `capabilityGraph`; older saves without it load unchanged. An unscoped capture (scope null) skips bindings under `worlds.`; those belong to a world document.
+- **Gallery saved world:** bindings under `worlds.<id>` are ordinary instances in the world's format 2 document, so they save and load with it (atomic load); adapter state is kept next to the document (`CaptureState(root)` / `QueueRestore`). Activation rebuilds them, unloading removes them. A version 1 record with `graph` is converted on read.
 - Reload builds fresh plugin instances. Contacts, plugin internals, playing audio and pending tree/Script waits are not checkpointed; tasks restart. Asset keys must resolve to the same installed/bundled assets.
+
+## Look adapter
+
+`Packages/com.runtime.capabilities/Runtime/Look/` shows the native `Look` and `WorldStyle` components. It is not a `CapBinding` capability: `LookAdapter` (a MonoBehaviour that runs after the world has synced its views) owns a `LookPresenter` and a `WorldStylePresenter`.
+
+- `LookPresenter` gives each element with a `Look` a shared material on its view's renderer. Looks that round to the same values share one reference-counted material (`LookMaterials`), made from two template materials in `Resources/Look` (opaque and clear), so equal looks batch and there are no property blocks. A pattern gets a generated albedo and normal texture (`LookPatternTextures`), cached by the quantised pattern and colours. It takes the appearance with the exclusive `(AppearanceOwner, core.look)` relationship, so other writers see the view as owned, and it restores the original material and releases the relationship when the `Look` goes away.
+- `WorldStylePresenter` shows the entered world's `WorldStyle` as overrides on one global post-processing Volume (white balance, colour adjustments, bloom, vignette). With no world entered or no style, every override is off. Values that are set but not drawn yet are listed in `NotRendered`.
+- `LookManifest` (`Resources/Look/LookManifest.json`) holds the shader names, the mapping from values to shader and Volume settings, and the pattern numbers, so none are repeated in code.
+
+Motion loops (`MotionLoop`, `SecondPose`) need no adapter: the native module writes the offset and the view stream already sends rest plus offset, so Unity applies it as an ordinary view change.
 
 ## Verification
 
@@ -87,6 +97,14 @@ These expose selected runtime operations, not every plugin Inspector field. New 
 - Workshop/player checks: `CapabilityVerification` menu and `CapabilitySmoke` (real physics, IK, navigation, meshes, audio callbacks, save/reload).
 
 Windows x64 Editor/development player is the current target; Android/iOS/XR need native builds and device testing. UniStorm/Crest enforce one global renderer. VFX shaders compile at build time.
+
+## Engine adapters (bodies, effects, sound)
+
+Three adapters in `Packages/com.runtime.capabilities/Runtime/` present native engine data. Each is created per `FlecsWorld`, reads through change-reporting queries, and acts only when a query reports a change (or, for sound, a render is waiting). A native library without the matching module is skipped.
+
+- **Bodies and places** (`Bodies/`, `BodyPresenter`, stepped by `BodyAdapter` in FixedUpdate). Reads `Pinned`, `Ghost`, `Free`, the forces and `EffectiveForce`. Creates static colliders for pinned shapes, trigger colliders for ghosts and a Rigidbody per free body, and applies gravity, wind, lift in a fluid and drag. Reports poses back to Flecs (the body's view stays under the world root while simulated) and crossings as `PlaceEntered` and `PlaceLeft` events, which the native module turns into re-parenting.
+- **Effects** (`Effects/EffectPresenter`). Reads `Particles`, the child prefab `particle` (its `Look` and `Scale`) and the emitter's `EffectiveForce`. Creates one ParticleSystem per emitter on a child of its view, never one object per particle, with one shared material from the look cache. Particles end at pinned shapes and at the surface of the fluid the emitter is in. Reports nothing back.
+- **Sound** (`Sound/`, `SoundPresenter` run by `SoundAdapter` after the views sync). Reads `Sound`, `SoundClip` and `Played`. Creates an AudioSource on the element's view. `SoundSources` finds the samples by `uri` (an in-memory registry, then 16-bit WAV files in one folder), `SoundRenders` shapes them with `fu_sound_shape` on a worker thread and caches the result by (clip, size, rough) quantised to 1/32, and the AudioClip is made on the main thread. The AudioSource plays when `Played.count` goes up. Reports nothing back; a missing clip is skipped with a reason.
 
 ## Code map
 

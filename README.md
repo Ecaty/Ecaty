@@ -3,7 +3,7 @@
 An exploratory interactive creation app. Native Flecs C++ owns world data and rules; Unity runs rendering and capability adapters; an AI agent inspects and changes it at runtime.
 
 1. Clone recursively and install Git LFS: `git clone --recurse-submodules https://github.com/Ecaty/Ecaty.git`.
-2. Open in Unity **6000.6.7f1**, Windows x64. A matching native plugin is included. Import the licensed MudBun, FImpossible animators and Boing Kit locally; see [dependencies](docs/RUNTIME-PLUGINS.md).
+2. Open in Unity **6000.6.9f1**, Windows x64. A matching native plugin is included. Import the licensed MudBun, FImpossible animators and Boing Kit locally; see [dependencies](docs/RUNTIME-PLUGINS.md).
 3. Press Play. Use the account icon to choose On device, OpenRouter (free coding model), ChatGPT (eligible plan), or Gemini (your AI Studio key).
 4. Normal startup opens the world gallery. For the separate developer ground/creature fixture in Play Mode, choose **Runtime > Runtime engine > Start creature test**. Focus Game view: WASD/gamepad moves it; click the ground to follow a point. [Runtime workflow](docs/RUNTIME-ENGINE.md).
 

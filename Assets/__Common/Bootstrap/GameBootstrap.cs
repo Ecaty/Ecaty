@@ -83,6 +83,9 @@ namespace Game
                 capabilities.Assets = RuntimeComposition.Current.Capabilities;
                 capabilities.Initialize(world);
                 capabilities.RegisterDiscovered();
+                world.gameObject.AddComponent<LookAdapter>().Initialize(world, camera);
+                world.gameObject.AddComponent<SoundAdapter>().Initialize(world, System.IO.Path.Combine(Application.persistentDataPath, "Sounds"));
+                world.gameObject.AddComponent<BodyAdapter>().Initialize(world);
                 capabilities.TargetResolver = id =>
                 {
                     foreach (var model in experience.Models.Values)
@@ -104,9 +107,14 @@ namespace Game
                     experience.Workshop = world.gameObject.AddComponent<WorkshopTools>();
                     experience.Workshop.Initialize(experience, orbit);
                 }
+                var agentMain = new AgentMainThread();
+                string rootInstructions = Resources.Load<TextAsset>("Agent/Prompts/AgentInstructions").text;
+                string worldConduct = Resources.Load<TextAsset>("Agent/Prompts/WorldInstructions").text;
+                // Inside an entered world the AI gets the world's own tools and a description of the types read from the world.
+                var agentTools = new EnteredWorldTools(world.Session, WorldAgentTools.Create(world, agentMain, clay, engine), WorldTools.Create(world, agentMain));
                 var chat = AgentChatPanel.Create(RuntimeComposition.Current.AgentUi, provider, provider,
-                    Resources.Load<TextAsset>("Agent/Prompts/AgentInstructions").text, WorldAgentTools.Create(world, new AgentMainThread(), clay, engine),
-                    "Connect AI", "", ownedServices: local);
+                    rootInstructions, agentTools, "Connect AI", "", ownedServices: local,
+                    instructionsSource: () => world.Session.EnteredWorld != 0 ? WorldTypeText.Compose(world.Session, worldConduct) : rootInstructions);
                 if (!smoke)
                 {
                     experience.Dock = world.gameObject.AddComponent<WorkshopDock>();

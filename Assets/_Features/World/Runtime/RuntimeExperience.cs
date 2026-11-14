@@ -55,11 +55,28 @@ namespace Game
             models[ClayCreation.RootName] = new Model { Creation = creation, Actor = actor, Host = owner.gameObject };
             InstallFoundation();
         }
+        // Modules whose text ships with the app. They are installed from Resources when missing, never written to a save,
+        // and installed before any saved source, so a loaded experience always runs the current text.
+        private static readonly (string Module, string Resource)[] appOwned =
+        {
+            ("ClayBrushSchema", "Runtime/Schemas/ClaySchema"), ("PoseSchema", "Runtime/Schemas/PoseSchema"),
+            ("EngineSchema", "Runtime/Schemas/EngineSchema"), ("RuntimeLibrary", "Runtime/Catalog/RuntimeLibrary"),
+            ("ActorSchema", "Runtime/Schemas/ActorSchema"), ("MotorLibrary", "Runtime/Behaviors/ActorBehavior")
+        };
+        public static bool IsAppOwned(string module) =>
+            module == Runtime.Capabilities.CapabilityRuntime.SchemaModule || appOwned.Any(a => a.Module == module);
+        // The capability schema is installed only when the experience uses capabilities.
+        private static void InstallAppOwned(FlecsSession session, bool capabilitySchema)
+        {
+            foreach (var (module, resource) in appOwned)
+                if (session.ManagedScriptSource(module) == null)
+                    session.SetManagedScript(module, Resources.Load<TextAsset>(resource).text);
+            if (capabilitySchema)
+                Runtime.Capabilities.CapabilityRuntime.InstallSchema(session);
+        }
         private void InstallFoundation()
         {
-            foreach (var pair in new[] { ("ClayBrushSchema", "Runtime/Schemas/ClaySchema"), ("PoseSchema", "Runtime/Schemas/PoseSchema"), ("EngineSchema", "Runtime/Schemas/EngineSchema"), ("RuntimeLibrary", "Runtime/Catalog/RuntimeLibrary") })
-                if (world.Session.ManagedScriptSource(pair.Item1) == null)
-                    world.Session.SetManagedScript(pair.Item1, Resources.Load<TextAsset>(pair.Item2).text);
+            InstallAppOwned(world.Session, false);
             if (monitored != world.Session)
             {
                 monitored = world.Session;
@@ -440,7 +457,7 @@ namespace Game
         public string Capture()
         {
             var sources = new JArray();
-            foreach (string path in world.Session.ManagedPaths.Where(p => p != "RuntimeFaults").ToArray())
+            foreach (string path in world.Session.ManagedPaths.Where(p => p != "RuntimeFaults" && !IsAppOwned(p)).ToArray())
             {
                 string source = world.Session.ManagedScriptSource(path);
                 if (source != null)
@@ -492,7 +509,9 @@ namespace Game
             }
             return new JObject
             {
-                ["version"] = 1,
+                ["version"] = ExperienceMigrations.Current,
+                ["engine"] = FlecsSession.Version,
+                ["abi"] = FlecsSession.AbiVersion,
                 ["capabilities"] = capabilityRuntime?.CaptureState(),
                 // Bindings, dependency relations and trees, including entities created without a saved source.
                 ["capabilityGraph"] = capabilityRuntime != null ? Runtime.Capabilities.CapabilityGraph.Capture(world.Session, null, null) : null,
@@ -519,11 +538,23 @@ namespace Game
             }
             finally { if (File.Exists(staged)) File.Delete(staged); }
         }
-        private static List<JObject> ValidateSources(JArray sources, JArray states)
+        private static FlecsSession NewProbe(List<JObject> valid, bool capabilitySchema)
+        {
+            var probe = new FlecsSession(0);
+            try
+            {
+                InstallAppOwned(probe, capabilitySchema);
+                foreach (var entry in valid)
+                    probe.SetManagedScript((string)entry["path"], (string)entry["code"]);
+                return probe;
+            }
+            catch { probe.Dispose(); throw; }
+        }
+        private static List<JObject> OrderSources(JArray sources, bool capabilitySchema)
         {
             var remaining = sources.Select(entry => entry as JObject ?? throw new ArgumentException("Invalid source module.")).ToList();
             var ordered = new List<JObject>(remaining.Count);
-            var probe = new FlecsSession(0);
+            var probe = NewProbe(ordered, capabilitySchema);
             try
             {
                 while (remaining.Count != 0)
@@ -542,9 +573,7 @@ namespace Game
                             unresolved = new InvalidOperationException($"Source '{path}' cannot be restored: {error.Message}", error);
                             // A failed evaluation may have left partial entities. Retry only from validated sources.
                             probe.Dispose();
-                            probe = new FlecsSession(0);
-                            foreach (var valid in ordered)
-                                probe.SetManagedScript((string)valid["path"], (string)valid["code"]);
+                            probe = NewProbe(ordered, capabilitySchema);
                             continue;
                         }
                         ordered.Add(entry);
@@ -553,23 +582,76 @@ namespace Game
                     if (remaining.Count == before)
                         throw unresolved;
                 }
-                foreach (var state in states)
-                {
-                    string path = (string)state["entity"];
-                    if (probe.Lookup(path) == 0)
-                        continue;
-                    foreach (var component in ((JObject)state["components"]).Properties())
-                        probe.SetComponentJson(path, component.Name, component.Value.ToString(Formatting.None));
-                }
                 return ordered;
             }
             finally { probe.Dispose(); }
         }
 
-        public void Load(string json)
+        // Session-level restore steps, run on the probe session and on the live one so the probe exercises the live restore.
+        // Live-only parts (adapter state, models and actors) are skipped when live is false.
+        private void RestoreSession(FlecsSession session, JObject data, List<JObject> ordered, JObject graph, JArray states, JArray actors, Runtime.Capabilities.CapabilityRuntime capabilities, bool capabilitySchema, bool live)
         {
+            // The app's own modules first: saved sources use their types.
+            InstallAppOwned(session, capabilitySchema);
+            if (data["clock"] is JObject clock && session.Lookup("Clock") != 0)
+                session.SetComponentJson("Clock", "Clock", clock.ToString(Formatting.None));
+            foreach (var entry in ordered)
+                session.SetManagedScript((string)entry["path"], (string)entry["code"]);
+            if (live)
+                InstallFoundation();
+            if (live)
+                capabilities?.QueueRestore(data["capabilities"] as JObject);
+            if (graph != null)
+            {
+                int module = 0;
+                while (session.ManagedScriptSource("CapabilityGraphRestore" + module) != null)
+                    module++;
+                foreach (string issue in Runtime.Capabilities.CapabilityGraph.Restore(session, live ? capabilities : null, graph, null, "CapabilityGraphRestore" + module))
+                    if (live)
+                        Debug.LogWarning(issue);
+            }
+            // Apply authored geometry before binding controllers; restore behavioral state last.
+            foreach (var state in states)
+            foreach (var component in ((JObject)state["components"]).Properties())
+                if (new[] { "ClayRest", "ClayStyle", "ClayPart" }.Contains(component.Name) && session.Lookup((string)state["entity"]) != 0)
+                    session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
+            if (live)
+                foreach (var entry in actors)
+                {
+                    var model = BindModel((string)entry["entity"]);
+                    model.Creation.ReconcileNow();
+                    model.Actor.Initialize(world, model.Creation);
+                    if (entry["configuration"] is JObject config)
+                        model.Actor.Configure(config.ToString(Formatting.None));
+                    if (entry["position"] is JArray p)
+                        model.Actor.RestoreMotorPose(new Vector3((float)p[0], (float)p[1], (float)p[2]), Quaternion.Euler(0, (float)entry["yaw"], 0));
+                }
+            foreach (var state in states)
+            foreach (var component in ((JObject)state["components"]).Properties())
+                if (session.Lookup((string)state["entity"]) != 0)
+                    session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
+        }
+
+        private string snapshot;
+        // Keeps the current experience in memory for Rewind.
+        public void Snapshot() => snapshot = Capture();
+        public bool Rewind()
+        {
+            if (snapshot == null)
+                return false;
+            Load(snapshot);
+            return true;
+        }
+
+        public void Load(string json) => Load(json, true);
+
+        private void Load(string json, bool rollback)
+        {
+            if (json.Length > 4000000)
+                throw new ArgumentException("Invalid experience document.");
             var data = JObject.Parse(json, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
-            if (json.Length > 4000000 || (int?)data["version"] != 1 || data["sources"] is not JArray sources || sources.Count > 256 ||
+            ExperienceMigrations.Upgrade(data);
+            if (data["sources"] is not JArray sources || sources.Count > 256 ||
                 data["actors"] is not JArray actors || actors.Count > 64 || data["states"] is not JArray states || states.Count > 4096)
                 throw new ArgumentException("Invalid experience document.");
             if (sources.Select(s => (string)s["path"]).Distinct().Count() != sources.Count)
@@ -579,9 +661,17 @@ namespace Game
             if (invalidGraph != null)
                 throw new ArgumentException(invalidGraph);
             // Resolve dependencies and state types in an isolated world before replacing the session.
-            var orderedSources = ValidateSources(sources, states);
+            var capabilities = GetComponent<Runtime.Capabilities.CapabilityRuntime>();
+            // Saved capability modules need the capability schema even when no runtime is attached.
+            bool capabilitySchema = capabilities != null || sources.Any(s => ((string)s["path"] ?? "").StartsWith("Capability", StringComparison.Ordinal));
+            var orderedSources = OrderSources(sources, capabilitySchema);
+            var probe = new FlecsSession(0);
+            try { RestoreSession(probe, data, orderedSources, graph, states, null, capabilities, capabilitySchema, false); }
+            finally { probe.Dispose(); }
+            // Rollback, not staging: the live world is replaced, and a failure afterwards restores the previous capture.
+            string previous = rollback ? Capture() : null;
             loading = true;
-            GetComponent<Runtime.Capabilities.CapabilityRuntime>()?.ResetBindings();
+            capabilities?.ResetBindings();
             try
             {
                 foreach (var pair in models.ToArray())
@@ -596,44 +686,57 @@ namespace Game
                     }
                 }
                 world.Initialize(world.EffectiveRestPort);
-                if (data["clock"] is JObject clock)
-                    world.Session.SetComponentJson("Clock", "Clock", clock.ToString(Formatting.None));
-                foreach (var entry in orderedSources)
-                    world.Session.SetManagedScript((string)entry["path"], (string)entry["code"]);
-                InstallFoundation();
-                var capabilities = GetComponent<Runtime.Capabilities.CapabilityRuntime>();
-                capabilities?.QueueRestore(data["capabilities"] as JObject);
-                if (graph != null)
-                {
-                    int module = 0;
-                    while (world.Session.ManagedScriptSource("CapabilityGraphRestore" + module) != null)
-                        module++;
-                    foreach (string issue in Runtime.Capabilities.CapabilityGraph.Restore(world.Session, capabilities, graph, null, "CapabilityGraphRestore" + module))
-                        Debug.LogWarning(issue);
-                }
-                // Apply authored geometry before binding controllers; restore behavioral state last.
-                foreach (var state in states)
-                foreach (var component in ((JObject)state["components"]).Properties())
-                    if (new[] { "ClayRest", "ClayStyle", "ClayPart" }.Contains(component.Name) && world.Session.Lookup((string)state["entity"]) != 0)
-                        world.Session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
-                foreach (var entry in actors)
-                {
-                    var model = BindModel((string)entry["entity"]);
-                    model.Creation.ReconcileNow();
-                    model.Actor.Initialize(world, model.Creation);
-                    if (entry["configuration"] is JObject config)
-                        model.Actor.Configure(config.ToString(Formatting.None));
-                    if (entry["position"] is JArray p)
-                        model.Actor.RestoreMotorPose(new Vector3((float)p[0], (float)p[1], (float)p[2]), Quaternion.Euler(0, (float)entry["yaw"], 0));
-                }
-                foreach (var state in states)
-                foreach (var component in ((JObject)state["components"]).Properties())
-                    if (world.Session.Lookup((string)state["entity"]) != 0)
-                        world.Session.SetComponentJson((string)state["entity"], component.Name, component.Value.ToString(Formatting.None));
+                RestoreSession(world.Session, data, orderedSources, graph, states, actors, capabilities, capabilitySchema, true);
                 SelectControl((string)data["controlled"]);
                 Error = null;
             }
+            catch (Exception)
+            {
+                if (rollback)
+                {
+                    try { Load(previous, false); }
+                    catch (Exception restore) { Debug.LogError("Experience rollback failed: " + restore.Message); }
+                }
+                throw;
+            }
             finally { loading = false; }
+        }
+    }
+
+    // Upgrades older experience documents one version at a time.
+    public static class ExperienceMigrations
+    {
+        public const int Current = 3;
+        // Step i upgrades version i+1 to i+2.
+        private static readonly Action<JObject>[] steps =
+        {
+            data =>
+            {
+                data["engine"] = FlecsSession.Version;
+                data["abi"] = FlecsSession.AbiVersion;
+            },
+            // Version 3: the app's own schema and library modules are no longer saved; the current text is installed on load.
+            data =>
+            {
+                if (data["sources"] is JArray sources)
+                    foreach (var entry in sources.Where(s => RuntimeExperience.IsAppOwned((string)s["path"])).ToList())
+                        entry.Remove();
+            }
+        };
+        public static void Upgrade(JObject data)
+        {
+            if (data["version"]?.Type != JTokenType.Integer)
+                throw new ArgumentException("The experience document has no version.");
+            int version = (int)data["version"];
+            if (version < 1)
+                throw new ArgumentException("Unknown experience version " + version + ".");
+            if (version > Current)
+                throw new ArgumentException("This experience was saved by a newer version (" + version + "); this build reads up to " + Current + ".");
+            for (; version < Current; version++)
+            {
+                steps[version - 1](data);
+                data["version"] = version + 1;
+            }
         }
     }
 }

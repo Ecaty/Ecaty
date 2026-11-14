@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "shader": "Universal Render Pipeline/Lit",
+  "templates": {
+    "opaque": "Look/LookOpaque",
+    "clear": "Look/LookClear"
+  },
+  "properties": {
+    "baseColor": "_BaseColor",
+    "baseMap": "_BaseMap",
+    "metallic": "_Metallic",
+    "smoothness": "_Smoothness",
+    "emissionColor": "_EmissionColor",
+    "bumpMap": "_BumpMap",
+    "bumpScale": "_BumpScale"
+  },
+  "quantisationSteps": 64,
+  "patternTextureSize": 128,
+  "mapping": {
+    "smoothnessMin": 0.05,
+    "smoothnessMax": 0.95,
+    "clearThreshold": 0.02,
+    "clearAlpha": 0.85,
+    "glowScale": 4,
+    "bumpScale": 1.5
+  },
+  "pattern": {
+    "minFeatures": 3,
+    "maxFeatures": 24,
+    "lineWidth": 0.2,
+    "dotRadius": 0.25,
+    "cellEdge": 0.12,
+    "jitter": 0.2,
+    "cellJitter": 0.5,
+    "edgeSoftness": 0.06,
+    "normalStrength": 1
+  },
+  "style": {
+    "temperatureScale": 60,
+    "saturationScale": 200,
+    "bloomScale": 3,
+    "vignetteAir": 0.35,
+    "vignetteHand": 0.1,
+    "vignetteMax": 0.6,
+    "volumePriority": 50
+  }
+}

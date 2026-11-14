@@ -1,7 +1,8 @@
 // Disposable gallery fixtures and shared native gallery contracts. No furniture presenter.
 using flecs.script.math
 
-struct GalleryEntry(order: i32, width: i32, depth: i32, kind: i32, active: bool)
+// GalleryEntry(order, width, depth, kind, active) is a native component (Native/App); the app module derives GalleryPlacement and
+// the GalleryOnLayer ring pair from it.
 // Width/depth above describe fixture geometry only. Every world uses one gallery cell.
 struct GalleryCell(units: i32)
 struct GalleryView(x: f32, y: f32, z: f32, yaw: f32, pitch: f32, zoom: f32, columns: i32)

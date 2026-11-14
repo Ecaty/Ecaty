@@ -2,7 +2,7 @@
 
 **Input/AI -> Flecs Script/data -> native simulation + Unity/plugin adapters -> measured ECS results.** Simulation needs no AI calls per frame.
 
-1. Open **Ecaty** in Unity 6000.6.7f1. Normal Play opens the world gallery.
+1. Open **Ecaty** in Unity 6000.6.9f1. Normal Play opens the world gallery.
 2. Run **Runtime > Runtime engine > Prepare capability assets** once, then **Start capability workshop**. This is a developer fixture.
 3. In Flecs Explorer query `CapBinding`, `CapState`, `CapType` or `CapAsset`. Change a binding's parameters while playing.
 4. One binding entity owns one capability. Several bindings can share a target; `CapDependsOn` links their updates. One solver owns movement.
