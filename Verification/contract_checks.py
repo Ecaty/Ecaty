@@ -1591,6 +1591,141 @@ def links_contract():
             f"fu_remove_component 1 then 0 for a tag and a pair; {size_note} (fu_component_size(Rule) = {plain}); every member has a brief")
 
 
+# --- Effects (Native/Core/src/Places.cpp): Particles makes a shape an emitter that gets the forces of where it is -----------
+
+EFFECTS_SCENE = ("land { Ghost; Gravity: {0, -9.8, 0}\n"
+                 "  rain { Ghost; Particles: {rate: 50, life: 3}; Position: {0, 10, 0}\n"
+                 "    prefab particle { Scale: {0.1, 0.4, 0.1}; Look: {colour: {h: 210, s: 0.5, l: 0.7}} }\n  }\n"
+                 "  storm { Ghost; Wind: {6, 0, 0}; Particles: {rate: 10}; Position: {20, 10, 0} }\n}\n"
+                 "smoke { Particles: {rate: 5} }\n")
+
+
+@check("effects")
+def effects_contract():
+    def force(world, path):
+        return component(world, path, "EffectiveForce")
+
+    with isolated_world() as world:
+        assert world.load("Effects", EFFECTS_SCENE) is None, world.error()
+        world.tick(2)
+        rain, storm, smoke = (force(world, p) for p in ("land.rain", "land.storm", "smoke"))
+        assert rain and abs(rain["gravity"]["y"] + 9.8) < 1e-5 and rain["wind"]["x"] == 0, f"rain force {rain}"
+        assert storm and storm["wind"]["x"] == 6 and abs(storm["gravity"]["y"] + 9.8) < 1e-5, f"an emitter's own wind: {storm}"
+        assert smoke and smoke["gravity"] == {"x": 0, "y": 0, "z": 0} and smoke["wind"] == {"x": 0, "y": 0, "z": 0}, f"an emitter in the empty world: {smoke}"
+        assert lib.fu_set_component_json(world.ctx, b"land", b"Gravity", b'{"x":0,"y":-2,"z":0}') == 0, world.error()
+        world.tick(1)
+        assert force(world, "land.rain")["gravity"]["y"] == -2, "a gravity edit on the land did not reach the emitter after one tick"
+        assert world.lookup("land.rain.particle"), "the particle prefab child does not exist"
+        assert force(world, "land.rain.particle") is None, "the particle prefab got a force"
+    with isolated_world() as world:
+        assert lib.fu_run_script(world.ctx, WORLD_SCHEMA.encode()) == 0, world.error()
+        entity = world_create(world.ctx, b"sky")
+        assert world_run(world.ctx, entity, EFFECTS_SCENE.encode()) == 0, world.error()
+        world.tick(2)
+        assert force(world, "worlds.sky.land.rain") is not None, "the emitter was not resolved in its world"
+        document = saved(world, entity)
+        assert '"Particles"' in document and '"rate":50' in document, "Particles is not in the document"
+        assert re.search(r'"path":"land\.rain\.particle","prefab":true,"components":\{[^\n]*"Look"', document), "the particle prefab's Look is not saved as a prefab"
+        assert "EffectiveForce" not in document, "the resolved force was saved"
+    with isolated_world() as world:
+        missing = [p for p in ("Particles", "Particles.rate", "Particles.life")
+                   if not world.entity(p).get("components", {}).get("(flecs.doc.Description,flecs.doc.Brief)", {}).get("value")]
+        assert not missing, f"no brief on: {missing}"
+    return ("an emitter gets the gravity of its land, its own wind, nothing in the empty world; a gravity edit reaches it after one tick; "
+            "the particle prefab child exists and has no force; the document holds Particles and the prefab's Look (marked prefab) but not EffectiveForce; "
+            "both members have a brief")
+
+
+# --- Sound (Native/Core/src/Sound.cpp): fu_sound_shape is a pure function; Sound and SoundClip are values in the world ----
+
+sound_shape = bind_extra("fu_sound_shape", c.c_int32, [c.POINTER(c.c_float), c.c_int32, c.c_int32, c.c_float, c.c_float, c.POINTER(c.c_float), c.c_int32])
+
+
+@check("sound")
+def sound_contract():
+    import math
+    rate = 44100
+
+    def floats(values):
+        return (c.c_float * len(values))(*values)
+
+    def shape(values, size, rough, sample_rate=rate):
+        buffer = (c.c_float * len(values))()
+        written = sound_shape(floats(values), len(values), sample_rate, size, rough, buffer, len(values))
+        assert written == len(values), f"fu_sound_shape returned {written} for {len(values)} samples"
+        return list(buffer)
+
+    def pitch(values):
+        lo, hi = len(values) // 4, len(values) * 3 // 4
+        crossings = sum(1 for i in range(lo + 1, hi) if values[i - 1] <= 0 < values[i])
+        return crossings * rate / (hi - lo)
+
+    def roughness(values):
+        return sum(abs(values[i] - values[i - 1]) for i in range(1, len(values)))
+
+    voice = [0.6 * math.sin(2 * math.pi * 440 * i / rate) for i in range(int(0.6 * rate))]
+    seed, hiss = 7, []
+    for _ in range(int(0.4 * rate)):
+        seed = (seed * 1664525 + 1013904223) & 0xFFFFFFFF
+        hiss.append(0.5 * ((seed >> 8) / 8388608.0 - 1.0))
+    same = shape(voice, 0, 0)
+    mean_difference = sum(abs(a - b) for a, b in zip(voice, same)) / len(voice)
+    assert len(same) == len(voice) and mean_difference < 1e-4, f"the centre must return the input: mean difference {mean_difference}"
+    high, low = shape(voice, 1, 0), shape(voice, -1, 0)
+    assert abs(pitch(high) / 440 - 2.83) < 0.3, f"size +1 pitch ratio {pitch(high) / 440:.3f}"
+    assert abs(pitch(low) / 440 - 0.354) < 0.05, f"size -1 pitch ratio {pitch(low) / 440:.3f}"
+    smooth = shape(hiss, 0, -1)
+    ratio = roughness(smooth) / roughness(hiss)
+    assert ratio < 0.4, f"rough -1 left {ratio:.2f} of the sample-to-sample change"
+    peak = max(abs(s) for signal in (high, low, smooth, shape(voice, 0, 1), shape(voice, 1, 1), shape(voice, -1, 1)) for s in signal)
+    assert peak <= 1.0, f"a result exceeds 1: {peak}"
+    assert shape(voice, 0.7, 0.4) == shape(voice, 0.7, 0.4), "the same call gave different output"
+    assert shape(voice, 5, -9) == shape(voice, 1, -1), "values outside -1..1 must act as the ends"
+    small = (c.c_float * 10)()
+    refusals = (sound_shape(floats(voice), len(voice), rate, 0, 0, small, 10),
+                sound_shape(None, 10, rate, 0, 0, small, 10),
+                sound_shape(floats(voice), 10, 100, 0, 0, small, 10))
+    assert refusals == (-1, -1, -1), f"bad arguments (capacity, null input, rate 100) returned {refusals}"
+
+    with isolated_world() as world:
+        def layout(name):
+            buffer = c.create_string_buffer(4096)
+            length = lib.fu_type_layout_into(world.ctx, world.lookup(name), buffer, 4096)
+            assert 0 < length < 4096, f"{name} layout length {length}"
+            info = json.loads(buffer.raw[:length].decode())
+            return info["size"], {f["name"]: f["offset"] for f in info["fields"]}
+        size, offsets = layout("Sound")
+        assert size == 16 and (offsets.get("clip"), offsets.get("size"), offsets.get("rough")) == (0, 8, 12), f"Sound size {size}, offsets {offsets}"
+    with isolated_world() as world:
+        entity = world_create(world.ctx, b"zoo")
+        assert world_run(world.ctx, entity,
+                         b"roar { SoundClip: {from: 0, uri: \"roar-1.wav\", seconds: 1.4} }\n"
+                         b"lion { Position: {0, 0, 0}; Sound: {clip: roar, size: -0.6, rough: 0.7} }\n"
+                         b"bird { Position: {3, 0, 0}; Sound: {clip: roar, size: 0.9, rough: -0.5} }\n"
+                         b"rules { call { (RuleOf, lion); Rule: {when: YouTap, thens: [{verb: Plays, target: This}]} } }") == 0, world.error()
+        assert world_play(world.ctx, entity) == 0, world.error()
+        world.tick(1)
+        fact = (Event * 1)(Event(world.lookup("Tapped"), entity, 0, 0, 0, 0, 0))
+        assert emit_events(world.ctx, fact, 1) == 1, "Tapped was not delivered"
+        world.tick(1)
+        played = component(world, "worlds.zoo.lion", "Played")
+        assert played and played["count"] == 1, f"the lion was not told it played: {played}"
+        assert component(world, "worlds.zoo.bird", "Played") is None, "Played was raised on an element that was not played"
+        stopped = world_stop(world.ctx, entity)
+        document = saved(world, stopped)
+        assert '"uri":"roar-1.wav"' in document and '"size":-0.6' in document, "the document lacks the clip's uri or the values"
+        assert "Played" not in document, "Played was saved"
+    with isolated_world() as world:
+        members = {"Sound": ["clip", "size", "rough"], "SoundClip": ["from", "uri", "seconds"]}
+        missing = [p for t, names in members.items() for p in [t] + [f"{t}.{n}" for n in names]
+                   if not world.entity(p).get("components", {}).get("(flecs.doc.Description,flecs.doc.Brief)", {}).get("value")]
+        assert not missing, f"no brief on: {missing}"
+    return (f"440 Hz tone: the centre returns the input, the length is kept, size +1 x{pitch(high) / 440:.2f} and -1 x{pitch(low) / 440:.2f} the pitch, "
+            f"rough -1 leaves {ratio:.2f} of the change in noise, never above 1, repeatable, ends act for values outside the range, bad arguments return -1; "
+            "Sound is 16 bytes (clip 0, size 8, rough 12); a Plays rule raises Played on that element only; the document holds the uri and values, not Played; "
+            "every member has a brief")
+
+
 # --- Report --------------------------------------------------------------------------------------------------------
 
 passed = all(row["ok"] for row in results)

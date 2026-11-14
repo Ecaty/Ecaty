@@ -16,6 +16,21 @@ The canonical short task list. Keep it current; history lives in docs/history/BA
 11. **Phase 3.5 leftovers, waiting for Phase 4.** Workshop props leave the `RuntimeEdits` modules (4.4); the `models` registry and the component whitelist go after 4.2 and 4.4; the experience save becomes a world document under `worlds.<id>` (version 3 to 4) with the workshop replacement; edit undo history separate from the Play snapshot (Phase 5); rewind in place instead of a reload (Phase 6).
 12. **Phase 3 not yet covered by checks:** a built player, Android on a device, and the AI tools driven by a real model.
 
+13. **Engine plan Phase 4, open items (steps 4.1 to 4.6; details in docs/ENGINE-PLAN.md).** Member names are provisional until the concept notes are final.
+    - 4.1 Look: our own shader with the user's eye (URP Lit is the stand-in; pattern constants and glass are first guesses).
+    - 4.1 Look: `hand`, `chunk` and `ink` of `WorldStyle` are stored but not drawn (need a full-screen pass).
+    - 4.1 Look: shader variants for patterned and glass looks can be stripped from a player build until a variant collection lists them.
+    - 4.1 Look: optional Amplify recipes; retire `CapMaterial` with a migration of content and saves to `Look`.
+    - 4.2 Motion: `Tween` (one-shot, for reactions), `MotionPath` (Act), a per-part delay and the Wander value.
+    - 4.2 Motion: the walking actor as a Motion capability with a typed rig (it still runs through `DioramaRuntime`).
+    - 4.3 Places: a size of its own for a place (the concept's `Shape`), because `Scale` also scales what is inside it.
+    - 4.3 Places: line and point forces; collider shapes other than box, sphere and capsule.
+    - 4.3 Places: retire `CapBody`, `CapWater` and `CapBuoyancy`.
+    - 4.4 Links: the moving verbs (goes to, follows, runs from) only set a pair; they need a steering step. Triggers other than the seven that run are not run yet.
+    - 4.4 Links: sensors and trees for waiting chains (the workshop props leave `RuntimeEdits` modules: item 11).
+    - 4.5 Effects: the plan's VFX adapter is not built (a ParticleSystem per emitter is used); particles do not collide with dynamic bodies.
+    - 4.6 Sound: `SoundClip.from` is not read (samples come from an in-memory registry or 16-bit WAV files by `uri`); no instrument bank or AI-made clips yet.
+
 Retained ideas, not immediate implementation:
 
 - Preview identity includes distinctive environment, weather and behavior as well as objects; normalize previews to one cell while keeping world styles independent.

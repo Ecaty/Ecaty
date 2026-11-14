@@ -19,7 +19,7 @@ Assets/
 Packages/
   com.runtime.flecs/          # native session/view bridge, separate runtime/editor asmdefs
   com.runtime.ai-agent/       # reusable agent/UI/providers, separate runtime/editor asmdefs
-  com.runtime.capabilities/   # reusable lifecycle/schema/Unity adapters, runtime asmdef; Runtime/Look/ is the look adapter (Look, WorldStyle)
+  com.runtime.capabilities/   # reusable lifecycle/schema/Unity adapters, runtime asmdef; Runtime/Look/ is the look adapter (Look, WorldStyle), Runtime/Bodies/ the physics adapter for places and bodies, Runtime/Effects/ the particle adapter, Runtime/Sound/ the sound adapter
 Native/Core, Native/App    # unchanged native ownership and stable C ABI
   Core/src/Sources.cpp     # source manager: kind texts applied in place, undo, structured errors
   Core/src/Worlds.cpp      # worlds (`worlds.<id>`), enter/leave, world documents, snapshot/rewind
@@ -27,7 +27,8 @@ Native/Core, Native/App    # unchanged native ownership and stable C ABI
   Core/src/Motion.cpp      # motion loops: MotionLoop, SecondPose, MotionOffset (added to views by the view stream)
   Core/src/Links.cpp       # links, rules and Play: Rule, Count, RuleOf; Touched/Tapped events; fu_world_play and fu_world_stop
   Core/src/Places.cpp      # places and bodies: Free, Ghost, Gravity, Float, Wind, Drag; writes EffectiveForce; PlaceEntered/PlaceLeft re-parent
-  Core/tests/              # C++ tests: core_tests.cpp, source_tests.cpp, world_tests.cpp, look_tests.cpp, motion_tests.cpp, places_tests.cpp, links_tests.cpp
+  Core/src/Sound.cpp       # sound: Sound, SoundClip, Played; fu_sound_shape (a pure function over samples)
+  Core/tests/              # C++ tests: core_tests.cpp, source_tests.cpp, world_tests.cpp, look_tests.cpp, motion_tests.cpp, places_tests.cpp, links_tests.cpp, sound_tests.cpp
   Core/vendor/{flecs,behaviortree,clipper2,tinysoundfont}  # submodules of Ecaty forks (pin = commit)
 Tests/, Tools/, docs/      # runners/manifests, developer utilities and handoff
 ```

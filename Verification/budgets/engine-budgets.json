@@ -182,5 +182,10 @@
     "description": "fu_world_load_json of that document, replacing the loaded world.",
     "kind": "ratio",
     "guard": 4600.0
+  },
+  "sound_shape_1s": {
+    "description": "One fu_sound_shape call on one second of audio at 44100 Hz (size 0.7, rough 0.5). Runs on a worker thread in Unity, so the guard only catches a gross regression (about 2x the measured ratio).",
+    "kind": "ratio",
+    "guard": 1150.0
   }
 }

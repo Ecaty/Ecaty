@@ -13,6 +13,7 @@ import contextlib
 import ctypes as c
 import itertools
 import json
+import math
 import os
 import pathlib
 import subprocess
@@ -322,6 +323,21 @@ def links_timers_100():
         return best_calls(lambda: tick(w, 0.016), 600)
 
 
+def sound_shape_1s():
+    """One fu_sound_shape call on one second of audio at 44100 Hz (size 0.7, rough 0.5). It runs on a worker thread in Unity."""
+    shape = bind("fu_sound_shape", c.c_int32, P, c.c_int32, c.c_int32, c.c_float, c.c_float, P, c.c_int32)
+    count = 44100
+    samples = (c.c_float * count)(*[0.6 * math.sin(2 * math.pi * 440 * i / count) for i in range(count)])
+    output = (c.c_float * count)()
+
+    def call():
+        if shape(samples, count, count, 0.7, 0.5, output, count) != count:
+            raise RuntimeError("fu_sound_shape failed")
+    value = best_calls(call, 20)
+    print(f"sound_shape_1s absolute: {value / 1000:.2f} ms", file=sys.stderr)
+    return value
+
+
 # ---- view snapshot and presentation -------------------------------------
 
 def read_views_metric(n):
@@ -617,6 +633,7 @@ METRICS = [
     ("tick_links_playing_idle", tick_links_playing_idle),
     ("links_touch_event", links_touch_event),
     ("links_timers_100", links_timers_100),
+    ("sound_shape_1s", sound_shape_1s),
     ("read_views_1000", lambda: read_views_metric(1000)),
     ("view_changes_10000_static", view_changes_10000_static),
     ("read_views_10000", lambda: read_views_metric(10000)),

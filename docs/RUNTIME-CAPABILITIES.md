@@ -98,6 +98,14 @@ Motion loops (`MotionLoop`, `SecondPose`) need no adapter: the native module wri
 
 Windows x64 Editor/development player is the current target; Android/iOS/XR need native builds and device testing. UniStorm/Crest enforce one global renderer. VFX shaders compile at build time.
 
+## Engine adapters (bodies, effects, sound)
+
+Three adapters in `Packages/com.runtime.capabilities/Runtime/` present native engine data. Each is created per `FlecsWorld`, reads through change-reporting queries, and acts only when a query reports a change (or, for sound, a render is waiting). A native library without the matching module is skipped.
+
+- **Bodies and places** (`Bodies/`, `BodyPresenter`, stepped by `BodyAdapter` in FixedUpdate). Reads `Pinned`, `Ghost`, `Free`, the forces and `EffectiveForce`. Creates static colliders for pinned shapes, trigger colliders for ghosts and a Rigidbody per free body, and applies gravity, wind, lift in a fluid and drag. Reports poses back to Flecs (the body's view stays under the world root while simulated) and crossings as `PlaceEntered` and `PlaceLeft` events, which the native module turns into re-parenting.
+- **Effects** (`Effects/EffectPresenter`). Reads `Particles`, the child prefab `particle` (its `Look` and `Scale`) and the emitter's `EffectiveForce`. Creates one ParticleSystem per emitter on a child of its view, never one object per particle, with one shared material from the look cache. Particles end at pinned shapes and at the surface of the fluid the emitter is in. Reports nothing back.
+- **Sound** (`Sound/`, `SoundPresenter` run by `SoundAdapter` after the views sync). Reads `Sound`, `SoundClip` and `Played`. Creates an AudioSource on the element's view. `SoundSources` finds the samples by `uri` (an in-memory registry, then 16-bit WAV files in one folder), `SoundRenders` shapes them with `fu_sound_shape` on a worker thread and caches the result by (clip, size, rough) quantised to 1/32, and the AudioClip is made on the main thread. The AudioSource plays when `Played.count` goes up. Reports nothing back; a missing clip is skipped with a reason.
+
 ## Code map
 
 - `Native/Core/src`: `Capabilities.cpp` (CapBinding/CapState, dependency readiness and dirty marks), `BehaviorTrees.cpp` (NativeTree), `Geometry.cpp` (footprints, outline ABI), `Audio.cpp` (synthesizer). Their systems live in the modules `core.cap`, `core.tree` and `core.geometry`; the phase map is in `Modules.hpp`.
