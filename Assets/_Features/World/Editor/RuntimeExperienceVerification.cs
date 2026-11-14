@@ -268,47 +268,26 @@ namespace Game.Editor
                 Require(experience.Rewind() && world.Session.ManagedScriptSource("RuntimeBehaviors.beta") != null, "Rewind did not return to the snapshot.");
                 await Frames(3);
                 checks.Add("Snapshot and rewind return the experience to its kept state");
-                // Agent tools inside an entered world.
-                var kindArgs = new Func<string, string, Task<string>>(async (name, code) =>
-                    await tools.Single(t => t.Name == "define_kind").ExecuteAsync(new JObject { ["name"] = name, ["code"] = code }.ToString(Formatting.None), CancellationToken.None));
+                // Root experience tools outside a world; inside a world the AI gets the world tools (AgentToolsVerification).
                 var toolSession = world.Session;
                 int RuntimeEdits() => toolSession.ManagedPaths.Count(x => x.StartsWith("RuntimeEdits.", StringComparison.Ordinal));
                 ulong lab = toolSession.CreateWorld("tool_check");
                 try
                 {
                     toolSession.EnterWorld(lab);
-                    int editsBefore = RuntimeEdits();
-                    var applied = JObject.Parse(await Call("apply_script", "code", "inside_one { Position: {1,2,3} }"));
-                    Require(applied["error"] == null && toolSession.Lookup("worlds.tool_check.inside_one") != 0, "apply_script did not create the entity inside the world.");
-                    Require(RuntimeEdits() == editsBefore, "apply_script inside a world wrote a RuntimeEdits module.");
-                    var scoped = JObject.Parse(await Call("query", "expression", "Position"));
-                    var names = scoped["results"].Select(r => (string)r["name"]).ToArray();
-                    Require(names.Length == 1 && names[0] == "inside_one", "query inside a world returned entities from outside it.");
-                    Require(JObject.Parse(await Call("inspect_entity", "path", "inside_one"))["components"]?["Position"] != null, "inspect_entity did not resolve a path inside the world.");
-                    Require(JObject.Parse(await Call("inspect_entity", "path", "worlds.other_world.thing"))["error"] != null, "inspect_entity accepted a path outside the world.");
-                    var bad = JObject.Parse(await Call("apply_script", "code", "fine_one {}\nbroken { Position: {1, ) }"));
-                    Require(bad["error"] != null && (int)bad["line"] > 0, "A script error inside a world did not report its line.");
-                    string kindOne = "prefab Hut {\n  Position: {0,0,0}\n  Scale: {1,1,1}\n  Color: {1,0,0,1}\n  Primitive: {0}\n}";
-                    string kindTwo = kindOne.Replace("{1,0,0,1}", "{0,1,0,1}");
-                    Require(JObject.Parse(await kindArgs("Hut", kindOne))["error"] == null, "define_kind refused a valid kind.");
-                    Require(JObject.Parse(await Call("apply_script", "code", "hut_one : kinds.Hut {}"))["error"] == null && toolSession.Lookup("worlds.tool_check.hut_one") != 0, "A spawn of the defined kind failed.");
-                    Require(JObject.Parse(await kindArgs("Hut", kindTwo))["error"] == null, "define_kind refused an edit.");
-                    Require(((string)JObject.Parse(await Call("undo_kind", "name", "Hut"))["text"]).Trim() == kindOne.Trim(), "undo_kind did not return the previous text.");
-                    Require(JObject.Parse(await kindArgs("Hut", "prefab Hut { ) }"))["error"] != null, "define_kind accepted an invalid kind.");
                     Require(JObject.Parse(await Call("save_experience"))["error"] != null, "An experience tool ran inside an entered world.");
                     toolSession.EnterWorld(0);
                     Require(JObject.Parse(await Call("query", "expression", "Position"))["results"].Count() > 1, "query outside a world is scoped.");
                     int outsideBefore = RuntimeEdits();
                     await Call("apply_script", "code", "outside_one { Position: {0,0,0} }");
                     Require(RuntimeEdits() == outsideBefore + 1 && toolSession.Lookup("outside_one") != 0, "apply_script outside a world changed its behavior.");
-                    Require(JObject.Parse(await kindArgs("Hut", kindOne))["error"] != null, "define_kind worked with no world entered.");
                 }
                 finally
                 {
                     toolSession.EnterWorld(0);
                     toolSession.DeleteWorld(lab);
                 }
-                checks.Add("Agent tools scope to an entered world (query, inspect, script, kinds, undo, errors with line) and behave as before outside one");
+                checks.Add("Experience tools refuse inside an entered world; query and apply_script behave as before outside one");
                 Require(errors.Count == 0, "Runtime exceptions: " + string.Join("; ", errors.Take(3)));
                 report["passed"] = true;
             }

@@ -190,8 +190,10 @@ namespace Game.Editor
                     Require(Names(call("query", "{\"expression\":\"Position, Primitive\"}")["result"]).Count == instancesBefore, "A refused script changed the instances");
 
                     // A rule without an owner is accepted; the alert follows within simulated seconds.
+                    int editsBefore = session.ManagedPaths.Count(x => x.StartsWith("RuntimeEdits.", StringComparison.Ordinal));
                     var orphan = call("apply_script", new { code = "rules { orphan { Rule: {when: AtStart, thens: [{verb: Grows}]} } }" });
                     Require((bool)orphan["ok"], "The ownerless rule was refused: " + orphan);
+                    Require(session.ManagedPaths.Count(x => x.StartsWith("RuntimeEdits.", StringComparison.Ordinal)) == editsBefore, "apply_script inside a world wrote a RuntimeEdits module");
                     for (int i = 0; i < 25; i++)
                         session.Tick(0.1f);
                     var raised = call("alerts", "{}");
@@ -252,6 +254,33 @@ namespace Game.Editor
                     Require(Names(call("query", "{\"expression\":\"Position, Primitive\"}")["result"]).Contains(secondName), "Play and stop lost an instance");
                     await Task.CompletedTask;
                 });
+                // Kinds of a world, and a second world that must stay out of sight.
+                ulong other = session.CreateWorld("other");
+                Require(session.TryRunWorldScript(other, "stranger { Position: {9, 9, 9} }", out string otherError, out _, out _), "The second world could not be filled: " + otherError);
+                Require(session.EnteredWorld != 0, "Making a second world left the first"); // the world has a new entity after each undo: its first id is stale
+                Play(offered, async call =>
+                {
+                    string hutOne = "prefab Hut {\n  Position: {0,0,0}\n  Scale: {1,1,1}\n  Color: {1,0,0,1}\n  Primitive: {0}\n}";
+                    string hutTwo = hutOne.Replace("{1,0,0,1}", "{0,1,0,1}");
+                    Require((bool)call("define_kind", new { name = "Hut", code = hutOne })["ok"], "define_kind refused a valid kind");
+                    var hut = call("spawn", new { kind = "Hut", name = "hut_one" });
+                    Require((bool)hut["ok"] && (string)hut["entity"] == "hut_one", "A spawn of the defined kind failed: " + hut);
+                    Require((bool)call("define_kind", new { name = "Hut", code = hutTwo })["ok"], "define_kind refused an edit");
+                    var restored = call("undo_kind", new { name = "Hut" });
+                    Require((bool)restored["ok"] && ((string)restored["text"]).Trim() == hutOne.Trim(), "undo_kind did not return the previous text: " + restored);
+                    var invalid = call("define_kind", new { name = "Hut", code = "prefab Hut { ) }" });
+                    Require(!(bool)invalid["ok"] && invalid["error"] != null, "define_kind accepted an invalid kind: " + invalid);
+                    Require(!(bool)call("define_kind", new { name = "bad name", code = "" })["ok"], "define_kind accepted a name that is not simple");
+
+                    // A query sees this world only: the other world has a Position too.
+                    var scoped = Names(call("query", "{\"expression\":\"Position\"}")["result"]);
+                    Require(scoped.Contains("hut_one") && scoped.Contains("a") && !scoped.Contains("stranger"), "query returned an entity of another world: " + string.Join(", ", scoped));
+                    Require(!(bool)call("inspect", new { entity = "worlds.other.stranger" })["ok"], "inspect reached the other world");
+                    await Task.CompletedTask;
+                });
+                session.EnterWorld(0);
+                session.DeleteWorld(other);
+                checks.Add("kinds: define, spawn of the kind, edit, undo_kind returns the previous text, invalid kind and name refused; a query inside a world does not return entities of another world; apply_script inside a world writes no RuntimeEdits module");
                 checks.Add("scripted chat on a real session: define_kind, spawn with values, add_rule, query; refused script with line and unchanged world; ownerless rule applied, alert after two simulated seconds, undo clears it and keeps the rest; remove then undo; a set that does not fit changes nothing and says why (type, member, range), a set of one member keeps the others, a refused set leaves no checkpoint; paths outside the world refused; play and stop");
                 report["passed"] = true;
             }
