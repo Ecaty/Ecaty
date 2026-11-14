@@ -1,6 +1,6 @@
 # Engine plan: review and target architecture
 
-Status: **decisions made (user, 2026-11-13: the recommended option for all ten, see section 5). Phases 0, 1 and 2 are implemented, tested and merged to `main`. Phase 3 is implemented on this branch (see its status block in section 4): complete on the engine side, in use for gallery worlds and the AI tools, with the open parts of 3.2 and 3.5 listed there. Phase 4 has a first slice of every step, 4.1 to 4.6 (see its status block). Phase 5 is done for entered worlds and step 6.3 has a first slice. A review of the whole branch, its fixes, the move to Unity 6000.6.9f1 and a desktop profile are recorded at the end of section 4.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
+Status: **decisions 1, 2, 3, 7 and 9 are final (user, 2026-11-14); 4, 4b, 5, 6, 8 and 10 are postponed (see section 5). Phases 0, 1 and 2 are implemented, tested and merged to `main`. Phase 3 is implemented on this branch (see its status block in section 4): complete on the engine side, in use for gallery worlds and the AI tools, with the open parts of 3.2 and 3.5 listed there. Phase 4 has a first slice of every step, 4.1 to 4.6 (see its status block). Phase 5 is done for entered worlds and step 6.3 has a first slice. A review of the whole branch, its fixes, the move to Unity 6000.6.9f1 and a desktop profile are recorded at the end of section 4.** Date: 2026-11-13. Branch `feature/engine-architecture-review`, reviewed at parent `e6be5e5` (Native/Core `d30176f`, Native/App `44d491b`, flecs bridge `c92db08`, ai-agent `aa9dc8a`).
 
 Readable page with pickable decisions: https://claude.ai/artifact/3mxTpAwGuAYdgmeBEE9jrw (private to the owner until shared).
 
@@ -538,7 +538,7 @@ Static elements add nothing to the bridge and about 3 ms of rendering per 1,000 
 
 ## 5. Decisions for the user
 
-Recommended option first in each. **Decided by the user on 2026-11-13: the recommended option in all ten (marked).**
+Recommended option first in each. **Final (user, 2026-11-14): decisions 1, 2, 3, 7 and 9, option A in each (marked).** Decisions 4, 4b, 5, 6, 8 and 10 are postponed, because the game direction is not ready or later steps come first; they are unmarked again. On 2026-11-13 the user had picked the recommended option in all ten, and work on the branch follows those picks: what was built on a postponed decision (the look shaders and styles, the release build settings, the order of work so far, the quaternion in the transform contract, the world document for saves) stays as it is and is provisional until that decision is taken.
 
 Changed by the user on 2026-11-13: do not ask Sander Mertens. We build our own re-attach step (decision 2, option A); if a later Flecs version updates a script's entities in place, we move to that version and remove ours.
 
@@ -557,22 +557,22 @@ Changed by the user on 2026-11-13: do not ask Sander Mertens. We build our own r
 - [ ] B. Keep them as Script schemas. Easier to change today; keeps JSON-only reads and frozen save schemas.
 
 **4. Look shaders**
-- [x] **A. Our own small set authored in Amplify Shader Editor, one per world style with the same inputs; the Shader Pack as optional named recipes** (recommended).
+- [ ] **A. Our own small set authored in Amplify Shader Editor, one per world style with the same inputs; the Shader Pack as optional named recipes** (recommended).
 - [ ] B. Pack shaders as the base, with a mapping per shader. More looks sooner; values do not carry across styles and the pack becomes a hard dependency.
 - [ ] C. A generic property bag on any catalogued shader. Most flexible; nothing stable for tools or the AI.
 
 **4b. Which styles first?**
-- [x] **Realistic and Toon** (recommended)
+- [ ] **Realistic and Toon** (recommended)
 - [ ] Realistic, Toon and Clay
 - [ ] All six from the concept
 
 **5. Release native build**
-- [x] **A. Strip REST and HTTP from release; keep soft asserts until their cost is measured** (recommended; AI-written Script should not be able to crash the player).
+- [ ] **A. Strip REST and HTTP from release; keep soft asserts until their cost is measured** (recommended; AI-written Script should not be able to crash the player).
 - [ ] B. Strip REST, HTTP and asserts.
 - [ ] C. Leave as is.
 
 **6. Order of work**
-- [x] **A. Safety net and native foundation, then Look as the first full slice, then sources, kinds and saves, then the other runtimes** (recommended).
+- [ ] **A. Safety net and native foundation, then Look as the first full slice, then sources, kinds and saves, then the other runtimes** (recommended).
 - [ ] B. Foundation through saves first (Phases 0–3), then all runtimes. Cleanest; nothing visible for longer.
 - [ ] C. Build the concept features on today's architecture and refactor later. Fastest to a demo; most of it is rewritten.
 
@@ -581,7 +581,7 @@ Changed by the user on 2026-11-13: do not ask Sander Mertens. We build our own r
 - [ ] B. Python only.
 
 **8. Rotation in the transform contract (ABI 4)**
-- [x] **A. Quaternion in the contract, Euler accepted in Script as authoring input** (recommended; 3D turning for every element is in the handles concept).
+- [ ] **A. Quaternion in the contract, Euler accepted in Script as authoring input** (recommended; 3D turning for every element is in the handles concept).
 - [ ] B. Keep Euler degrees.
 
 **9. Developer traces**
@@ -589,7 +589,7 @@ Changed by the user on 2026-11-13: do not ask Sander Mertens. We build our own r
 - [ ] B. Keep them on by default in the Editor and change the AGENTS.md wording.
 
 **10. Saves**
-- [x] **A. One world document for gallery worlds and experiences, with migration from both current formats** (recommended).
+- [ ] **A. One world document for gallery worlds and experiences, with migration from both current formats** (recommended).
 - [ ] B. Keep two formats and add migration to each.
 
 ## Not verified in this review
