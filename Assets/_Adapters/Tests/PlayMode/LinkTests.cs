@@ -15,11 +15,11 @@ namespace Game.Tests
     //
     // World sizes (everything is a child of the land, which has gravity only and no scale):
     //   ground  (0, -0.5, 0)    40 x 1 x 40, pinned, top at y = 0
-    //   fox     (-4, 0.5, 0)    unit sphere, free, rests on the ground
+    //   fox     (-4, 0.55, 0)   unit sphere, free, starts 0.05 above the ground and settles on it (a real touch of the ground)
     //   coin1   (-1, 0.25, 0)   sphere of diameter 0.5, pinned, on the ground
     //   coin2   (2, 0.25, 0)    same
-    //   spook   (20, 0.5, 0)    unit sphere, free, far from the path          (coin game)
-    //   spook   (1.05, 0.5, 0)  unit sphere, density 100, free                (bump game: the fox at (0, 0.5, 0))
+    //   spook   (20, 0.55, 0)   unit sphere, free, far from the path          (coin game)
+    //   spook   (1.05, 0.55, 0)  unit sphere, density 100, free                (bump game: the fox at (0, 0.55, 0))
     //   wall    (2.1, 1, 0)     1 x 2 x 2, pinned, behind the spook so that it cannot be pushed away (bump game)
     public sealed class LinkTests
     {
@@ -44,14 +44,14 @@ namespace Game.Tests
             + "  ground { Pinned; Position: {0, -0.5, 0}; Scale: {40, 1, 40}; Primitive: {0} }\n";
         const string CoinGame =
             Land
-            + "  fox : kinds.Fox { Position: {-4, 0.5, 0} }\n"
+            + "  fox : kinds.Fox { Position: {-4, 0.55, 0} }\n"
             + "  coin1 : kinds.Coin { Position: {-1, 0.25, 0} }\n"
             + "  coin2 : kinds.Coin { Position: {2, 0.25, 0} }\n"
-            + "  spook : kinds.Spook { Position: {20, 0.5, 0} }\n}\n" + Rules;
+            + "  spook : kinds.Spook { Position: {20, 0.55, 0} }\n}\n" + Rules;
         const string BumpGame =
             Land
-            + "  fox : kinds.Fox { Position: {0, 0.5, 0} }\n"
-            + "  spook : kinds.Heavy { Position: {1.05, 0.5, 0} }\n"
+            + "  fox : kinds.Fox { Position: {0, 0.55, 0} }\n"
+            + "  spook : kinds.Heavy { Position: {1.05, 0.55, 0} }\n"
             + "  wall { Pinned; Position: {2.1, 1, 0}; Scale: {1, 2, 2}; Primitive: {0} }\n}\n" + Rules;
 
         sealed class Scene : IDisposable
@@ -104,8 +104,12 @@ namespace Game.Tests
                     var body = Body(name);
                     var shape = body.GetComponent<Collider>();
                     foreach (var other in pinned)
-                        Assert.That(Physics.ComputePenetration(shape, body.position, body.rotation, other, other.transform.position, other.transform.rotation, out _, out _), Is.False,
-                            name + " starts inside " + other.name + ": body " + shape.bounds + ", shape " + other.bounds + ". " + Info);
+                    {
+                        // A touching contact is not an overlap: only a penetration deeper than 0.01 counts.
+                        bool inside = Physics.ComputePenetration(shape, body.position, body.rotation, other, other.transform.position, other.transform.rotation, out _, out float depth);
+                        Assert.That(inside && depth >= 0.01f, Is.False,
+                            name + " starts inside " + other.name + " by " + depth + " (tolerance 0.01): body " + shape.bounds + ", shape " + other.bounds + ". " + Info);
+                    }
                 }
                 foreach (var rigid in World.GetComponentsInChildren<Rigidbody>(true))
                     Assert.That(rigid.GetComponentsInChildren<Collider>(true).Length, Is.EqualTo(1), rigid.name + " must have exactly one collider. " + Info);
@@ -202,6 +206,9 @@ namespace Game.Tests
             scene.Session.PlayWorld(scene.Game);
             scene.Advance(0.1f);
             Assert.That(scene.Has("Playing"), "the world plays. " + scene.Info);
+            // The fox settled on the ground: a real touch of the pair (fox, ground), and no rule is about the ground.
+            Assert.That(scene.Count("Star"), Is.EqualTo(0f), "touching the ground does not count a star. " + scene.Info);
+            Assert.That(scene.Count("Heart"), Is.EqualTo(3f), "and costs no heart. " + scene.Info);
             scene.Advance(3f, scene.Drive("fox", 3f), () => scene.Count("Star") >= 1f);
             Assert.That(scene.Count("Star"), Is.EqualTo(1f), "the first coin counts a star. " + scene.Info);
             scene.Advance(0.1f);
@@ -265,7 +272,7 @@ namespace Game.Tests
             Assert.That(scene.Count("Heart"), Is.EqualTo(3f), "Heart is 3 again. " + scene.Info);
             Assert.That(Vector3.Distance(scene.View("coin1").position, coin1), Is.LessThan(0.01f), "coin1 is back where it was. " + scene.Info);
             Assert.That(Vector3.Distance(scene.View("coin2").position, coin2), Is.LessThan(0.01f), "coin2 is back where it was. " + scene.Info);
-            Assert.That(Vector3.Distance(scene.Body("fox").position, fox), Is.LessThan(0.05f), "the fox is back at its start, with a body. " + scene.Info);
+            Assert.That(Vector3.Distance(scene.Body("fox").position, fox), Is.LessThan(0.1f), "the fox is back at its start (within 0.1: it falls 0.05 onto the ground), with a body. " + scene.Info);
             Assert.That(scene.Total<Rigidbody>(), Is.EqualTo(bodies), "no Rigidbody was left or lost. " + scene.Info);
             Assert.That(scene.Total<Collider>(), Is.EqualTo(colliders), "no collider was left or lost. " + scene.Info);
             Assert.That(scene.Total<PlaceVolume>(), Is.EqualTo(volumes), "no trigger component was left or lost. " + scene.Info);
