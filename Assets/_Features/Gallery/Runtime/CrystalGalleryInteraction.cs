@@ -861,9 +861,14 @@ namespace Game
                 }
             if (data["portal"] is JObject portal)
             {
-                Write("GalleryTreeSettings", "GalleryPortal", (JObject)portal["world"]);
-                Write("GalleryEntryPortal", "GalleryView", (JObject)portal["gallery"]);
-                Write("GalleryPortalWorld", "GalleryView", (JObject)portal["local"]);
+                // An older file holds the portal's world as plain text; today it is the component's object. Both are read:
+                // a cast that fails here ends the restore, and a failed restore must never cost the saved worlds.
+                Write("GalleryTreeSettings", "GalleryPortal", portal["world"] as JObject
+                    ?? new JObject { ["world"] = portal["world"]?.Type == JTokenType.String ? (string)portal["world"] : "" });
+                if (portal["gallery"] is JObject portalGallery)
+                    Write("GalleryEntryPortal", "GalleryView", portalGallery);
+                if (portal["local"] is JObject portalLocal)
+                    Write("GalleryPortalWorld", "GalleryView", portalLocal);
             }
             foreach (var savedItem in items)
                 if (experiences.Has(savedItem.Entry.Id))
@@ -926,6 +931,18 @@ namespace Game
             }
             catch (Exception e) { Debug.LogWarning("Version 1 arrangement could not be copied: " + e.Message); }
         }
+        // A file that could not be resumed is copied aside before this session saves over it, so nothing saved is lost.
+        static void KeepUnread(string path)
+        {
+            try
+            {
+                string copy = Path.Combine(Path.GetDirectoryName(path), "tree-arrangement.unread-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + ".json");
+                if (!File.Exists(copy))
+                    File.Copy(path, copy);
+                Debug.LogWarning("The arrangement that could not be resumed is kept as " + Path.GetFileName(copy));
+            }
+            catch (Exception e) { Debug.LogWarning("The arrangement that could not be resumed could not be copied: " + e.Message); }
+        }
         static string PreviousArrangementPath => Path.Combine(Application.persistentDataPath, "GalleryPrototype", "arrangement.json");
         void LoadArrangement()
         {
@@ -935,7 +952,11 @@ namespace Game
                 {
                     RestoreArrangement(File.ReadAllText(SavePath), true);
                 }
-                catch (Exception e) { Debug.LogWarning("Layered gallery could not resume: " + e.Message); }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Layered gallery could not resume: " + e.Message);
+                    KeepUnread(SavePath);
+                }
                 return;
             }
             // Import the eight existing worlds without rewriting the earlier flat-gallery save.

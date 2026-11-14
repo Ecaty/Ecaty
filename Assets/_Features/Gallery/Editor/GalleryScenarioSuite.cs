@@ -308,6 +308,14 @@ namespace Game.Editor
                         values[type] = Read(path, type);
                     return values;
                 }
+                // An older shape of the same file: the portal's world as plain text. A real save has it; the restore must not stop there.
+                var olderShape = (JObject)golden.DeepClone();
+                olderShape["portal"]["world"] = (string)golden["portal"]["world"]?["world"] ?? "";
+                g.RestoreArrangement(olderShape.ToString(Newtonsoft.Json.Formatting.None));
+                await Task.Delay(150);
+                Check(g.Items.Count == ((JArray)golden["entries"]).Count && goldenWorlds.All(w => g.Experiences.Has((string)w["id"])),
+                    "A version 1 arrangement whose portal names its world as plain text restores every entry and saved world");
+                g.ReturnToGallery();
                 g.RestoreArrangement(goldenText);
                 await Task.Delay(150);
                 Check(g.Items.Count == ((JArray)golden["entries"]).Count && goldenWorlds.Length >= 2 && goldenWorlds.All(w => g.Experiences.Has((string)w["id"])) && File.ReadAllBytes(goldenPath).SequenceEqual(goldenBytes),
