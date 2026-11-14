@@ -302,6 +302,7 @@ namespace Runtime.Capabilities
                 return true;
             if (Time.frameCount < item.NotBefore)
                 return false;
+            item.NotBefore = int.MinValue; // The wait is over; a later wait for something else is not a rebuild.
             var view = world.FindView(entity);
             if (!view)
             {

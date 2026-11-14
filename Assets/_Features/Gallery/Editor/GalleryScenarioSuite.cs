@@ -316,6 +316,29 @@ namespace Game.Editor
                 Check(g.Items.Count == ((JArray)golden["entries"]).Count && goldenWorlds.All(w => g.Experiences.Has((string)w["id"])),
                     "A version 1 arrangement whose portal names its world as plain text restores every entry and saved world");
                 g.ReturnToGallery();
+                // Presentation parts that are missing or of the wrong type never cost the content: view, focus and activity gone, a layer's turn as text, an entry without its camera.
+                var lenient = (JObject)golden.DeepClone();
+                lenient.Remove("view");
+                lenient.Remove("focus");
+                lenient.Remove("activity");
+                if (lenient["layers"] is JArray lenientLayers && lenientLayers.Count > 0)
+                    lenientLayers[0]["turn"] = "not a number";
+                ((JObject)((JArray)lenient["entries"])[0]).Remove("camera");
+                g.RestoreArrangement(lenient.ToString(Newtonsoft.Json.Formatting.None));
+                await Task.Delay(150);
+                Check(g.Items.Count == ((JArray)golden["entries"]).Count && goldenWorlds.All(w => g.Experiences.Has((string)w["id"])),
+                    "An arrangement without view, focus and activity, with a layer's turn as text and an entry without its camera restores every entry and saved world");
+                g.ReturnToGallery();
+                // A content fault refuses the file before anything changes: the gallery keeps its entries and saved worlds.
+                var broken = (JObject)golden.DeepClone();
+                broken["entries"][0]["state"]["kind"] = "not a number";
+                int entriesBefore = g.Items.Count;
+                bool kindRefused = false;
+                try { g.RestoreArrangement(broken.ToString(Newtonsoft.Json.Formatting.None)); }
+                catch (ArgumentException) { kindRefused = true; }
+                Check(kindRefused && g.Items.Count == entriesBefore && goldenWorlds.All(w => g.Experiences.Has((string)w["id"])),
+                    "An arrangement whose entry has a kind that is text is refused and the gallery keeps its entries and saved worlds");
+                g.ReturnToGallery();
                 g.RestoreArrangement(goldenText);
                 await Task.Delay(150);
                 Check(g.Items.Count == ((JArray)golden["entries"]).Count && goldenWorlds.Length >= 2 && goldenWorlds.All(w => g.Experiences.Has((string)w["id"])) && File.ReadAllBytes(goldenPath).SequenceEqual(goldenBytes),

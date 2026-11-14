@@ -21,6 +21,7 @@ namespace Game
     public static class WorldTools
     {
         private static readonly Regex Name = new(@"\A[A-Za-z_][A-Za-z0-9_]{0,47}\z", RegexOptions.CultureInvariant);
+        private static readonly Regex Word = new(@"\A[A-Za-z][A-Za-z0-9_]*\z", RegexOptions.CultureInvariant);
         private static readonly Regex Path = new(@"\A[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*\z", RegexOptions.CultureInvariant);
 
         public static IReadOnlyList<IAgentTool> Create(FlecsWorld world, AgentMainThread main)
@@ -543,6 +544,15 @@ namespace Game
             return text;
         }
 
+        // An enum word of a rule (AtStart, Counts, This): one plain word, never a path.
+        private static string WordArg(Call c, JObject source, string name, bool required, string example)
+        {
+            string text = PathArg(c, source, name, required);
+            if (text != null && !Word.IsMatch(text))
+                throw new Failure(name + " needs one word such as " + example + ".");
+            return text;
+        }
+
         private static string Num(JObject source, string name) =>
             source[name] is JValue v && (v.Type == JTokenType.Integer || v.Type == JTokenType.Float) ? Convert.ToString((double)v, CultureInfo.InvariantCulture) : null;
 
@@ -566,7 +576,7 @@ namespace Game
             string name = c.Str("name");
             if (!Name.IsMatch(name))
                 throw new Failure("Use a simple name for the rule.");
-            var rule = new List<string> { "when: " + PathArg(c, c.Args, "when", true) };
+            var rule = new List<string> { "when: " + WordArg(c, c.Args, "when", true, "Touches") };
             if (PathArg(c, c.Args, "that", false) is string that)
                 rule.Add("that: " + RuleEntity(c, that, false));
             if (PathArg(c, c.Args, "count", false) is string count)
@@ -582,9 +592,9 @@ namespace Game
             foreach (var item in thens)
             {
                 var then = item as JObject ?? throw new Failure("Each of thens must be an object.");
-                var parts = new List<string> { "verb: " + PathArg(c, then, "verb", true) };
+                var parts = new List<string> { "verb: " + WordArg(c, then, "verb", true, "Grows") };
                 foreach (string field in new[] { "target", "kind", "count" })
-                    if (PathArg(c, then, field, false) is string text)
+                    if ((field == "target" ? WordArg(c, then, field, false, "This") : PathArg(c, then, field, false)) is string text)
                         parts.Add(field + ": " + (field == "kind" ? RuleEntity(c, text, true) : field == "count" ? RuleEntity(c, text, false, true) : text));
                 if (Num(then, "by") is string by)
                     parts.Add("by: " + by);

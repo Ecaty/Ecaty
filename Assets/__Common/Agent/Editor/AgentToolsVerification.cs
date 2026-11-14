@@ -287,8 +287,13 @@ namespace Game.Editor
                     var foreignKindRule = call("add_rule", new { name = "intruder", owner = "hut_one", when = "AtStart", thens = new[] { new { verb = "Makes", kind = "worlds.other.kinds.Alien" } } });
                     Require(!(bool)foreignKindRule["ok"], "add_rule accepted a kind of another world: " + foreignKindRule);
                     Require(session.Lookup("worlds.other.rules.intruder") == 0 && !Names(call("query", "{\"expression\":\"Rule\"}")["result"]).Contains("intruder"), "A refused rule was left behind");
-                    var whole = call("query", "{\"expression\":\"Position\",\"limit\":5.0}");
-                    Require((bool)whole["ok"], "query refused a limit of 5.0: " + whole);
+                    var pathWhen = call("add_rule", new { name = "intruder", owner = "hut_one", when = "worlds.other.stranger", thens = new[] { new { verb = "Grows" } } });
+                    Require(!(bool)pathWhen["ok"], "add_rule accepted a path as when: " + pathWhen);
+                    var pathTarget = call("add_rule", new { name = "intruder", owner = "hut_one", when = "AtStart", thens = new[] { new { verb = "Grows", target = "worlds.other.stranger" } } });
+                    Require(!(bool)pathTarget["ok"], "add_rule accepted a path as a target: " + pathTarget);
+                    Require(session.Lookup("worlds.other.rules.intruder") == 0 && !Names(call("query", "{\"expression\":\"Rule\"}")["result"]).Contains("intruder"), "A refused rule (path as when or target) was left behind");
+                    var one = call("query", "{\"expression\":\"Position\",\"limit\":1.0}");
+                    Require((bool)one["ok"] && Names(one["result"]).Count == 1, "query with a limit of 1.0 did not return exactly one row: " + one);
                     var huge = call("query", "{\"expression\":\"Position\",\"limit\":99999999999999999999}");
                     Require((bool)huge["ok"], "query refused a huge limit: " + huge);
                     await Task.CompletedTask;

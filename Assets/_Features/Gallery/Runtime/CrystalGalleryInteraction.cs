@@ -727,11 +727,13 @@ namespace Game
             int version = (int?)data["version"] ?? 0;
             if ((version != 1 && version != 2) || data["entries"] is not JArray entries || entries.Count > GalleryExperienceStore.MaxEntries)
                 throw new ArgumentException("Invalid layered gallery arrangement");
+            // Content decides whether a file can be restored: every entry is checked completely before anything changes.
+            // Presentation parts (view, focus, activity, cameras, samples) never refuse a file; ApplyArrangement reads them leniently.
             foreach (var token in entries)
             {
-                string id = (string)token["id"];
-                var d = (JObject)token["state"];
-                if (!System.Text.RegularExpressions.Regex.IsMatch(id ?? "", "^Gallery[A-Za-z0-9_]+$") || (int)d["kind"] < 0 || (int)d["kind"] > 8)
+                if (token is not JObject entry || entry["id"]?.Type != JTokenType.String || entry["state"] is not JObject d
+                    || !System.Text.RegularExpressions.Regex.IsMatch((string)entry["id"], "^Gallery[A-Za-z0-9_]+$")
+                    || !IsWhole(d["order"]) || !IsWhole(d["kind"]) || (int)d["kind"] < 0 || (int)d["kind"] > 8 || d["active"]?.Type != JTokenType.Boolean)
                     throw new ArgumentException("Invalid world entry");
             }
             if (data["worlds"] is JArray definitions && definitions.Any(d => !entries.Any(e => (string)e["id"] == (string)d["id"])))
@@ -745,6 +747,8 @@ namespace Game
                 {
                     if (version == 1)
                     {
+                        if (row is not JObject || row["id"]?.Type != JTokenType.String || row["record"] is not JObject)
+                            throw new ArgumentException("Invalid world entry");
                         string id = (string)row["id"];
                         var converted = GalleryWorldDocument.FromV1(id, (JObject)row["record"]);
                         converted["id"] = id;
@@ -787,6 +791,18 @@ namespace Game
                 throw;
             }
         }
+        static bool IsNumber(JToken token) => token != null && (token.Type == JTokenType.Integer || token.Type == JTokenType.Float);
+        static bool IsWhole(JToken token) => token != null && (token.Type == JTokenType.Integer || (token.Type == JTokenType.Float && Math.Floor((double)token) == (double)token));
+        // A presentation object of a file: its own when it is one, otherwise what the gallery has now. Named numbers that are
+        // not numbers (missing, text) keep the current value.
+        static JObject Part(JToken saved, JObject current, params string[] numbers)
+        {
+            var part = saved as JObject ?? (JObject)current.DeepClone();
+            foreach (string name in numbers)
+                if (!IsNumber(part[name]))
+                    part[name] = current[name];
+            return part;
+        }
         void ApplyArrangement(JObject data, JArray entries, JArray worlds, bool launching)
         {
             CancelDrag();
@@ -828,21 +844,25 @@ namespace Game
                 Write(id, "GalleryEntry", d);
                 if (!byId.ContainsKey(id))
                     AddItem(id);
-                Write(id, "GalleryView", (JObject)token["camera"]);
-                Write(id, "GallerySample", (JObject)token["sample"]);
+                if (token["camera"] is JObject camera)
+                    Write(id, "GalleryView", camera);
+                if (token["sample"] is JObject sample)
+                    Write(id, "GallerySample", sample);
                 if (token["track"] is JObject track)
                     Write(id, "GalleryTrack", track);
-                var residence = (JObject)token["residence"];
-                residence["started"] = time;
-                Write(id, "GalleryResidence", residence);
+                if (token["residence"] is JObject residence)
+                {
+                    residence["started"] = time;
+                    Write(id, "GalleryResidence", residence);
+                }
             }
-            view = (JObject)data["view"];
+            view = Part(data["view"], Read("GalleryTreeSettings", "GalleryView"), "x", "y", "z", "zoom");
             Write("GalleryTreeReturn", "GalleryView", data["returnView"] as JObject ?? view);
-            focus = (JObject)data["focus"];
+            focus = Part(data["focus"], Read("GalleryTreeSettings", "GalleryFocus"), "target");
             focus["preview"] = "";
-            activity = (JObject)data["activity"];
+            activity = Part(data["activity"], Read("GalleryTreeSettings", "GalleryTreeActivity"));
             activity["rate"] = 1;
-            activity["elapsed"] = (float?)activity["elapsed"] ?? 0;
+            activity["elapsed"] = IsNumber(activity["elapsed"]) ? (float)activity["elapsed"] : 0f;
             activity["started"] = time;
             WriteView();
             WriteFocus();
@@ -850,13 +870,16 @@ namespace Game
             if (data["layers"] is JArray turns)
                 for (int i = 0; i < Mathf.Min(6, turns.Count); i++)
                 {
+                    if (turns[i] is not JObject turn)
+                        continue;
                     var intent = Read(LayerId(i + 1), "GalleryLayerIntent");
-                    intent["angle"] = (float)turns[i]["turn"];
+                    if (IsNumber(turn["turn"]))
+                        intent["angle"] = (float)turn["turn"];
                     intent["started"] = time;
-                    if (turns[i]["glowPhase"] != null)
-                        intent["glowPhase"] = (float)turns[i]["glowPhase"];
-                    if (turns[i]["glowRate"] != null)
-                        intent["glowRate"] = (float)turns[i]["glowRate"];
+                    if (IsNumber(turn["glowPhase"]))
+                        intent["glowPhase"] = (float)turn["glowPhase"];
+                    if (IsNumber(turn["glowRate"]))
+                        intent["glowRate"] = (float)turn["glowRate"];
                     Write(LayerId(i + 1), "GalleryLayerIntent", intent);
                 }
             if (data["portal"] is JObject portal)
@@ -905,8 +928,19 @@ namespace Game
                 entryBlend = 1;
             }
         }
+        // A file that could not be resumed and could not be copied aside is not written over in this session.
+        bool saveBlocked, saveBlockWarned;
         public void SaveArrangement()
         {
+            if (saveBlocked)
+            {
+                if (!saveBlockWarned)
+                {
+                    saveBlockWarned = true;
+                    Debug.LogWarning("The arrangement that could not be resumed is not saved over, because it could not be copied aside.");
+                }
+                return;
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(SavePath));
             string temp = SavePath + ".tmp";
             string text = CaptureArrangement();
@@ -932,16 +966,23 @@ namespace Game
             catch (Exception e) { Debug.LogWarning("Version 1 arrangement could not be copied: " + e.Message); }
         }
         // A file that could not be resumed is copied aside before this session saves over it, so nothing saved is lost.
-        static void KeepUnread(string path)
+        static bool KeepUnread(string path)
         {
             try
             {
-                string copy = Path.Combine(Path.GetDirectoryName(path), "tree-arrangement.unread-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + ".json");
-                if (!File.Exists(copy))
-                    File.Copy(path, copy);
+                string stem = Path.Combine(Path.GetDirectoryName(path), "tree-arrangement.unread-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
+                string copy = stem + ".json";
+                for (int n = 2; File.Exists(copy); n++)
+                    copy = stem + "-" + n + ".json";
+                File.Copy(path, copy);
                 Debug.LogWarning("The arrangement that could not be resumed is kept as " + Path.GetFileName(copy));
+                return true;
             }
-            catch (Exception e) { Debug.LogWarning("The arrangement that could not be resumed could not be copied: " + e.Message); }
+            catch (Exception e)
+            {
+                Debug.LogWarning("The arrangement that could not be resumed could not be copied: " + e.Message);
+                return false;
+            }
         }
         static string PreviousArrangementPath => Path.Combine(Application.persistentDataPath, "GalleryPrototype", "arrangement.json");
         void LoadArrangement()
@@ -955,7 +996,7 @@ namespace Game
                 catch (Exception e)
                 {
                     Debug.LogWarning("Layered gallery could not resume: " + e.Message);
-                    KeepUnread(SavePath);
+                    saveBlocked = !KeepUnread(SavePath);
                 }
                 return;
             }

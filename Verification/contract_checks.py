@@ -928,6 +928,15 @@ def sources():
             assert apply_source(world, name, "this is { not a script ((") == -1 and world.lookup(name), f"a broken text over {name} deleted it"
             assert apply_source(world, name, PROBE_KIND) == -1 and world.lookup(name), f"a good text over {name} was accepted"
         assert "already used" in world.error(), world.error()
+        # A name from outside is a plain path: a leading dot would name the built-in entity.
+        assert apply_source(world, ".Position", "this is { not a script ((") == -1 and world.lookup("Position") and ".Position" in world.error(), world.error()
+        for bad in ("*", "_", "$", "a..b", "a.", "x.*.y"):
+            assert apply_source(world, bad, "prefab Nope {}") == -1, f"the source name {bad!r} was accepted"
+        # A refused new source leaves none of the parents it would have made, for its name or its scope.
+        assert source_apply(world.ctx, b"typo.deep.Never", b"scopetypo", b"this is { not a script ((") == -1, "a broken new source was accepted"
+        assert not world.lookup("typo") and not world.lookup("scopetypo"), "a refused source left parents behind"
+        assert apply_source(world, "parents.deep.Src", "prefab Src { Color: {1,1,1,1} }") == 0 and apply_source(world, "parents", "prefab Top { Color: {1,1,1,1} }") == 0, \
+            "an empty parent of a source cannot become a source"
     return ("edit keeps ids; a name of something else is refused and survives; refused texts (script error with line 3, struct, non-prefab, new source, kind in use) change nothing; "
             "undo restores; text reads full length and -1; removal after the last instance; no staging scope")
 
@@ -1064,6 +1073,8 @@ def worlds():
         for text in ("Position(worlds.b.p1)", "Position, Position(worlds.b.p1)", "Position($x), ChildOf($x, worlds.b)", "Position(worlds)"):
             assert world_rows(world, a, text) is None and "its own elements only" in world.error(), f"{text} was not refused: {world.error()!r}"
         assert world_rows(world, a, "Position(worlds.a.p1)") and world_rows(world, a, "IsA($this, worlds.b.kinds.Plane)") == [], "a query of its own, or with another world as the target"
+        for bad in (b"*", b"_", b"$"):
+            assert spawn(world.ctx, world.lookup("worlds.a.kinds.Plane"), a, bad) == 0 and bad.decode() in world.error(), f"spawn accepted the name {bad!r}"
         # A name with a dot is refused, so undo can read the world back.
         assert spawn(world.ctx, world.lookup("worlds.a.kinds.Plane"), a, b"x.y") == 0 and "'.'" in world.error(), "a name with a dot was accepted"
         # A script runs under its world only.
@@ -1170,6 +1181,14 @@ def world_documents():
             "a wildcard tag": '{"format":2,"entities":[{"path":"x","tags":["*"]}]}',
             "an entity that is its own kind": '{"format":2,"entities":[{"path":"x","kinds":["~x"]}]}',
             "a path of 70 segments": '{"format":2,"entities":[{"path":"' + ".".join(["x"] * 71) + '"}]}',
+            "a path that is the wildcard": '{"format":2,"entities":[{"path":"*"}]}',
+            "a path with an empty segment": '{"format":2,"entities":[{"path":"x..y"}]}',
+            "a path with a leading dot": '{"format":2,"entities":[{"path":".x"}]}',
+            "a kind that is a number": '{"format":2,"entities":[{"path":"x","kinds":[5]}]}',
+            "a pair that is a number": '{"format":2,"entities":[{"path":"x","pairs":[5]}]}',
+            "a source named with the wildcard": '{"format":2,"sources":[{"name":"*","text":"prefab P {}"}],"entities":[]}',
+            "a source scope in a world": '{"format":2,"sources":[{"name":"Planted","text":"prefab Planted {}","scope":"worlds.a"}],"entities":[]}',
+            "a source with an empty scope": '{"format":2,"sources":[{"name":"Planted","text":"prefab Planted {}","scope":""}],"entities":[]}',
         }.items():
             refuse(world, name, text, a, 55)
         # The intact document replaces the loaded world with new entities.

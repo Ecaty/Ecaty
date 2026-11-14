@@ -37,9 +37,15 @@ namespace Game
         Vector3 origin;
         // Spin values of a hidden resident, by entity path. The live Spin is zero while hidden.
         readonly Dictionary<string, JToken> paused = new();
+        int generation;
+        // Counts the resident's replaced or removed roots; a reader gets the count after the store has followed the world.
         public int Generation
         {
-            get; private set;
+            get
+            {
+                Follow();
+                return generation;
+            }
         }
         public string ResidentId => resident;
         public Transform ResidentRoot
@@ -90,32 +96,33 @@ namespace Game
                 seenGeneration = session.WorldGeneration;
                 return;
             }
-            if (seenGeneration == session.WorldGeneration && !pending)
-                return;
-            seenGeneration = session.WorldGeneration;
-            ulong current = session.Lookup(GalleryWorldDocument.Root(resident));
-            if (current == 0)
+            if (seenGeneration != session.WorldGeneration)
             {
-                // The world is gone: nothing to save or delete, and the old entity must not be used again.
-                resident = null;
-                root = null;
-                worldId = 0;
-                visible = false;
-                pending = false;
-                paused.Clear();
-                Generation++;
-                return;
+                seenGeneration = session.WorldGeneration;
+                ulong current = session.Lookup(GalleryWorldDocument.Root(resident));
+                if (current == 0)
+                {
+                    // The world is gone: nothing to save or delete, and the old entity must not be used again.
+                    resident = null;
+                    root = null;
+                    worldId = 0;
+                    visible = false;
+                    pending = false;
+                    paused.Clear();
+                    generation++;
+                    return;
+                }
+                if (current != worldId)
+                {
+                    worldId = current;
+                    root = null;
+                    pending = true;
+                    generation++;
+                }
             }
-            if (current != worldId)
-            {
-                worldId = current;
-                root = null;
-                pending = true;
-                Generation++;
-            }
+            // While pending only the view is looked for; the world's own update creates it (Activate and Unload sync and call again).
             if (!pending)
                 return;
-            world.SyncViews();
             if (!Mount(false))
                 return;
             pending = false;
@@ -232,7 +239,7 @@ namespace Game
                 pending = false;
                 visible = false;
                 paused.Clear();
-                Generation++;
+                generation++;
                 try
                 {
                     // Behavior sources of a version 1 record cannot be converted ahead of time; they run once, inside the world.
@@ -434,7 +441,7 @@ namespace Game
             world.SyncViews();
             if (!visible)
                 Store(resident, LiveDocument(), (string)ReadRecord(resident)?["selected"], (string)ReadRecord(resident)?["state"]);
-            Generation++;
+            generation++;
             RefreshLayers();
         }
         static string FreeName(IEnumerable<string> taken)

@@ -484,5 +484,38 @@ namespace Game.Tests
             }
             yield return null;
         }
+        [UnityTest]
+        public IEnumerator ColourIsWrittenAgainAfterOwnershipEnds()
+        {
+            var world = CreateAppliedWorld(out var t, out var view);
+            try
+            {
+                var session = world.Session;
+                ulong owner = session.Lookup("TestOwner");
+                Assert.That(world.AcquireAppearance(view, owner), Is.True);
+                world.SyncViews();
+                var renderer = world.FindView(view).GetComponentInChildren<Renderer>();
+                var block = new MaterialPropertyBlock();
+                block.SetColor(Shader.PropertyToID("_BaseColor"), new Color(0.7f, 0.6f, 0.1f, 1f));
+                renderer.SetPropertyBlock(block);
+                session.SetComponentJson("AppliedView", "Color", "{\"r\":0.9,\"g\":0.1,\"b\":0.3,\"a\":1}");
+                world.SyncViews();
+                var held = ShownColor(world, view);
+                Assert.That(held.r, Is.EqualTo(0.7f).Within(1e-4f), "An owned appearance stays as the owner put it (red)");
+                Assert.That(held.g, Is.EqualTo(0.6f).Within(1e-4f), "An owned appearance stays as the owner put it (green)");
+                // Released in the world without a view change reaching Unity first: a change of the position only must still bring the colour back.
+                Assert.That(session.Release(view, session.AppearanceOwner, owner), Is.True);
+                session.SetComponentJson("AppliedView", "Position", "{\"x\":4,\"y\":5,\"z\":6}");
+                world.SyncViews();
+                var shown = ShownColor(world, view);
+                Assert.That(shown.r, Is.EqualTo(0.9f).Within(1e-4f), "A colour the loop did not write while it was held is written at the next change of the view (red)");
+                Assert.That(shown.g, Is.EqualTo(0.1f).Within(1e-4f), "A colour the loop did not write while it was held is written at the next change of the view (green)");
+            }
+            finally
+            {
+                Object.Destroy(world.gameObject);
+            }
+            yield return null;
+        }
     }
 }
