@@ -468,7 +468,7 @@ Each is a native module, an adapter and its tests. They can run one at a time af
 
 **Costs (desktop, release build).** Describe a type about 60 µs; a checkpoint about 13 ms and a dry run about 96 ms for a world of 1,000 instances; the alerts add nothing measurable to an idle tick. All are guarded in the benchmark.
 
-**Checks.** Native: 522 C++ checks (`tool_tests.cpp` is new), 59 contract checks, benchmark within its guards. Unity at `116c96f` from a detached checkout in the main folder: Run-All passed (Validator 150, Resources 68, PlayerScripts, EditMode 22, PlayMode 43, Gallery 142) and Extended passed 15 of 15, with the new verifier "Agent tools and schemas" (a scripted chat through the real tool loop: build a small scene, break it, read the alert, undo). The Editor log had no Flecs error, Unity rewrote no tracked file and both golden save files stayed byte-identical. The run on the head with step 5.3 is recorded below.
+**Checks.** Native: 522 C++ checks (`tool_tests.cpp` is new), 59 contract checks, benchmark within its guards. Unity at `116c96f` and again at `8f98904` (with step 5.3) from a detached checkout in the main folder, both with the same result: Run-All passed (Validator 150, Resources 68, PlayerScripts, EditMode 22, PlayMode 43, Gallery 142) and Extended passed 15 of 15, with the new verifier "Agent tools and schemas" (a scripted chat through the real tool loop: build a small scene, break it, read the alert, undo; kinds; a second world that stays out of sight). The Editor log had no Flecs error, Unity rewrote no tracked file and both golden save files stayed byte-identical. The type text is 5,813 of its 6,000 characters, so the next types need the budget raised or the text shortened.
 
 ### Phase 6: scale and platforms
 
